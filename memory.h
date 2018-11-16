@@ -458,4 +458,4 @@ namespace clib {
     using memory_pool = legacy_memory_pool<legacy_memory_pool_allocator<default_allocator<>, DefaultSize>>;
 }
 
-#endif //CLIBLISP_MEMORY_H
+#endif //QLIB2D_MEMORY_H

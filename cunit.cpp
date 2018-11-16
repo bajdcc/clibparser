@@ -7,6 +7,48 @@
 
 namespace clib {
 
+    unit_rule *to_rule(unit *u) {
+        assert(u->type == u_rule);
+        return (unit_rule*) u;
+    }
+
+    unit &unit::operator=(const unit &u) {
+        auto rule = to_rule(this);
+        rule->child = const_cast<unit*>(&u);
+        return *this;
+    }
+
+    unit &unit::operator+(const unit &u) {
+        if (type == u_sequence) {
+            return *this;
+        } else {
+            return *this;
+        }
+    }
+
+    unit &unit::operator|(const unit &u) {
+        if (type == u_sequence) {
+            return *this;
+        } else {
+            return *this;
+        }
+    }
+
+    unit &unit_token::operator,(lexer_t type) {
+        this->type = type;
+        return *this;
+    }
+
+    unit &unit_token::operator,(operator_t op) {
+        value.op = op;
+        return *this;
+    }
+
+    unit &unit_token::operator,(keyword_t keyword) {
+        value.keyword = keyword;
+        return *this;
+    }
+
     const char *cunit::str(const string_t &s) {
         auto f = strings.find(s);
         if (f == strings.end()) {

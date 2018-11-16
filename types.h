@@ -252,4 +252,4 @@ struct base_lexer_t<obj> \
 #define OP_INS(t) lexer_op2ins(t)
 }
 
-#endif //CLIBLISP_TYPES_H
+#endif //CMINILANG_TYPES_H

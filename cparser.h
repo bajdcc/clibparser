@@ -47,4 +47,4 @@ namespace clib {
         cast ast;
     };
 }
-#endif //CLIBLISP_PARSER_H
+#endif //CMINILANG_PARSER_H

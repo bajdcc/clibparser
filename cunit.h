@@ -35,17 +35,9 @@ namespace clib {
         unit *next;
         unit_builder *builder;
 
-        unit &operator=(const unit &u) {
-            return *this;
-        }
-
-        unit &operator+(const unit &u) {
-            return *this;
-        }
-
-        unit &operator|(const unit &u) {
-            return *this;
-        }
+        unit &operator=(const unit &u);
+        unit &operator+(const unit &u);
+        unit &operator|(const unit &u);
     };
 
     struct unit_token : public unit {
@@ -55,33 +47,20 @@ namespace clib {
             keyword_t keyword;
         } value;
 
-        unit& operator,(lexer_t type) {
-            this->type = type;
-            return *this;
-        }
-
-        unit& operator,(operator_t op) {
-            value.op = op;
-            return *this;
-        }
-
-        unit& operator,(keyword_t keyword) {
-            value.keyword = keyword;
-            return *this;
-        }
-    };
-
-    struct unit_rule : public unit {
-        const char *s;
+        unit& operator,(lexer_t type);
+        unit& operator,(operator_t op);
+        unit& operator,(keyword_t keyword);
     };
 
     struct unit_collection : public unit {
         unit *child;
     };
 
+    struct unit_rule : public unit_collection {
+        const char *s;
+    };
+
     class unit_builder {
-        virtual unit *token(char ch) = 0;
-        virtual unit *rule() = 0;
     };
 
     // 文法表达式

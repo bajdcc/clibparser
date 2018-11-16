@@ -181,4 +181,4 @@ namespace clib {
     };
 }
 
-#endif //CLIBLISP_LEXER_H
+#endif //CMINILANG_LEXER_H

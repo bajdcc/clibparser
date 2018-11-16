@@ -288,4 +288,4 @@ namespace clib {
     using memory_pool_gc = legacy_memory_gc<DefaultSize>;
 }
 
-#endif //CLIBLISP_MEMORY_GC_H
+#endif //QLIB2D_MEMORY_GC_H
