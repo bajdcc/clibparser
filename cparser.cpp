@@ -4,6 +4,7 @@
 //
 
 #include <iomanip>
+#include <iostream>
 #include "cexception.h"
 #include "cparser.h"
 #include "clexer.h"
@@ -58,7 +59,8 @@ namespace clib {
         auto &program = unit.rule("root");
         auto &plus = unit.token(op_plus);
         auto &times = unit.token(op_times);
-        program = plus + times | plus;
+        program = plus + times | plus | times;
+        unit.dump(std::cout);
     }
 
     void cparser::program() {

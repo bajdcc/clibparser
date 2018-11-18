@@ -13,11 +13,22 @@ C++实现的LR Parser Generator，正在设计中。
 
 ## 调试信息
 
-暂无
+```cpp
+==== RULE ====
+root => '+' '*' | '+' | '*'
+```
 
 ## 使用
 
-暂无
+```cpp
+void cparser::gen() {
+    auto &program = unit.rule("root");
+    auto &plus = unit.token(op_plus);
+    auto &times = unit.token(op_times);
+    program = plus + times | plus | times;
+    unit.dump(std::cout);
+}
+```
 
 ## 测试用例
 
@@ -25,7 +36,7 @@ C++实现的LR Parser Generator，正在设计中。
 
 ## 目标
 
-暂无
+1. 将文法树转换成图
 
 ## 改进
 

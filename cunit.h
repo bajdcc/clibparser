@@ -13,15 +13,13 @@
 #include "memory.h"
 
 #define UNIT_NODE_MEM (2 * 1024)
-#define UNIT_TYPE_CHAR_BASE 0x1000
-#define UNIT_TYPE_KEYWORD_BASE 0x2000
-#define UNIT_TYPE_OPERATOR_BASE 0x3000
 
 namespace clib {
 
     enum unit_t {
         u_none,
         u_token,
+        u_token_ref,
         u_rule,
         u_sequence,
         u_branch,
@@ -31,13 +29,16 @@ namespace clib {
     class unit_builder;
 
     struct unit {
-        unit_t type;
+        unit_t t;
         unit *next;
+        unit *prev;
         unit_builder *builder;
 
         unit &operator=(const unit &u);
         unit &operator+(const unit &u);
         unit &operator|(const unit &u);
+        unit &init(unit_builder *builder);
+        unit &set_t(unit_t type);
     };
 
     struct unit_token : public unit {
@@ -47,24 +48,32 @@ namespace clib {
             keyword_t keyword;
         } value;
 
-        unit& operator,(lexer_t type);
-        unit& operator,(operator_t op);
-        unit& operator,(keyword_t keyword);
+        unit_token &set_type(lexer_t type);
+        unit_token &set_op(operator_t op);
+        unit_token &set_keyword(keyword_t keyword);
     };
 
     struct unit_collection : public unit {
         unit *child;
+
+        unit_collection &set_child(unit *node);
     };
 
     struct unit_rule : public unit_collection {
         const char *s;
+
+        unit_rule &set_s(const char *str);
     };
 
     class unit_builder {
+    public:
+        virtual unit_collection &append(unit *collection, unit *child) = 0;
+        virtual unit_collection &merge(unit *a, unit *b) = 0;
+        virtual unit &collection(unit *a, unit *b, unit_t type) = 0;
     };
 
     // 文法表达式
-    class cunit {
+    class cunit : unit_builder {
     public:
         cunit() = default;
         ~cunit() = default;
@@ -76,6 +85,13 @@ namespace clib {
         unit &token(const operator_t &op);
         unit &token(const keyword_t &keyword);
         unit &rule(const string_t &s);
+
+        unit *copy(unit *u);
+        unit_collection &append(unit *collection, unit *child) override;
+        unit_collection &merge(unit *a, unit *b) override;
+        unit_collection &collection(unit *a, unit *b, unit_t type) override;
+
+        void dump(std::ostream &os);
 
     private:
         const char *str(const string_t &s);
