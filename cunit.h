@@ -78,6 +78,7 @@ namespace clib {
 
     struct nga_edge {
         nga_status *begin, *end;
+        unit *data;
     };
 
     struct nga_edge_list {
@@ -91,7 +92,9 @@ namespace clib {
         virtual unit_collection &merge(unit *a, unit *b) = 0;
         virtual unit &collection(unit *a, unit *b, unit_t type) = 0;
 
-        virtual nga_edge *enga() = 0;
+        virtual nga_edge *enga(bool init) = 0;
+        virtual nga_edge *enga(unit *u) = 0;
+        virtual nga_edge *connect(nga_status *a, nga_status *b) = 0;
     };
 
     // 文法表达式
@@ -113,7 +116,12 @@ namespace clib {
         unit_collection &merge(unit *a, unit *b) override;
         unit_collection &collection(unit *a, unit *b, unit_t type) override;
 
-        nga_edge *enga() override;
+        nga_edge *enga(bool init) override;
+        nga_edge *enga(unit *u) override;
+        nga_edge *connect(nga_status *a, nga_status *b) override;
+
+        nga_status *status();
+        void add_edge(nga_edge_list *&list, nga_edge *edge);
 
         void gen(const unit_rule &sym);
         void dump(std::ostream &os);

@@ -287,35 +287,93 @@ namespace clib {
             return nullptr;
         auto rec = [&](auto u) { return conv_nga(u); };
         switch (u->t) {
-            case u_none:
-                break;
-            case u_token:
-                break;
             case u_token_ref:
-                break;
-            case u_rule:
-                break;
             case u_rule_ref:
-                break;
+                return u->builder->enga(u);
             case u_sequence: {
-                auto enga = u->builder->enga();
+                auto enga = u->builder->enga(false);
+                enga->data = u;
                 std::vector<nga_edge *> edges;
                 nga_recursion(u, edges, rec);
+                for (auto &edge : edges) {
+                    if (enga->begin != nullptr) {
+                        u->builder->connect(enga->end, edge->begin);
+                        enga->end = edge->end;
+                    } else {
+                        enga->begin = edge->begin;
+                        enga->end = edge->end;
+                    }
+                }
                 return enga;
             }
             case u_branch: {
-                auto enga = u->builder->enga();
+                auto enga = u->builder->enga(true);
+                enga->data = u;
                 std::vector<nga_edge *> edges;
                 nga_recursion(u, edges, rec);
+                for (auto &edge : edges) {
+                    u->builder->connect(enga->begin, edge->begin);
+                    u->builder->connect(edge->end, enga->end);
+                }
                 return enga;
             }
             case u_optional:
                 break;
+            default:
+                break;
         }
+        assert(!"not supported");
         return nullptr;
     }
 
-    nga_edge *cunit::enga() {
-        return nodes.alloc<nga_edge>();
+    nga_edge *cunit::enga(bool init) {
+        auto _enga = nodes.alloc<nga_edge>();
+        _enga->data = nullptr;
+        if (init) {
+            _enga->begin = status();
+            _enga->end = status();
+        } else {
+            _enga->begin = _enga->end = nullptr;
+        }
+        return _enga;
+    }
+
+    nga_edge *cunit::enga(unit *u) {
+        auto _enga = enga(true);
+        connect(_enga->begin, _enga->end);
+        _enga->data = u;
+        return _enga;
+    }
+
+    nga_edge *cunit::connect(nga_status *a, nga_status *b) {
+        auto new_edge = nodes.alloc<nga_edge>();
+        new_edge->begin = a;
+        new_edge->end = b;
+        add_edge(a->out, new_edge);
+        add_edge(b->in, new_edge);
+        return new_edge;
+    }
+
+    nga_status *cunit::status() {
+        auto _status = nodes.alloc<nga_status>();
+        _status->final = false;
+        _status->label = nullptr;
+        _status->in = _status->out = nullptr;
+        return _status;
+    }
+
+    void cunit::add_edge(nga_edge_list *&list, nga_edge *edge) {
+        if (list == nullptr) {
+            list = nodes.alloc<nga_edge_list>();
+            list->edge = edge;
+            list->prev = list->next = list;
+        } else {
+            auto new_edge = nodes.alloc<nga_edge_list>();
+            new_edge->edge = edge;
+            new_edge->prev = list->prev;
+            new_edge->next = list;
+            list->prev->next = new_edge;
+            list->prev = new_edge;
+        }
     }
 };
