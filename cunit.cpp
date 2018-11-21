@@ -6,6 +6,8 @@
 #include <functional>
 #include "cunit.h"
 
+#define SHOW_LABEL 0
+
 #define IS_SEQ(type) (type == u_sequence)
 #define IS_BRANCH(type) (type == u_branch)
 #define IS_COLLECTION(type) (type == u_sequence || type == u_branch)
@@ -260,11 +262,13 @@ namespace clib {
         if (!ngas.empty())
             return;
         for (auto &rule : rules) {
-            ngas.insert(std::make_pair(rule.first, conv_nga(to_rule(rule.second)->child)));
+            current_rule = to_rule(rule.second);
+            ngas.insert(std::make_pair(rule.first, conv_nga(current_rule->child)));
         }
+        current_rule = nullptr;
     }
 
-    template <class T>
+    template<class T>
     static void nga_recursion(unit *u, std::vector<nga_edge *> &v, T f) {
         auto node = to_collection(u)->child;
         if (node == nullptr)
@@ -289,9 +293,9 @@ namespace clib {
         switch (u->t) {
             case u_token_ref:
             case u_rule_ref:
-                return u->builder->enga(u);
+                return u->builder->enga(u, u);
             case u_sequence: {
-                auto enga = u->builder->enga(false);
+                auto enga = u->builder->enga(u, false);
                 enga->data = u;
                 std::vector<nga_edge *> edges;
                 nga_recursion(u, edges, rec);
@@ -307,7 +311,7 @@ namespace clib {
                 return enga;
             }
             case u_branch: {
-                auto enga = u->builder->enga(true);
+                auto enga = u->builder->enga(u, true);
                 enga->data = u;
                 std::vector<nga_edge *> edges;
                 nga_recursion(u, edges, rec);
@@ -326,20 +330,22 @@ namespace clib {
         return nullptr;
     }
 
-    nga_edge *cunit::enga(bool init) {
+    nga_edge *cunit::enga(unit *node, bool init) {
         auto _enga = nodes.alloc<nga_edge>();
         _enga->data = nullptr;
         if (init) {
             _enga->begin = status();
             _enga->end = status();
+            _enga->begin->label = label(node, true);
+            _enga->end->label = label(node, false);
         } else {
             _enga->begin = _enga->end = nullptr;
         }
         return _enga;
     }
 
-    nga_edge *cunit::enga(unit *u) {
-        auto _enga = enga(true);
+    nga_edge *cunit::enga(unit *node, unit *u) {
+        auto _enga = enga(node, true);
         connect(_enga->begin, _enga->end);
         _enga->data = u;
         return _enga;
@@ -374,6 +380,92 @@ namespace clib {
             new_edge->next = list;
             list->prev->next = new_edge;
             list->prev = new_edge;
+        }
+    }
+
+    const char *cunit::label(unit *focused, bool front) {
+        std::stringstream ss;
+        label(current_rule, nullptr, focused, front, ss);
+#if SHOW_LABEL
+        printf("%s\n", ss.str().c_str());
+#endif
+        labels.emplace_back(ss.str());
+        return labels.back().c_str();
+    }
+
+    template<class T>
+    static void
+    label_recursion(unit *node, unit *parent, unit *focused, bool front, std::ostream &os, T f) {
+        if (node == nullptr)
+            return;
+        auto i = node;
+        if (i->next == i) {
+            f(i, parent, focused, front, os);
+            return;
+        }
+        f(i, parent, focused, front, os);
+        i = i->next;
+        while (i != node) {
+            f(i, parent, focused, front, os);
+            i = i->next;
+        }
+    }
+
+    void cunit::label(unit *node, unit *parent, unit *focused, bool front, std::ostream &os) {
+        if (node == nullptr)
+            return;
+        auto rec = [this](auto _1, auto _2, auto _3, auto _4, auto &_5) {
+            label(_1, _2, _3, _4, _5);
+        };
+        if (front && node == focused) {
+            os << "@ ";
+        }
+        switch (node->t) {
+            case u_none:
+                break;
+            case u_token: {
+                auto token = to_token(node);
+                if (token->type == l_keyword) {
+                    os << KEYWORD_STRING(token->value.keyword);
+                } else if (token->type == l_operator) {
+                    os << "'" << OP_STRING(token->value.op) << "'";
+                } else {
+                    os << "#" << LEX_STRING(token->type) << "#";
+                }
+            }
+                break;
+            case u_token_ref: {
+                rec(to_ref(node)->child, node, focused, front, os);
+            }
+                break;
+            case u_rule: {
+                auto _rule = to_rule(node);
+                os << _rule->s << " => ";
+                rec(_rule->child, node, focused, front, os);
+            }
+                break;
+            case u_rule_ref: {
+                os << to_rule(to_ref(node)->child)->s;
+            }
+                break;
+            case u_sequence:
+            case u_branch: {
+                auto co = to_collection(node);
+                label_recursion(co->child, node, focused, front, os, rec);
+            }
+                break;
+            case u_optional:
+                break;
+        }
+        if (!front && node == focused) {
+            os << " @";
+        }
+        if (parent) {
+            if (IS_COLLECTION(parent->t)) {
+                auto p = to_collection(parent);
+                if (node->next != p->child)
+                    os << (IS_SEQ(p->t) ? " " : " | ");
+            }
         }
     }
 };

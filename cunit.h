@@ -6,7 +6,6 @@
 #ifndef CLIBPARSER_CUNIT_H
 #define CLIBPARSER_CUNIT_H
 
-
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -92,8 +91,8 @@ namespace clib {
         virtual unit_collection &merge(unit *a, unit *b) = 0;
         virtual unit &collection(unit *a, unit *b, unit_t type) = 0;
 
-        virtual nga_edge *enga(bool init) = 0;
-        virtual nga_edge *enga(unit *u) = 0;
+        virtual nga_edge *enga(unit *node, bool init) = 0;
+        virtual nga_edge *enga(unit *node, unit *u) = 0;
         virtual nga_edge *connect(nga_status *a, nga_status *b) = 0;
     };
 
@@ -116,13 +115,17 @@ namespace clib {
         unit_collection &merge(unit *a, unit *b) override;
         unit_collection &collection(unit *a, unit *b, unit_t type) override;
 
-        nga_edge *enga(bool init) override;
-        nga_edge *enga(unit *u) override;
+        nga_edge *enga(unit *node, bool init) override;
+        nga_edge *enga(unit *node, unit *u) override;
         nga_edge *connect(nga_status *a, nga_status *b) override;
 
+    private:
         nga_status *status();
         void add_edge(nga_edge_list *&list, nga_edge *edge);
+        const char *label(unit *focused, bool front);
+        void label(unit *node, unit *parent, unit *focused, bool front, std::ostream &os);
 
+    public:
         void gen(const unit_rule &sym);
         void dump(std::ostream &os);
 
@@ -139,6 +142,7 @@ namespace clib {
         std::vector<std::string> labels;
         std::unordered_map<std::string, unit *> rules;
         std::unordered_map<std::string, nga_edge *> ngas;
+        unit_rule *current_rule{nullptr};
     };
 };
 
