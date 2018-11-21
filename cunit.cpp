@@ -3,6 +3,7 @@
 // Created by CC
 //
 
+#include <functional>
 #include "cunit.h"
 
 #define IS_SEQ(type) (type == u_sequence)
@@ -27,7 +28,7 @@ namespace clib {
     }
 
     unit_collection *to_ref(unit *u) {
-        assert(u->t == u_token_ref);
+        assert(u->t == u_token_ref || u->t == u_rule_ref);
         return (unit_collection *) u;
     }
 
@@ -127,6 +128,9 @@ namespace clib {
         if (u->t == u_token) { // copy token unit
             return &(*nodes.alloc<unit_collection>()).set_child(u).set_t(u_token_ref).init(this);;
         }
+        if (u->t == u_rule) { // copy rule unit
+            return &(*nodes.alloc<unit_collection>()).set_child(u).set_t(u_rule_ref).init(this);;
+        }
         return u;
     }
 
@@ -218,6 +222,10 @@ namespace clib {
                 rec(rule->child, node, os);
             }
                 break;
+            case u_rule_ref: {
+                os << to_rule(to_ref(node)->child)->s;
+            }
+                break;
             case u_sequence:
             case u_branch: {
                 auto co = to_collection(node);
@@ -236,11 +244,78 @@ namespace clib {
         }
     }
 
+    void cunit::gen(const unit_rule &sym) {
+        gen_nga();
+    }
+
     void cunit::dump(std::ostream &os) {
         os << "==== RULE ====" << std::endl;
         for (auto &k : rules) {
             print(k.second, nullptr, os);
             os << std::endl;
         }
+    }
+
+    void cunit::gen_nga() {
+        if (!ngas.empty())
+            return;
+        for (auto &rule : rules) {
+            ngas.insert(std::make_pair(rule.first, conv_nga(to_rule(rule.second)->child)));
+        }
+    }
+
+    template <class T>
+    static void nga_recursion(unit *u, std::vector<nga_edge *> &v, T f) {
+        auto node = to_collection(u)->child;
+        if (node == nullptr)
+            return;
+        auto i = node;
+        if (i->next == i) {
+            v.push_back(f(i));
+            return;
+        }
+        v.push_back(f(i));
+        i = i->next;
+        while (i != node) {
+            v.push_back(f(i));
+            i = i->next;
+        }
+    }
+
+    nga_edge *cunit::conv_nga(unit *u) {
+        if (u == nullptr)
+            return nullptr;
+        auto rec = [&](auto u) { return conv_nga(u); };
+        switch (u->t) {
+            case u_none:
+                break;
+            case u_token:
+                break;
+            case u_token_ref:
+                break;
+            case u_rule:
+                break;
+            case u_rule_ref:
+                break;
+            case u_sequence: {
+                auto enga = u->builder->enga();
+                std::vector<nga_edge *> edges;
+                nga_recursion(u, edges, rec);
+                return enga;
+            }
+            case u_branch: {
+                auto enga = u->builder->enga();
+                std::vector<nga_edge *> edges;
+                nga_recursion(u, edges, rec);
+                return enga;
+            }
+            case u_optional:
+                break;
+        }
+        return nullptr;
+    }
+
+    nga_edge *cunit::enga() {
+        return nodes.alloc<nga_edge>();
     }
 };

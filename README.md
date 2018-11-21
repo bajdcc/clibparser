@@ -15,7 +15,7 @@ C++实现的LR Parser Generator，正在设计中。
 
 ```cpp
 ==== RULE ====
-root => '+' '*' | '+' | '*'
+root => '+' '*' root | '+' | '*'
 ```
 
 ## 使用
@@ -25,7 +25,8 @@ void cparser::gen() {
     auto &program = unit.rule("root");
     auto &plus = unit.token(op_plus);
     auto &times = unit.token(op_times);
-    program = plus + times | plus | times;
+    program = plus + times + program | plus | times;
+    unit.gen((unit_rule &) program);
     unit.dump(std::cout);
 }
 ```
@@ -36,7 +37,7 @@ void cparser::gen() {
 
 ## 目标
 
-1. 将文法树转换成图
+1. 将文法树转换成图（进行中）
 
 ## 改进
 

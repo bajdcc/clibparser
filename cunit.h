@@ -10,6 +10,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 #include "memory.h"
 
 #define UNIT_NODE_MEM (2 * 1024)
@@ -21,6 +22,7 @@ namespace clib {
         u_token,
         u_token_ref,
         u_rule,
+        u_rule_ref,
         u_sequence,
         u_branch,
         u_optional,
@@ -65,15 +67,35 @@ namespace clib {
         unit_rule &set_s(const char *str);
     };
 
+    struct nga_edge;
+    struct nga_edge_list;
+
+    struct nga_status {
+        const char *label;
+        bool final;
+        nga_edge_list *in, *out;
+    };
+
+    struct nga_edge {
+        nga_status *begin, *end;
+    };
+
+    struct nga_edge_list {
+        nga_edge_list *prev, *next;
+        nga_edge *edge;
+    };
+
     class unit_builder {
     public:
         virtual unit_collection &append(unit *collection, unit *child) = 0;
         virtual unit_collection &merge(unit *a, unit *b) = 0;
         virtual unit &collection(unit *a, unit *b, unit_t type) = 0;
+
+        virtual nga_edge *enga() = 0;
     };
 
     // 文法表达式
-    class cunit : unit_builder {
+    class cunit : public unit_builder {
     public:
         cunit() = default;
         ~cunit() = default;
@@ -91,7 +113,14 @@ namespace clib {
         unit_collection &merge(unit *a, unit *b) override;
         unit_collection &collection(unit *a, unit *b, unit_t type) override;
 
+        nga_edge *enga() override;
+
+        void gen(const unit_rule &sym);
         void dump(std::ostream &os);
+
+    private:
+        void gen_nga();
+        static nga_edge *conv_nga(unit *u);
 
     private:
         const char *str(const string_t &s);
@@ -99,7 +128,9 @@ namespace clib {
     private:
         memory_pool<UNIT_NODE_MEM> nodes;
         std::unordered_set<std::string> strings;
+        std::vector<std::string> labels;
         std::unordered_map<std::string, unit *> rules;
+        std::unordered_map<std::string, nga_edge *> ngas;
     };
 };
 
