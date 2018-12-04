@@ -4,9 +4,11 @@
 //
 
 #include <functional>
+#include <queue>
 #include "cunit.h"
 
 #define SHOW_LABEL 0
+#define SHOW_CLOSURE 0
 
 #define IS_SEQ(type) (type == u_sequence)
 #define IS_BRANCH(type) (type == u_branch)
@@ -263,7 +265,7 @@ namespace clib {
             return;
         for (auto &rule : rules) {
             current_rule = to_rule(rule.second);
-            ngas.insert(std::make_pair(rule.first, conv_nga(current_rule->child)));
+            ngas.insert(std::make_pair(rule.first, delete_epsilon(conv_nga(current_rule->child))));
         }
         current_rule = nullptr;
     }
@@ -355,6 +357,7 @@ namespace clib {
         auto new_edge = nodes.alloc<nga_edge>();
         new_edge->begin = a;
         new_edge->end = b;
+        new_edge->data = nullptr;
         add_edge(a->out, new_edge);
         add_edge(b->in, new_edge);
         return new_edge;
@@ -467,5 +470,50 @@ namespace clib {
                     os << (IS_SEQ(p->t) ? " " : " | ");
             }
         }
+    }
+
+    nga_status *cunit::delete_epsilon(nga_edge *edge) {
+        auto closure = get_closure(edge->begin);
+#if SHOW_CLOSURE
+        for (auto & c : closure) {
+            printf("%s\n", c->label);
+        }
+#endif
+        // TODO: Complete Delete Epsilon
+        return closure[0];
+    }
+
+    std::vector<nga_status *> cunit::get_closure(nga_status *status) {
+        std::vector<nga_status *> v;
+        std::queue<nga_status *> queue;
+        std::unordered_set<nga_status *> set;
+        queue.push(status);
+        set.insert(status);
+        while (!queue.empty()) {
+            auto current = queue.front();
+            queue.pop();
+            v.push_back(current);
+            auto out_ptr = current->out;
+            if (out_ptr) {
+                auto out = out_ptr->edge->end;
+                if (set.find(out) == set.end()) {
+                    set.insert(out);
+                    queue.push(out);
+                }
+                if (out_ptr->next != out_ptr) {
+                    auto head = out_ptr;
+                    out_ptr = out_ptr->next;
+                    while (out_ptr != head) {
+                        out = out_ptr->edge->end;
+                        if (set.find(out) == set.end()) {
+                            set.insert(out);
+                            queue.push(out);
+                        }
+                        out_ptr = out_ptr->next;
+                    }
+                }
+            }
+        }
+        return v;
     }
 };

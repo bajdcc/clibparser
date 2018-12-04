@@ -132,6 +132,8 @@ namespace clib {
     private:
         void gen_nga();
         static nga_edge *conv_nga(unit *u);
+        nga_status *delete_epsilon(nga_edge *edge);
+        std::vector<nga_status *> get_closure(nga_status *status);
 
     private:
         const char *str(const string_t &s);
@@ -141,7 +143,7 @@ namespace clib {
         std::unordered_set<std::string> strings;
         std::vector<std::string> labels;
         std::unordered_map<std::string, unit *> rules;
-        std::unordered_map<std::string, nga_edge *> ngas;
+        std::unordered_map<std::string, nga_status *> ngas;
         unit_rule *current_rule{nullptr};
     };
 };
