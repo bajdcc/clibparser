@@ -674,8 +674,7 @@ namespace clib {
         for (int i = 0; i < nga_status_list.size(); ++i) {
             status_map.insert(std::make_pair(nga_status_list[i], i));
         }
-        for (int i = 0; i < nga_status_list.size(); ++i) {
-            auto status = nga_status_list[i];
+        for (auto status : nga_status_list) {
             os << "Status #" << status_map[status];
             if (status->final)
                 os << " [FINAL]";
