@@ -13,21 +13,24 @@ C++实现的LR Parser Generator，正在设计中。
 
 ## 调试信息
 
+生成NGA图，去EPSILON化，未去重复边及优化。
+
 ```cpp
-root => @ '+' '*' root | '+' | '*'
-root => '+' '*' root | '+' | '*' @
-root => @ '+' '*' root | '+' | '*'
-root => '+' @ '*' root | '+' | '*'
-root => '+' @ '*' root | '+' | '*'
-root => '+' '*' @ root | '+' | '*'
-root => '+' '*' @ root | '+' | '*'
-root => '+' '*' root @ | '+' | '*'
-root => '+' '*' root | @ '+' | '*'
-root => '+' '*' root | '+' @ | '*'
-root => '+' '*' root | '+' | @ '*'
-root => '+' '*' root | '+' | '*' @
 ==== RULE ====
 root => '+' '*' root | '+' | '*'
+==== NGA  ====
+** Rule: root
+Status #0 - root => @ ( '+' '*' root | '+' | '*' )
+  To #1:  '*'
+  To #2:  '+'
+  To #3:  '+'
+Status #1 [FINAL] - root => ( '+' '*' root | '+' | '*' @ )
+Status #2 - root => ( '+' @ '*' root | '+' | '*' )
+  To #4:  '*'
+Status #3 [FINAL] - root => ( '+' '*' root | '+' @ | '*' )
+Status #4 - root => ( '+' '*' @ root | '+' | '*' )
+  To #5:  root
+Status #5 [FINAL] - root => ( '+' '*' root @ | '+' | '*' )
 ```
 
 ## 使用

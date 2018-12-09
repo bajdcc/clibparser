@@ -254,14 +254,6 @@ namespace clib {
         gen_nga();
     }
 
-    void cunit::dump(std::ostream &os) {
-        os << "==== RULE ====" << std::endl;
-        for (auto &k : rules) {
-            print(k.second, nullptr, os);
-            os << std::endl;
-        }
-    }
-
     void cunit::gen_nga() {
         if (!ngas.empty())
             return;
@@ -349,8 +341,11 @@ namespace clib {
     }
 
     nga_edge *cunit::enga(unit *node, unit *u) {
-        auto _enga = enga(node, true);
-        connect(_enga->begin, _enga->end);
+        auto begin = status();
+        auto end = status();
+        begin->label = label(node, true);
+        end->label = label(node, false);
+        auto _enga = connect(begin, end);
         _enga->data = u;
         return _enga;
     }
@@ -618,6 +613,7 @@ namespace clib {
     }
 
     nga_status *cunit::delete_epsilon(nga_edge *edge) {
+        edge->end->final = true;
         auto nga_status_list = get_closure(edge->begin, [](auto it) { return true; });
 #if SHOW_CLOSURE
         for (auto & c : nga_status_list) {
@@ -627,30 +623,30 @@ namespace clib {
         // TODO: Complete Delete Epsilon
         std::vector<nga_status *> available_status;
         std::vector<const char *> available_labels;
-        std::unordered_map<size_t, size_t> available_labels_set;
-        available_status.push_back(nga_status_list[0]);
+        std::unordered_map<size_t, size_t> available_labels_map;
         available_labels.emplace_back(nga_status_list[0]->label);
-        available_labels_set.insert(std::make_pair(std::hash<string_t>{}(string_t(nga_status_list[0]->label)), nga_status_list.size()));
+        available_labels_map.insert(std::make_pair(std::hash<string_t>{}(string_t(nga_status_list[0]->label)), available_status.size()));
+        available_status.push_back(nga_status_list[0]);
         for (auto _status = nga_status_list.begin() + 1; _status != nga_status_list.end(); _status++) {
             auto &status = *_status;
             if (has_filter_in_edges(status, [](auto it) { return it->data != nullptr; })
-                && available_labels_set.find(std::hash<string_t>{}(status->label)) !=
-                   available_labels_set.end()) {
-                available_status.push_back(status);
+                && available_labels_map.find(std::hash<string_t>{}(status->label)) ==
+                   available_labels_map.end()) {
                 available_labels.emplace_back(status->label);
-                available_labels_set.insert(std::make_pair(std::hash<string_t>{}(status->label), nga_status_list.size()));
+                available_labels_map.insert(std::make_pair(std::hash<string_t>{}(status->label), available_status.size()));
+                available_status.push_back(status);
             }
         }
         for (auto &status : available_status) {
             auto epsilon_closure = get_closure(status, [](auto it) { return it->data == nullptr; });
-            for (auto &epsilon : available_status) {
+            for (auto &epsilon : epsilon_closure) {
                 if (epsilon == status)
                     continue;
                 if (epsilon->final)
                     status->final = true;
                 auto out_edges = get_filter_out_edges(epsilon, [](auto it) { return it->data != nullptr; });
                 for (auto &out_edge: out_edges) {
-                    auto idx = available_labels_set.at(std::hash<string_t>{}(out_edge->edge->end->label));
+                    auto idx = available_labels_map.at(std::hash<string_t>{}(out_edge->edge->end->label));
                     connect(status, available_status[idx])->data = out_edge->edge->data;
                 }
             }
@@ -668,5 +664,45 @@ namespace clib {
             }
         }
         return edge->begin;
+    }
+
+    void print(nga_status *node, std::ostream &os) {
+        if (node == nullptr)
+            return;
+        auto nga_status_list = get_closure(node, [](auto it){ return true; });
+        std::unordered_map<nga_status *, size_t> status_map;
+        for (int i = 0; i < nga_status_list.size(); ++i) {
+            status_map.insert(std::make_pair(nga_status_list[i], i));
+        }
+        for (int i = 0; i < nga_status_list.size(); ++i) {
+            auto status = nga_status_list[i];
+            os << "Status #" << status_map[status];
+            if (status->final)
+                os << " [FINAL]";
+            os << " - " << status->label << std::endl;
+            auto outs = get_filter_out_edges(status, [](auto it){ return true; });
+            for (auto &out: outs) {
+                os << "  To #" << status_map[out->edge->end] << ":  ";
+                if (out->edge->data)
+                    print(out->edge->data, nullptr, os);
+                else
+                    os << "EPSILON";
+                os << std::endl;
+            }
+        }
+    }
+
+    void cunit::dump(std::ostream &os) {
+        os << "==== RULE ====" << std::endl;
+        for (auto &k : rules) {
+            print(k.second, nullptr, os);
+            os << std::endl;
+        }
+        os << "==== NGA  ====" << std::endl;
+        for (auto &k : ngas) {
+            os << "** Rule: " << k.first << std::endl;
+            print(k.second, os);
+            os << std::endl;
+        }
     }
 };
