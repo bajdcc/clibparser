@@ -55,7 +55,8 @@ void cparser::gen() {
 - [x] 生成LR项目
 - [ ] 生成非确定性文法自动机
     - [x] 闭包求解
-    - [ ] 去Epsilon
+    - [x] 去Epsilon
+    - [ ] 打印NGA结构
 
 1. 将文法树转换成图（进行中）
 

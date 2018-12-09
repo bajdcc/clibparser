@@ -3,9 +3,11 @@
 // Created by CC
 //
 
+#include <algorithm>
 #include <functional>
 #include <queue>
 #include "cunit.h"
+#include "cexception.h"
 
 #define SHOW_LABEL 0
 #define SHOW_CLOSURE 0
@@ -363,6 +365,38 @@ namespace clib {
         return new_edge;
     }
 
+    static std::vector<nga_edge_list *> get_edges(nga_edge_list *node) {
+        std::vector<nga_edge_list *> v;
+        if (node == nullptr)
+            return v;
+        auto i = node;
+        if (i->next == i) {
+            v.push_back(i);
+            return v;
+        }
+        v.push_back(i);
+        i = i->next;
+        while (i != node) {
+            v.push_back(i);
+            i = i->next;
+        }
+        return v;
+    }
+
+    void *cunit::disconnect(nga_status *status) {
+        auto ins = get_edges(status->in);
+        for (auto &edge : ins) {
+            remove_edge(edge->edge->end->in, edge);
+            nodes.free(edge);
+        }
+        auto outs = get_edges(status->out);
+        for (auto &edge : outs) {
+            remove_edge(edge->edge->end->in, edge);
+            nodes.free(edge);
+        }
+        nodes.free(status);
+    }
+
     nga_status *cunit::status() {
         auto _status = nodes.alloc<nga_status>();
         _status->final = false;
@@ -383,6 +417,35 @@ namespace clib {
             new_edge->next = list;
             list->prev->next = new_edge;
             list->prev = new_edge;
+        }
+    }
+
+    void cunit::remove_edge(nga_edge_list *&list, nga_edge_list *edge) {
+        if (list == nullptr) {
+            throw cexception("remove from empty edge list");
+        } else if (list->next == list) {
+            assert(list->edge == edge->edge);
+            list = nullptr;
+            nodes.free(list);
+        } else {
+            if (list->edge == edge->edge) {
+                list->prev->next = list->next;
+                list->next->prev = list->prev;
+                list = list->prev;
+                nodes.free(edge);
+            } else {
+                auto node = list->next;
+                while (node != list) {
+                    if (node->edge == edge->edge) {
+                        node->prev->next = node->next;
+                        node->next->prev = node->prev;
+                        nodes.free(node);
+                        return;
+                    }
+                    node = node->next;
+                }
+                throw cexception("remove nothing from edge list");
+            }
         }
     }
 
@@ -454,7 +517,11 @@ namespace clib {
             case u_sequence:
             case u_branch: {
                 auto co = to_collection(node);
+                if (node->t == u_branch)
+                    os << "( ";
                 label_recursion(co->child, node, focused, front, os, rec);
+                if (node->t == u_branch)
+                    os << " )";
             }
                 break;
             case u_optional:
@@ -472,18 +539,51 @@ namespace clib {
         }
     }
 
-    nga_status *cunit::delete_epsilon(nga_edge *edge) {
-        auto closure = get_closure(edge->begin);
-#if SHOW_CLOSURE
-        for (auto & c : closure) {
-            printf("%s\n", c->label);
+    template<class T>
+    static bool has_filter_in_edges(nga_status *status, const T &f) {
+        auto node = status->in;
+        if (node == nullptr)
+            return false;
+        auto i = node;
+        if (i->next == i) {
+            return f(i->edge);
         }
-#endif
-        // TODO: Complete Delete Epsilon
-        return closure[0];
+        if (f(i->edge))
+            return true;
+        i = i->next;
+        while (i != node) {
+            if (f(i->edge))
+                return true;
+            i = i->next;
+        }
+        return false;
     }
 
-    std::vector<nga_status *> cunit::get_closure(nga_status *status) {
+    template<class T>
+    static std::vector<nga_edge_list *> get_filter_out_edges(nga_status *status, const T &f) {
+        std::vector<nga_edge_list *> v;
+        auto node = status->out;
+        if (node == nullptr)
+            return v;
+        auto i = node;
+        if (i->next == i) {
+            if (f(i->edge))
+                v.push_back(i);
+            return v;
+        }
+        if (f(i->edge))
+            v.push_back(i);
+        i = i->next;
+        while (i != node) {
+            if (f(i->edge))
+                v.push_back(i);
+            i = i->next;
+        }
+        return v;
+    }
+
+    template<class T>
+    std::vector<nga_status *> get_closure(nga_status *status, const T &f) {
         std::vector<nga_status *> v;
         std::queue<nga_status *> queue;
         std::unordered_set<nga_status *> set;
@@ -496,7 +596,7 @@ namespace clib {
             auto out_ptr = current->out;
             if (out_ptr) {
                 auto out = out_ptr->edge->end;
-                if (set.find(out) == set.end()) {
+                if (f(out_ptr->edge) && set.find(out) == set.end()) {
                     set.insert(out);
                     queue.push(out);
                 }
@@ -505,7 +605,7 @@ namespace clib {
                     out_ptr = out_ptr->next;
                     while (out_ptr != head) {
                         out = out_ptr->edge->end;
-                        if (set.find(out) == set.end()) {
+                        if (f(out_ptr->edge) && set.find(out) == set.end()) {
                             set.insert(out);
                             queue.push(out);
                         }
@@ -515,5 +615,58 @@ namespace clib {
             }
         }
         return v;
+    }
+
+    nga_status *cunit::delete_epsilon(nga_edge *edge) {
+        auto nga_status_list = get_closure(edge->begin, [](auto it) { return true; });
+#if SHOW_CLOSURE
+        for (auto & c : nga_status_list) {
+            printf("%s\n", c->label);
+        }
+#endif
+        // TODO: Complete Delete Epsilon
+        std::vector<nga_status *> available_status;
+        std::vector<const char *> available_labels;
+        std::unordered_map<size_t, size_t> available_labels_set;
+        available_status.push_back(nga_status_list[0]);
+        available_labels.emplace_back(nga_status_list[0]->label);
+        available_labels_set.insert(std::make_pair(std::hash<string_t>{}(string_t(nga_status_list[0]->label)), nga_status_list.size()));
+        for (auto _status = nga_status_list.begin() + 1; _status != nga_status_list.end(); _status++) {
+            auto &status = *_status;
+            if (has_filter_in_edges(status, [](auto it) { return it->data != nullptr; })
+                && available_labels_set.find(std::hash<string_t>{}(status->label)) !=
+                   available_labels_set.end()) {
+                available_status.push_back(status);
+                available_labels.emplace_back(status->label);
+                available_labels_set.insert(std::make_pair(std::hash<string_t>{}(status->label), nga_status_list.size()));
+            }
+        }
+        for (auto &status : available_status) {
+            auto epsilon_closure = get_closure(status, [](auto it) { return it->data == nullptr; });
+            for (auto &epsilon : available_status) {
+                if (epsilon == status)
+                    continue;
+                if (epsilon->final)
+                    status->final = true;
+                auto out_edges = get_filter_out_edges(epsilon, [](auto it) { return it->data != nullptr; });
+                for (auto &out_edge: out_edges) {
+                    auto idx = available_labels_set.at(std::hash<string_t>{}(out_edge->edge->end->label));
+                    connect(status, available_status[idx])->data = out_edge->edge->data;
+                }
+            }
+        }
+        for (auto &status : nga_status_list) {
+            auto out_edges = get_filter_out_edges(status, [](auto it) { return it->data == nullptr; });
+            for (auto &out_edge : out_edges) {
+                remove_edge(out_edge->edge->end->in, out_edge);
+                remove_edge(status->out, out_edge);
+            }
+        }
+        for (auto &status : nga_status_list) {
+            if (std::find(available_status.begin(), available_status.end(), status) == available_status.end()) {
+                disconnect(status);
+            }
+        }
+        return edge->begin;
     }
 };

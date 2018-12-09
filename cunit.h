@@ -122,8 +122,10 @@ namespace clib {
     private:
         nga_status *status();
         void add_edge(nga_edge_list *&list, nga_edge *edge);
+        void remove_edge(nga_edge_list *&list, nga_edge_list *edge);
         const char *label(unit *focused, bool front);
         void label(unit *node, unit *parent, unit *focused, bool front, std::ostream &os);
+        void *disconnect(nga_status *status);
 
     public:
         void gen(const unit_rule &sym);
@@ -133,7 +135,6 @@ namespace clib {
         void gen_nga();
         static nga_edge *conv_nga(unit *u);
         nga_status *delete_epsilon(nga_edge *edge);
-        std::vector<nga_status *> get_closure(nga_status *status);
 
     private:
         const char *str(const string_t &s);
