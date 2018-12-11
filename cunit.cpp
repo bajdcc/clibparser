@@ -14,7 +14,7 @@
 
 #define IS_SEQ(type) (type == u_sequence)
 #define IS_BRANCH(type) (type == u_branch)
-#define IS_COLLECTION(type) (type == u_sequence || type == u_branch)
+#define IS_COLLECTION(type) (type == u_sequence || type == u_branch || type == u_optional)
 
 namespace clib {
 
@@ -72,6 +72,10 @@ namespace clib {
         } else {
             return builder->collection(this, const_cast<unit *>(&u), u_branch);
         }
+    }
+
+    unit &unit::operator*() {
+        return builder->optional(this);
     }
 
     unit &unit::init(unit_builder *builder) {
@@ -173,6 +177,12 @@ namespace clib {
         return (unit_collection &) (*nodes.alloc<unit_collection>()).set_child(a).set_t(type).init(this);
     }
 
+    unit_collection &cunit::optional(unit *a) {
+        a = copy(a);
+        a->next = a->prev = a;
+        return (unit_collection &) (*nodes.alloc<unit_collection>()).set_child(a).set_t(u_optional).init(this);
+    }
+
     unit &cunit::rule(const string_t &s) {
         auto f = rules.find(s);
         if (f == rules.end()) {
@@ -233,12 +243,21 @@ namespace clib {
             }
                 break;
             case u_sequence:
-            case u_branch: {
+            case u_branch:
+            case u_optional: {
                 auto co = to_collection(node);
+                if (node->t == u_branch)
+                    os << "( ";
+                else if (node->t == u_optional)
+                    os << "[ ";
                 unit_recursion(co->child, node, os, rec);
+                if (node->t == u_branch)
+                    os << " )";
+                else if (node->t == u_optional)
+                    os << " ]";
             }
                 break;
-            case u_optional:
+            default:
                 break;
         }
         if (parent) {
@@ -317,8 +336,12 @@ namespace clib {
                 }
                 return enga;
             }
-            case u_optional:
-                break;
+            case u_optional: {
+                std::vector<nga_edge *> edges;
+                nga_recursion(u, edges, rec);
+                auto &edge = edges.front();
+                return u->builder->connect(edge->begin, edge->end);
+            }
             default:
                 break;
         }
@@ -510,16 +533,21 @@ namespace clib {
             }
                 break;
             case u_sequence:
-            case u_branch: {
+            case u_branch:
+            case u_optional: {
                 auto co = to_collection(node);
                 if (node->t == u_branch)
                     os << "( ";
+                else if (node->t == u_optional)
+                    os << "[ ";
                 label_recursion(co->child, node, focused, front, os, rec);
                 if (node->t == u_branch)
                     os << " )";
+                else if (node->t == u_optional)
+                    os << " ]";
             }
                 break;
-            case u_optional:
+            default:
                 break;
         }
         if (!front && node == focused) {

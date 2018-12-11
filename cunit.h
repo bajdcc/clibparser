@@ -38,6 +38,7 @@ namespace clib {
         unit &operator=(const unit &u);
         unit &operator+(const unit &u);
         unit &operator|(const unit &u);
+        unit &operator*();
         unit &init(unit_builder *builder);
         unit &set_t(unit_t type);
     };
@@ -89,7 +90,8 @@ namespace clib {
     public:
         virtual unit_collection &append(unit *collection, unit *child) = 0;
         virtual unit_collection &merge(unit *a, unit *b) = 0;
-        virtual unit &collection(unit *a, unit *b, unit_t type) = 0;
+        virtual unit_collection &collection(unit *a, unit *b, unit_t type) = 0;
+        virtual unit_collection &optional(unit *a) = 0;
         virtual unit *copy(unit *u) = 0;
 
         virtual nga_edge *enga(unit *node, bool init) = 0;
@@ -114,6 +116,7 @@ namespace clib {
         unit_collection &append(unit *collection, unit *child) override;
         unit_collection &merge(unit *a, unit *b) override;
         unit_collection &collection(unit *a, unit *b, unit_t type) override;
+        unit_collection &optional(unit *a) override;
         unit *copy(unit *u) override;
 
         nga_edge *enga(unit *node, bool init) override;

@@ -66,8 +66,8 @@ namespace clib {
         auto &divide = unit.token(op_divide);
         auto &integer = unit.token(l_int);
         program = exp0;
-        exp0 = exp0 + (plus | minus) + exp1 | exp1;
-        exp1 = exp1 + (times | divide) + exp2 | exp2;
+        exp0 = *(exp0 + (plus | minus)) + exp1;
+        exp1 = *(exp1 + (times | divide)) + exp2;
         exp2 = integer;
         unit.gen((unit_rule &) program);
         unit.dump(std::cout);
