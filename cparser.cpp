@@ -57,9 +57,18 @@ namespace clib {
 
     void cparser::gen() {
         auto &program = unit.rule("root");
+        auto &exp0 = unit.rule("exp0");
+        auto &exp1 = unit.rule("exp1");
+        auto &exp2 = unit.rule("exp2");
         auto &plus = unit.token(op_plus);
+        auto &minus = unit.token(op_minus);
         auto &times = unit.token(op_times);
-        program = plus + times + program | plus | times;
+        auto &divide = unit.token(op_divide);
+        auto &integer = unit.token(l_int);
+        program = exp0;
+        exp0 = exp0 + (plus | minus) + exp1 | exp1;
+        exp1 = exp1 + (times | divide) + exp2 | exp2;
+        exp2 = integer;
         unit.gen((unit_rule &) program);
         unit.dump(std::cout);
     }

@@ -13,24 +13,54 @@ C++实现的LR Parser Generator，正在设计中。
 
 ## 调试信息
 
+先实现四则运算的解析。
+
 生成NGA图，去EPSILON化，未去重复边及优化。
 
 ```cpp
 ==== RULE ====
-root => '+' '*' root | '+' | '*'
+exp0 => exp0 '+' | '-' exp1 | exp1
+exp1 => exp1 '*' | '/' exp2 | exp2
+exp2 => #int#
+root => exp0
 ==== NGA  ====
-** Rule: root
-Status #0 - root => @ ( '+' '*' root | '+' | '*' )
-  To #1:  '*'
-  To #2:  '+'
-  To #3:  '+'
-Status #1 [FINAL] - root => ( '+' '*' root | '+' | '*' @ )
-Status #2 - root => ( '+' @ '*' root | '+' | '*' )
+** Rule: exp0
+Status #0 - exp0 => @ ( exp0 ( '+' | '-' ) exp1 | exp1 )
+  To #1:  exp1
+  To #2:  exp0
+Status #1 [FINAL] - exp0 => ( exp0 ( '+' | '-' ) exp1 | exp1 @ )
+Status #2 - exp0 => ( exp0 @ ( '+' | '-' ) exp1 | exp1 )
+  To #3:  '-'
+  To #4:  '+'
+Status #3 - exp0 => ( exp0 ( '+' | '-' @ ) exp1 | exp1 )
+  To #5:  exp1
+Status #4 - exp0 => ( exp0 ( '+' @ | '-' ) exp1 | exp1 )
+  To #5:  exp1
+Status #5 [FINAL] - exp0 => ( exp0 ( '+' | '-' ) exp1 @ | exp1 )
+
+** Rule: exp1
+Status #0 - exp1 => @ ( exp1 ( '*' | '/' ) exp2 | exp2 )
+  To #1:  exp2
+  To #2:  exp1
+Status #1 [FINAL] - exp1 => ( exp1 ( '*' | '/' ) exp2 | exp2 @ )
+Status #2 - exp1 => ( exp1 @ ( '*' | '/' ) exp2 | exp2 )
+  To #3:  '/'
   To #4:  '*'
-Status #3 [FINAL] - root => ( '+' '*' root | '+' @ | '*' )
-Status #4 - root => ( '+' '*' @ root | '+' | '*' )
-  To #5:  root
-Status #5 [FINAL] - root => ( '+' '*' root @ | '+' | '*' )
+Status #3 - exp1 => ( exp1 ( '*' | '/' @ ) exp2 | exp2 )
+  To #5:  exp2
+Status #4 - exp1 => ( exp1 ( '*' @ | '/' ) exp2 | exp2 )
+  To #5:  exp2
+Status #5 [FINAL] - exp1 => ( exp1 ( '*' | '/' ) exp2 @ | exp2 )
+
+** Rule: exp2
+Status #0 - exp2 => @ #int#
+  To #1:  #int#
+Status #1 [FINAL] - exp2 => #int# @
+
+** Rule: root
+Status #0 - root => @ exp0
+  To #1:  exp0
+Status #1 [FINAL] - root => exp0 @
 ```
 
 ## 使用
@@ -38,9 +68,18 @@ Status #5 [FINAL] - root => ( '+' '*' root @ | '+' | '*' )
 ```cpp
 void cparser::gen() {
     auto &program = unit.rule("root");
+    auto &exp0 = unit.rule("exp0");
+    auto &exp1 = unit.rule("exp1");
+    auto &exp2 = unit.rule("exp2");
     auto &plus = unit.token(op_plus);
+    auto &minus = unit.token(op_minus);
     auto &times = unit.token(op_times);
-    program = plus + times + program | plus | times;
+    auto &divide = unit.token(op_divide);
+    auto &integer = unit.token(l_int);
+    program = exp0;
+    exp0 = exp0 + (plus | minus) + exp1 | exp1;
+    exp1 = exp1 + (times | divide) + exp2 | exp2;
+    exp2 = integer;
     unit.gen((unit_rule &) program);
     unit.dump(std::cout);
 }

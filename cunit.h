@@ -7,9 +7,9 @@
 #define CLIBPARSER_CUNIT_H
 
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <map>
 #include "memory.h"
 
 #define UNIT_NODE_MEM (2 * 1024)
@@ -90,6 +90,7 @@ namespace clib {
         virtual unit_collection &append(unit *collection, unit *child) = 0;
         virtual unit_collection &merge(unit *a, unit *b) = 0;
         virtual unit &collection(unit *a, unit *b, unit_t type) = 0;
+        virtual unit *copy(unit *u) = 0;
 
         virtual nga_edge *enga(unit *node, bool init) = 0;
         virtual nga_edge *enga(unit *node, unit *u) = 0;
@@ -110,10 +111,10 @@ namespace clib {
         unit &token(const keyword_t &keyword);
         unit &rule(const string_t &s);
 
-        unit *copy(unit *u);
         unit_collection &append(unit *collection, unit *child) override;
         unit_collection &merge(unit *a, unit *b) override;
         unit_collection &collection(unit *a, unit *b, unit_t type) override;
+        unit *copy(unit *u) override;
 
         nga_edge *enga(unit *node, bool init) override;
         nga_edge *enga(unit *node, unit *u) override;
@@ -143,8 +144,8 @@ namespace clib {
         memory_pool<UNIT_NODE_MEM> nodes;
         std::unordered_set<std::string> strings;
         std::vector<std::string> labels;
-        std::unordered_map<std::string, unit *> rules;
-        std::unordered_map<std::string, nga_status *> ngas;
+        std::map<std::string, unit *> rules;
+        std::map<std::string, nga_status *> ngas;
         unit_rule *current_rule{nullptr};
     };
 };

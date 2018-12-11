@@ -40,7 +40,7 @@ namespace clib {
 
     unit &unit::operator=(const unit &u) {
         auto rule = to_rule(this);
-        rule->child = const_cast<unit *>(&u);
+        rule->child = builder->copy(const_cast<unit *>(&u));
         return *this;
     }
 
