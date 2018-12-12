@@ -100,8 +100,8 @@ void cparser::gen() {
     - [x] 去Epsilon
     - [x] 打印NGA结构
 - [ ] 生成下推自动机
-    - [ ] 求First集合
-    - [ ] 检查文法有效性（如不产生Epsilon）
+    - [x] 求First集合
+    - [x] 检查文法有效性（如不产生Epsilon）
     - [ ] 检查纯左递归
     - [ ] 生成PDA
     - [ ] 打印PDA结构

@@ -100,10 +100,13 @@ namespace clib {
     };
 
     struct nga_rule {
-        unit *u;
+        int id;
+        unit_rule *u;
         nga_status *status;
-        std::unordered_set<unit_token *> tokens;
-        std::unordered_set<unit_rule *> rules;
+        int recursive;
+        std::unordered_set<unit_token *> tokensList;
+        std::unordered_set<unit_token *> tokensFirstset;
+        std::unordered_set<unit_rule *> rulesFirstset;
     };
 
     // 文法表达式

@@ -189,8 +189,10 @@ namespace clib {
         if (f == rules.end()) {
             auto &rule = (*nodes.alloc<unit_rule>()).set_s(str(s)).set_t(u_rule).init(this);
             nga_rule r;
+            r.id = rules.size();
             r.status = nullptr;
-            r.u = &rule;
+            r.u = to_rule(&rule);
+            r.recursive = 0;
             rules.insert(std::make_pair(s, r));
             return *r.u;
         }
@@ -313,11 +315,11 @@ namespace clib {
             case u_none:
                 break;
             case u_token_ref: {
-                rule.tokens.insert(to_token(to_ref(node)->child));
+                rule.tokensFirstset.insert(to_token(to_ref(node)->child));
                 return false;
             }
             case u_rule_ref: {
-                rule.rules.insert(to_rule(to_ref(node)->child));
+                rule.rulesFirstset.insert(to_rule(to_ref(node)->child));
                 return false;
             }
             case u_sequence: {
@@ -355,6 +357,106 @@ namespace clib {
                 print(r.u, nullptr, std::cout);
                 std::cout << std::endl;
                 throw cexception("generate epsilon");
+            }
+        }
+        auto size = rules.size();
+        std::vector<nga_rule *> rulesList(size);
+        std::vector<std::vector<bool>> dep(size);
+        std::unordered_map<unit *, int> ids;
+        for (auto &rule : rules) {
+            rulesList[rule.second.id] = &rule.second;
+            ids.insert(std::make_pair(rule.second.u, rule.second.id));
+        }
+        for (auto i = 0; i < size; ++i) {
+            dep[i].resize(size);
+            for (auto &r : rulesList[i]->rulesFirstset) {
+                dep[i][ids[r]] = true;
+            }
+        }
+        for (auto i = 0; i < size; ++i) {
+            if (dep[i][i]) {
+                rulesList[i]->recursive = 1;
+                dep[i][i] = false;
+            }
+        }
+        {
+            // INDIRECT LEFT RECURSION DETECTION
+            std::vector<std::vector<bool>> a(dep), b(dep), r(size);
+            for (auto i = 0; i < size; ++i) {
+                r[i].resize(size);
+            }
+            for (auto l = 2; l < size; ++l) {
+                for (auto i = 0; i < size; ++i) {
+                    for (auto j = 0; j < size; ++j) {
+                        r[i][j] = false;
+                        for (auto k = 0; k < size; ++k) {
+                            r[i][j] = r[i][j] || (a[i][k] && b[k][j]);
+                        }
+                    }
+                }
+                for (auto i = 0; i < size; ++i) {
+                    if (r[i][i]) {
+                        if (rulesList[i]->recursive < 2)
+                            rulesList[i]->recursive = l;
+                    }
+                }
+                a = r;
+            }
+            for (auto i = 0; i < size; ++i) {
+                if (rulesList[i]->recursive > 1) {
+                    print(rulesList[i]->u, nullptr, std::cout);
+                    std::cout << std::endl;
+                    throw cexception("indirect left recursion");
+                }
+            }
+        }
+        {
+            // CALCULATE FIRST SET
+            std::vector<bool> visited(size);
+            for (auto i = 0; i < size; ++i) {
+                auto indep = -1;
+                for (auto j = 0; j < size; ++j) {
+                    if (!visited[j]) {
+                        auto flag = true;
+                        for (auto k = 0; k < size; ++k) {
+                            if (dep[j][k]) {
+                                flag = false;
+                                break;
+                            }
+                        }
+                        if (flag) {
+                            indep = j;
+                        }
+                    }
+                }
+                if (indep == -1) {
+                    throw cexception("missing most independent rule");
+                }
+                for (auto &r : rulesList[indep]->rulesFirstset) {
+                    auto &a =  rulesList[indep]->tokensFirstset;
+                    auto &b = rulesList[ids[r]]->tokensList;
+                    a.insert(b.begin(), b.end());
+                }
+                {
+                    auto &a = rulesList[indep]->tokensList;
+                    auto &b = rulesList[indep]->tokensFirstset;
+                    a.insert(b.begin(), b.end());
+                    auto &c = rulesList[indep]->rulesFirstset;
+                    if (c.find(rulesList[indep]->u) != c.end()) {
+                        b.insert(a.begin(), a.end());
+                    }
+                }
+                visited[indep] = true;
+                for (auto j = 0; j < size; ++j) {
+                    dep[j][indep] = false;
+                }
+            }
+            for (auto i = 0; i < size; ++i) {
+                if (rulesList[i]->tokensFirstset.empty()) {
+                    print(rulesList[i]->u, nullptr, std::cout);
+                    std::cout << std::endl;
+                    throw cexception("empty first set");
+                }
             }
         }
     }
