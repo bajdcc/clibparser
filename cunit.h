@@ -99,6 +99,13 @@ namespace clib {
         virtual nga_edge *connect(nga_status *a, nga_status *b) = 0;
     };
 
+    struct nga_rule {
+        unit *u;
+        nga_status *status;
+        std::unordered_set<unit_token *> tokens;
+        std::unordered_set<unit_rule *> rules;
+    };
+
     // 文法表达式
     class cunit : public unit_builder {
     public:
@@ -137,6 +144,7 @@ namespace clib {
 
     private:
         void gen_nga();
+        void check_nga();
         static nga_edge *conv_nga(unit *u);
         nga_status *delete_epsilon(nga_edge *edge);
 
@@ -147,8 +155,7 @@ namespace clib {
         memory_pool<UNIT_NODE_MEM> nodes;
         std::unordered_set<std::string> strings;
         std::vector<std::string> labels;
-        std::map<std::string, unit *> rules;
-        std::map<std::string, nga_status *> ngas;
+        std::map<std::string, nga_rule> rules;
         unit_rule *current_rule{nullptr};
     };
 };

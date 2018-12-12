@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <functional>
 #include <queue>
+#include <iostream>
 #include "cunit.h"
 #include "cexception.h"
 
@@ -187,9 +188,13 @@ namespace clib {
         auto f = rules.find(s);
         if (f == rules.end()) {
             auto &rule = (*nodes.alloc<unit_rule>()).set_s(str(s)).set_t(u_rule).init(this);
-            return *rules.insert(std::make_pair(s, &rule)).first->second;
+            nga_rule r;
+            r.status = nullptr;
+            r.u = &rule;
+            rules.insert(std::make_pair(s, r));
+            return *r.u;
         }
-        return *f->second;
+        return *f->second.u;
     }
 
     template<class T>
@@ -271,16 +276,87 @@ namespace clib {
 
     void cunit::gen(const unit_rule &sym) {
         gen_nga();
+        check_nga();
     }
 
     void cunit::gen_nga() {
-        if (!ngas.empty())
-            return;
         for (auto &rule : rules) {
-            current_rule = to_rule(rule.second);
-            ngas.insert(std::make_pair(rule.first, delete_epsilon(conv_nga(current_rule->child))));
+            current_rule = to_rule(rule.second.u);
+            rule.second.status = delete_epsilon(conv_nga(current_rule->child));
         }
         current_rule = nullptr;
+    }
+
+    template <class T>
+    static std::vector<T *> get_children(T *node) {
+        std::vector<T *> v;
+        if (node == nullptr)
+            return v;
+        auto i = node;
+        if (i->next == i) {
+            v.push_back(i);
+            return v;
+        }
+        v.push_back(i);
+        i = i->next;
+        while (i != node) {
+            v.push_back(i);
+            i = i->next;
+        }
+        return v;
+    }
+
+    bool get_first_set(unit *node, nga_rule &rule) {
+        if (node == nullptr)
+            return true;
+        switch (node->t) {
+            case u_none:
+                break;
+            case u_token_ref: {
+                rule.tokens.insert(to_token(to_ref(node)->child));
+                return false;
+            }
+            case u_rule_ref: {
+                rule.rules.insert(to_rule(to_ref(node)->child));
+                return false;
+            }
+            case u_sequence: {
+                for (auto &u : get_children(to_collection(node)->child)) {
+                    if (!get_first_set(u, rule)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            case u_branch: {
+                auto zero = false;
+                for (auto &u : get_children(to_collection(node)->child)) {
+                    if (get_first_set(u, rule) && !zero) {
+                        zero = true;
+                    }
+                }
+                return zero;
+            }
+            case u_optional: {
+                for (auto &u : get_children(to_collection(node)->child)) {
+                    get_first_set(u, rule);
+                }
+                return true;
+            }
+            default:
+                break;
+        }
+    }
+
+    void cunit::check_nga() {
+        for (auto &rule : rules) {
+            nga_rule &r = rule.second;
+            if (get_first_set(to_rule(r.u)->child, r)) {
+                print(r.u, nullptr, std::cout);
+                std::cout << std::endl;
+                throw cexception("generate epsilon");
+            }
+        }
     }
 
     template<class T>
@@ -383,31 +459,13 @@ namespace clib {
         return new_edge;
     }
 
-    static std::vector<nga_edge_list *> get_edges(nga_edge_list *node) {
-        std::vector<nga_edge_list *> v;
-        if (node == nullptr)
-            return v;
-        auto i = node;
-        if (i->next == i) {
-            v.push_back(i);
-            return v;
-        }
-        v.push_back(i);
-        i = i->next;
-        while (i != node) {
-            v.push_back(i);
-            i = i->next;
-        }
-        return v;
-    }
-
     void *cunit::disconnect(nga_status *status) {
-        auto ins = get_edges(status->in);
+        auto ins = get_children(status->in);
         for (auto &edge : ins) {
             remove_edge(edge->edge->end->in, edge);
             nodes.free(edge);
         }
-        auto outs = get_edges(status->out);
+        auto outs = get_children(status->out);
         for (auto &edge : outs) {
             remove_edge(edge->edge->end->in, edge);
             nodes.free(edge);
@@ -722,13 +780,13 @@ namespace clib {
     void cunit::dump(std::ostream &os) {
         os << "==== RULE ====" << std::endl;
         for (auto &k : rules) {
-            print(k.second, nullptr, os);
+            print(k.second.u, nullptr, os);
             os << std::endl;
         }
         os << "==== NGA  ====" << std::endl;
-        for (auto &k : ngas) {
+        for (auto &k : rules) {
             os << "** Rule: " << k.first << std::endl;
-            print(k.second, os);
+            print(k.second.status, os);
             os << std::endl;
         }
     }
