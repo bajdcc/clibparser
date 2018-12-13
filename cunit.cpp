@@ -879,6 +879,29 @@ namespace clib {
         }
     }
 
+
+
+    void dump_first_set(nga_rule *rule, std::ostream &os) {
+        os << "-- Tokens: ";
+        for (auto &t : rule->tokensList) {
+            print(t, nullptr, os);
+            os << " ";
+        }
+        os << std::endl;
+        os << "-- First-set tokens: ";
+        for (auto &t : rule->tokensFirstset) {
+            print(t, nullptr, os);
+            os << " ";
+        }
+        os << std::endl;
+        os << "-- First-set rules: ";
+        for (auto &r : rule->rulesFirstset) {
+            os << to_rule(r)->s;
+            os << " ";
+        }
+        os << std::endl;
+    }
+
     void cunit::dump(std::ostream &os) {
         os << "==== RULE ====" << std::endl;
         for (auto &k : rules) {
@@ -887,7 +910,10 @@ namespace clib {
         }
         os << "==== NGA  ====" << std::endl;
         for (auto &k : rules) {
-            os << "** Rule: " << k.first << std::endl;
+            os << "** Rule: ";
+            print(k.second.u, nullptr, os);
+            std::cout << std::endl;
+            dump_first_set(&k.second, os);
             print(k.second.status, os);
             os << std::endl;
         }

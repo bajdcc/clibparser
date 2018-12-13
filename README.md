@@ -26,7 +26,10 @@ exp1 => [ exp1 ( '*' | '/' ) ] exp2
 exp2 => #int#
 root => exp0
 ==== NGA  ====
-** Rule: exp0
+** Rule: exp0 => [ exp0 ( '+' | '-' ) ] exp1
+-- Tokens: #int#
+-- First-set tokens: #int#
+-- First-set rules: exp1 exp0
 Status #0 - exp0 => [ @ exp0 ( '+' | '-' ) ] exp1
   To #1:  exp0
   To #2:  exp1
@@ -39,7 +42,10 @@ Status #3 - exp0 => [ exp0 ( '+' | '-' @ ) ] exp1
 Status #4 - exp0 => [ exp0 ( '+' @ | '-' ) ] exp1
   To #2:  exp1
 
-** Rule: exp1
+** Rule: exp1 => [ exp1 ( '*' | '/' ) ] exp2
+-- Tokens: #int#
+-- First-set tokens: #int#
+-- First-set rules: exp2 exp1
 Status #0 - exp1 => [ @ exp1 ( '*' | '/' ) ] exp2
   To #1:  exp1
   To #2:  exp2
@@ -52,12 +58,18 @@ Status #3 - exp1 => [ exp1 ( '*' | '/' @ ) ] exp2
 Status #4 - exp1 => [ exp1 ( '*' @ | '/' ) ] exp2
   To #2:  exp2
 
-** Rule: exp2
+** Rule: exp2 => #int#
+-- Tokens: #int#
+-- First-set tokens: #int#
+-- First-set rules:
 Status #0 - exp2 => @ #int#
   To #1:  #int#
 Status #1 [FINAL] - exp2 => #int# @
 
-** Rule: root
+** Rule: root => exp0
+-- Tokens: #int#
+-- First-set tokens: #int#
+-- First-set rules: exp0
 Status #0 - root => @ exp0
   To #1:  exp0
 Status #1 [FINAL] - root => exp0 @
@@ -100,7 +112,7 @@ void cparser::gen() {
     - [x] 去Epsilon
     - [x] 打印NGA结构
 - [ ] 生成下推自动机
-    - [x] 求First集合
+    - [x] 求First集合，并输出
     - [x] 检查文法有效性（如不产生Epsilon）
     - [ ] 检查纯左递归
     - [ ] 生成PDA
