@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <vector>
 #include <map>
+#include <bitset>
 #include "memory.h"
 
 #define UNIT_NODE_MEM (2 * 1024)
@@ -76,9 +77,34 @@ namespace clib {
         nga_edge_list *in, *out;
     };
 
+    struct pda_status : public nga_status {
+        int rule;
+    };
+
     struct nga_edge {
         nga_status *begin, *end;
         unit *data;
+    };
+
+    enum pda_edge_t {
+        e_shift,
+        e_move,
+        e_left_recursion,
+        e_reduce,
+        e_finish,
+    };
+
+    enum pda_inst_t {
+        i_shift,
+        i_pass,
+        i_pass_recursion,
+        i_pass_reduce,
+        i_finish,
+    };
+
+    struct pda_edge : public nga_edge {
+        pda_edge_t type;
+        pda_inst_t inst;
     };
 
     struct nga_edge_list {
@@ -96,7 +122,7 @@ namespace clib {
 
         virtual nga_edge *enga(unit *node, bool init) = 0;
         virtual nga_edge *enga(unit *node, unit *u) = 0;
-        virtual nga_edge *connect(nga_status *a, nga_status *b) = 0;
+        virtual nga_edge *connect(nga_status *a, nga_status *b, bool is_pda = false) = 0;
     };
 
     struct nga_rule {
@@ -107,6 +133,23 @@ namespace clib {
         std::unordered_set<unit_token *> tokensList;
         std::unordered_set<unit_token *> tokensFirstset;
         std::unordered_set<unit_rule *> rulesFirstset;
+    };
+
+    struct pda_trans {
+        int jump;
+        pda_edge_t type;
+        pda_inst_t inst;
+        int status;
+        string_t label;
+        std::vector<unit *> LA;
+    };
+
+    struct pda_rule {
+        int id;
+        int rule;
+        bool final;
+        string_t label;
+        std::vector<pda_trans> trans;
     };
 
     // 文法表达式
@@ -131,10 +174,11 @@ namespace clib {
 
         nga_edge *enga(unit *node, bool init) override;
         nga_edge *enga(unit *node, unit *u) override;
-        nga_edge *connect(nga_status *a, nga_status *b) override;
+        nga_edge *connect(nga_status *a, nga_status *b, bool is_pda = false) override;
 
     private:
         nga_status *status();
+        pda_status *status(const char *label, int rule, bool final);
         void add_edge(nga_edge_list *&list, nga_edge *edge);
         void remove_edge(nga_edge_list *&list, nga_edge_list *edge);
         const char *label(unit *focused, bool front);
@@ -142,12 +186,14 @@ namespace clib {
         void *disconnect(nga_status *status);
 
     public:
-        void gen(const unit_rule &sym);
+        void gen(unit *root);
         void dump(std::ostream &os);
 
     private:
         void gen_nga();
         void check_nga();
+        void gen_pda(unit *root);
+
         static nga_edge *conv_nga(unit *u);
         nga_status *delete_epsilon(nga_edge *edge);
 
@@ -159,6 +205,7 @@ namespace clib {
         std::unordered_set<std::string> strings;
         std::vector<std::string> labels;
         std::map<std::string, nga_rule> rules;
+        std::vector<pda_rule> pdas;
         unit_rule *current_rule{nullptr};
     };
 };

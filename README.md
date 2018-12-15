@@ -1,15 +1,16 @@
 # clibparser（GLR Parser）
 
-C++实现的LR Parser Generator，正在设计中。
+C++实现的LR Parser Generator，正在设计中，PDA表已生成。
 
 ## 文章
 
-暂无
+准备中。
 
 ## 功能
 
 - 词法分析阶段由lexer完成，返回各类终结符。
 - 语法分析阶段由parser完成，输入产生式，通过生成LALR表来进行分析。
+- **LR识别完成，接下来做生成AST功能。**
 
 文法支持顺序、分支、可选。
 
@@ -17,7 +18,7 @@ C++实现的LR Parser Generator，正在设计中。
 
 先实现四则运算的解析。
 
-生成NGA图，去EPSILON化，未去重复边及优化。
+生成NGA图，去EPSILON化，生成PDA表。
 
 ```cpp
 ==== RULE ====
@@ -73,6 +74,124 @@ Status #1 [FINAL] - exp2 => #int# @
 Status #0 - root => @ exp0
   To #1:  exp0
 Status #1 [FINAL] - root => exp0 @
+
+==== PDA  ====
+** [Initial] State: root => @ exp0
+
+** State #0: root => @ exp0
+    --> __________________
+    --> #1: exp0 => [ @ exp0 ( '+' | '-' ) ] exp1
+    -->     Type: shift, Inst: shift
+    -->     LA: #int#
+
+** State #1: exp0 => [ @ exp0 ( '+' | '-' ) ] exp1
+    --> __________________
+    --> #2: exp1 => [ @ exp1 ( '*' | '/' ) ] exp2
+    -->     Type: shift, Inst: shift
+    -->     LA: #int#
+
+** State #2: exp1 => [ @ exp1 ( '*' | '/' ) ] exp2
+    --> __________________
+    --> #3: exp2 => @ #int#
+    -->     Type: shift, Inst: shift
+    -->     LA: #int#
+
+** State #3: exp2 => @ #int#
+    --> __________________
+    --> #4: exp2 => #int# @
+    -->     Type: move, Inst: pass
+    -->     LA: #int#
+
+** [FINAL] State #4: exp2 => #int# @
+    --> __________________
+    --> #5: exp1 => [ exp1 ( '*' | '/' ) ] exp2 @
+    -->     Type: reduce, Inst: pass_reduce
+    -->     Reduce: exp1 => [ @ exp1 ( '*' | '/' ) ] exp2
+    --> __________________
+    --> #5: exp1 => [ exp1 ( '*' | '/' ) ] exp2 @
+    -->     Type: reduce, Inst: pass_reduce
+    -->     Reduce: exp1 => [ exp1 ( '*' | '/' @ ) ] exp2
+    --> __________________
+    --> #5: exp1 => [ exp1 ( '*' | '/' ) ] exp2 @
+    -->     Type: reduce, Inst: pass_reduce
+    -->     Reduce: exp1 => [ exp1 ( '*' @ | '/' ) ] exp2
+
+** [FINAL] State #5: exp1 => [ exp1 ( '*' | '/' ) ] exp2 @
+    --> __________________
+    --> #6: exp0 => [ exp0 ( '+' | '-' ) ] exp1 @
+    -->     Type: reduce, Inst: pass_reduce
+    -->     Reduce: exp0 => [ @ exp0 ( '+' | '-' ) ] exp1
+    --> __________________
+    --> #6: exp0 => [ exp0 ( '+' | '-' ) ] exp1 @
+    -->     Type: reduce, Inst: pass_reduce
+    -->     Reduce: exp0 => [ exp0 ( '+' | '-' @ ) ] exp1
+    --> __________________
+    --> #6: exp0 => [ exp0 ( '+' | '-' ) ] exp1 @
+    -->     Type: reduce, Inst: pass_reduce
+    -->     Reduce: exp0 => [ exp0 ( '+' @ | '-' ) ] exp1
+    --> __________________
+    --> #7: exp1 => [ exp1 @ ( '*' | '/' ) ] exp2
+    -->     Type: left_recursion, Inst: pass_recursion
+    -->     LA: '*' '/'
+
+** [FINAL] State #6: exp0 => [ exp0 ( '+' | '-' ) ] exp1 @
+    --> __________________
+    --> #8: exp0 => [ exp0 @ ( '+' | '-' ) ] exp1
+    -->     Type: left_recursion, Inst: pass_recursion
+    -->     LA: '+' '-'
+    --> __________________
+    --> #9: root => exp0 @
+    -->     Type: reduce, Inst: pass_reduce
+    -->     Reduce: root => @ exp0
+
+** State #7: exp1 => [ exp1 @ ( '*' | '/' ) ] exp2
+    --> __________________
+    --> #10: exp1 => [ exp1 ( '*' | '/' @ ) ] exp2
+    -->     Type: move, Inst: pass
+    -->     LA: '/'
+    --> __________________
+    --> #11: exp1 => [ exp1 ( '*' @ | '/' ) ] exp2
+    -->     Type: move, Inst: pass
+    -->     LA: '*'
+
+** State #8: exp0 => [ exp0 @ ( '+' | '-' ) ] exp1
+    --> __________________
+    --> #12: exp0 => [ exp0 ( '+' | '-' @ ) ] exp1
+    -->     Type: move, Inst: pass
+    -->     LA: '-'
+    --> __________________
+    --> #13: exp0 => [ exp0 ( '+' @ | '-' ) ] exp1
+    -->     Type: move, Inst: pass
+    -->     LA: '+'
+
+** [FINAL] State #9: root => exp0 @
+    --> __________________
+    --> #9: root => exp0 @
+    -->     Type: finish, Inst: finish
+
+** State #10: exp1 => [ exp1 ( '*' | '/' @ ) ] exp2
+    --> __________________
+    --> #3: exp2 => @ #int#
+    -->     Type: shift, Inst: shift
+    -->     LA: #int#
+
+** State #11: exp1 => [ exp1 ( '*' @ | '/' ) ] exp2
+    --> __________________
+    --> #3: exp2 => @ #int#
+    -->     Type: shift, Inst: shift
+    -->     LA: #int#
+
+** State #12: exp0 => [ exp0 ( '+' | '-' @ ) ] exp1
+    --> __________________
+    --> #2: exp1 => [ @ exp1 ( '*' | '/' ) ] exp2
+    -->     Type: shift, Inst: shift
+    -->     LA: #int#
+
+** State #13: exp0 => [ exp0 ( '+' @ | '-' ) ] exp1
+    --> __________________
+    --> #2: exp1 => [ @ exp1 ( '*' | '/' ) ] exp2
+    -->     Type: shift, Inst: shift
+    -->     LA: #int#
 ```
 
 ## 使用
@@ -114,15 +233,16 @@ void cparser::gen() {
 - [ ] 生成下推自动机
     - [x] 求First集合，并输出
     - [x] 检查文法有效性（如不产生Epsilon）
-    - [ ] 检查纯左递归
-    - [ ] 生成PDA
-    - [ ] 打印PDA结构
+    - [x] 检查纯左递归
+    - [x] 生成PDA
+    - [x] 打印PDA结构（独立于内存池）
 
-1. 将文法树转换成图（进行中，NGA部分已完成）
+1. 将文法树转换成PDA表（完成）
 
 ## 改进
 
 - [ ] 生成LR项目集时将@符号提到集合的外面，减少状态
+- [x] PDA表的生成时使用了内存池来保存结点，当生成PDA表后，内存池可以全部回收
 
 ## 参考
 

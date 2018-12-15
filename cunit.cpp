@@ -276,9 +276,10 @@ namespace clib {
         }
     }
 
-    void cunit::gen(const unit_rule &sym) {
+    void cunit::gen(unit *root) {
         gen_nga();
         check_nga();
+        gen_pda(root);
     }
 
     void cunit::gen_nga() {
@@ -360,22 +361,22 @@ namespace clib {
             }
         }
         auto size = rules.size();
-        std::vector<nga_rule *> rulesList(size);
+        std::vector<nga_rule *> rules_list(size);
         std::vector<std::vector<bool>> dep(size);
         std::unordered_map<unit *, int> ids;
         for (auto &rule : rules) {
-            rulesList[rule.second.id] = &rule.second;
+            rules_list[rule.second.id] = &rule.second;
             ids.insert(std::make_pair(rule.second.u, rule.second.id));
         }
         for (auto i = 0; i < size; ++i) {
             dep[i].resize(size);
-            for (auto &r : rulesList[i]->rulesFirstset) {
+            for (auto &r : rules_list[i]->rulesFirstset) {
                 dep[i][ids[r]] = true;
             }
         }
         for (auto i = 0; i < size; ++i) {
             if (dep[i][i]) {
-                rulesList[i]->recursive = 1;
+                rules_list[i]->recursive = 1;
                 dep[i][i] = false;
             }
         }
@@ -396,15 +397,15 @@ namespace clib {
                 }
                 for (auto i = 0; i < size; ++i) {
                     if (r[i][i]) {
-                        if (rulesList[i]->recursive < 2)
-                            rulesList[i]->recursive = l;
+                        if (rules_list[i]->recursive < 2)
+                            rules_list[i]->recursive = l;
                     }
                 }
                 a = r;
             }
             for (auto i = 0; i < size; ++i) {
-                if (rulesList[i]->recursive > 1) {
-                    print(rulesList[i]->u, nullptr, std::cout);
+                if (rules_list[i]->recursive > 1) {
+                    print(rules_list[i]->u, nullptr, std::cout);
                     std::cout << std::endl;
                     throw cexception("indirect left recursion");
                 }
@@ -432,17 +433,17 @@ namespace clib {
                 if (indep == -1) {
                     throw cexception("missing most independent rule");
                 }
-                for (auto &r : rulesList[indep]->rulesFirstset) {
-                    auto &a =  rulesList[indep]->tokensFirstset;
-                    auto &b = rulesList[ids[r]]->tokensList;
+                for (auto &r : rules_list[indep]->rulesFirstset) {
+                    auto &a =  rules_list[indep]->tokensFirstset;
+                    auto &b = rules_list[ids[r]]->tokensList;
                     a.insert(b.begin(), b.end());
                 }
                 {
-                    auto &a = rulesList[indep]->tokensList;
-                    auto &b = rulesList[indep]->tokensFirstset;
+                    auto &a = rules_list[indep]->tokensList;
+                    auto &b = rules_list[indep]->tokensFirstset;
                     a.insert(b.begin(), b.end());
-                    auto &c = rulesList[indep]->rulesFirstset;
-                    if (c.find(rulesList[indep]->u) != c.end()) {
+                    auto &c = rules_list[indep]->rulesFirstset;
+                    if (c.find(rules_list[indep]->u) != c.end()) {
                         b.insert(a.begin(), a.end());
                     }
                 }
@@ -452,8 +453,8 @@ namespace clib {
                 }
             }
             for (auto i = 0; i < size; ++i) {
-                if (rulesList[i]->tokensFirstset.empty()) {
-                    print(rulesList[i]->u, nullptr, std::cout);
+                if (rules_list[i]->tokensFirstset.empty()) {
+                    print(rules_list[i]->u, nullptr, std::cout);
                     std::cout << std::endl;
                     throw cexception("empty first set");
                 }
@@ -551,8 +552,8 @@ namespace clib {
         return _enga;
     }
 
-    nga_edge *cunit::connect(nga_status *a, nga_status *b) {
-        auto new_edge = nodes.alloc<nga_edge>();
+    nga_edge *cunit::connect(nga_status *a, nga_status *b, bool is_pda) {
+        auto new_edge = is_pda ? nodes.alloc<pda_edge>() : nodes.alloc<nga_edge>();
         new_edge->begin = a;
         new_edge->end = b;
         new_edge->data = nullptr;
@@ -580,6 +581,15 @@ namespace clib {
         _status->final = false;
         _status->label = nullptr;
         _status->in = _status->out = nullptr;
+        return _status;
+    }
+
+    pda_status *cunit::status(const char *label, int rule, bool final) {
+        auto _status = nodes.alloc<pda_status>();
+        _status->label = label;
+        _status->final = final;
+        _status->in = _status->out = nullptr;
+        _status->rule = rule;
         return _status;
     }
 
@@ -723,8 +733,7 @@ namespace clib {
     }
 
     template<class T>
-    static bool has_filter_in_edges(nga_status *status, const T &f) {
-        auto node = status->in;
+    static bool has_filter_in_edges(nga_edge_list *node, const T &f) {
         if (node == nullptr)
             return false;
         auto i = node;
@@ -817,7 +826,7 @@ namespace clib {
         available_status.push_back(nga_status_list[0]);
         for (auto _status = nga_status_list.begin() + 1; _status != nga_status_list.end(); _status++) {
             auto &status = *_status;
-            if (has_filter_in_edges(status, [](auto it) { return it->data != nullptr; })
+            if (has_filter_in_edges(status->in, [](auto it) { return it->data != nullptr; })
                 && available_labels_map.find(std::hash<string_t>{}(status->label)) ==
                    available_labels_map.end()) {
                 available_labels.emplace_back(status->label);
@@ -854,6 +863,193 @@ namespace clib {
         return edge->begin;
     }
 
+    bool not_left_recursive_status(nga_status *status, unit *rule) {
+        if (status->in)
+            return true;
+        return status->out && has_filter_in_edges(status->out,
+            [rule](auto it) { return it->data && !(it->data->t == u_rule_ref && to_ref(it->data)->child == rule); });
+    }
+
+    bool is_left_resursive_edge(nga_edge *edge, unit *rule) {
+        return !edge->begin->in && edge->data && edge->data->t == u_rule_ref && to_ref(edge->data)->child == rule;
+    }
+
+    void cunit::gen_pda(unit *root) {
+        auto size = rules.size();
+        pda_status *init_status = nullptr;
+        struct status_t {
+            nga_status *nga;
+            pda_status *pda;
+        };
+        std::vector<status_t> status_list;
+        std::vector<nga_rule *> rules_list(size);
+        std::vector<std::vector<nga_edge *>> adj(size);
+        std::unordered_map<unit *, int> ids;
+        std::unordered_map<pda_edge *, std::unordered_set<unit *>> LA;
+        std::unordered_map<pda_edge *, pda_status *> prev;
+        for (auto &rule : rules) {
+            rules_list[rule.second.id] = &rule.second;
+            ids.insert(std::make_pair(rule.second.u, rule.second.id));
+        }
+        for (auto &rule : rules) {
+            nga_rule &r = rule.second;
+            auto closure = get_closure(r.status, [](auto it) { return true; });
+            for (auto &s : closure) {
+                auto outs = get_filter_out_edges(s, [](auto it) { return it->data && it->data->t == u_rule_ref; });
+                for (auto &o : outs) {
+                    adj[ids[to_ref(o->edge->data)->child]].push_back(o->edge);
+                }
+                status_list.push_back({s, status(s->label, ids[r.u], s->final)});
+            }
+        }
+        // GENERATE PDA STATUS
+        for (auto i = 0; i < status_list.size(); ++i) {
+            auto &s = status_list[i];
+            auto &nga_status = s.nga;
+            auto &pda_status = s.pda;
+            auto &ru = rules_list[pda_status->rule];
+            auto &r = ru->u;
+            if (not_left_recursive_status(nga_status, r)) {
+                auto is_init = root == r;
+                if (!nga_status->in && is_init) {
+                    init_status = pda_status; // INITIAL STATE
+                }
+                auto outs = get_children(nga_status->out);
+                std::unordered_set<unit *> token_set;
+                for (auto &o : outs) {
+                    auto node = o->edge->data;
+                    if (node->t == u_rule_ref) {
+                        if (!is_left_resursive_edge(o->edge, r)) {
+                            auto rr = to_ref(o->edge->data)->child;
+                            auto nga = rules_list[ids[rr]]->status;
+                            if (not_left_recursive_status(nga, r)) {
+                                // SHIFT
+                                auto &edge = *(pda_edge *) connect(
+                                    pda_status, std::find_if(
+                                        status_list.begin(),
+                                        status_list.end(),
+                                        [nga](auto it) { return it.nga == nga; })->pda,
+                                    true);
+                                edge.data = node;
+                                edge.type = e_shift;
+                                edge.inst = i_shift;
+                                decltype(token_set) res;
+                                std::set_difference(ru->tokensFirstset.begin(),
+                                                    ru->tokensFirstset.end(),
+                                                    token_set.begin(),
+                                                    token_set.end(),
+                                                    std::inserter(res, res.begin()));
+                                LA.insert(std::make_pair(&edge, res));
+                            }
+                        }
+                    } else if (node->t == u_token_ref) {
+                        // MOVE
+                        auto &edge = *(pda_edge *) connect(
+                            pda_status, std::find_if(
+                                status_list.begin(),
+                                status_list.end(),
+                                [o](auto it) { return it.nga == o->edge->end; })->pda,
+                            true);
+                        edge.data = node;
+                        edge.type = e_move;
+                        edge.inst = i_pass;
+                        token_set.insert(to_ref(node)->child);
+                        decltype(token_set) res{to_ref(node)->child};
+                        LA.insert(std::make_pair(&edge, res));
+                    }
+                }
+                // FINAL
+                if (nga_status->final) {
+                    for (auto &o : adj[pda_status->rule]) {
+                        auto &edge = *(pda_edge *) connect(
+                            pda_status, std::find_if(
+                                status_list.begin(),
+                                status_list.end(),
+                                [o](auto it) { return it.nga == o->end; })->pda,
+                            true);
+                        edge.data = o->data;
+                        if (is_left_resursive_edge(o, rules_list[std::find_if(
+                            status_list.begin(),
+                            status_list.end(),
+                            [o](auto it) { return it.nga == o->begin; })->pda->rule]->u)) {
+                            // LEFT RECURSION
+                            edge.type = e_left_recursion;
+                            edge.inst = i_pass_recursion;
+                            decltype(token_set) res;
+                            auto _outs = get_filter_out_edges(edge.end, [](auto it) { return true; });
+                            for (auto &_o : _outs) {
+                                auto _d = _o->edge->data;
+                                if (_d->t == u_token_ref) {
+                                    res.insert(to_ref(_d)->child);
+                                } else if (_d->t == u_rule_ref) {
+                                    auto _r = rules_list[ids[to_ref(_d)->child]]->tokensFirstset;
+                                    res.insert(_r.begin(), _r.end());
+                                } else {
+                                    print(_d, nullptr, std::cout);
+                                    std::cout << std::endl;
+                                    throw cexception("invalid edge type");
+                                }
+                            }
+                            LA.insert(std::make_pair(&edge, res));
+                        } else {
+                            // REDUCE
+                            edge.type = e_reduce;
+                            edge.inst = i_pass_reduce;
+                            prev.insert(std::make_pair(&edge, std::find_if(
+                                status_list.begin(),
+                                status_list.end(),
+                                [o](auto it) { return it.nga == o->begin; })->pda));
+                            LA.insert(std::make_pair(&edge, decltype(token_set)()));
+                        }
+                    }
+                    if (is_init) {
+                        auto &edge = *(pda_edge *) connect(pda_status, pda_status, true);
+                        edge.type = e_finish;
+                        edge.inst = i_finish;
+                        LA.insert(std::make_pair(&edge, decltype(token_set)()));
+                    }
+                }
+            }
+        }
+        // GENERATE PDA TABLE
+        {
+            auto closure = get_closure(init_status, [](auto it) { return true; });
+            std::unordered_map<pda_status *, int> pids;
+            for (auto &c : closure) {
+                pids.insert(std::make_pair((pda_status *) c, pids.size()));
+            }
+            for (int i = 0; i < closure.size(); ++i) {
+                auto c = (pda_status *) closure[i];
+                pda_rule pda{};
+                pda.id = i;
+                pda.rule = c->rule;
+                pda.final = c->final;
+                pda.label = c->label;
+                pdas.push_back(pda);
+            }
+            for (int i = 0; i < closure.size(); ++i) {
+                auto &p = pdas[i];
+                auto outs = get_filter_out_edges(closure[i], [](auto it) { return true; });
+                for (auto &o : outs) {
+                    auto edge = (pda_edge *) o->edge;
+                    pda_trans trans{};
+                    trans.jump = pids[(pda_status *) edge->end];
+                    trans.type = edge->type;
+                    trans.inst = edge->inst;
+                    auto v = prev.find(edge);
+                    if (v != prev.end()) {
+                        trans.status = pids[v->second];
+                        trans.label = closure[trans.status]->label;
+                    } else {
+                        trans.status = -1;
+                    }
+                    std::copy(std::begin(LA[edge]), std::end(LA[edge]), std::back_inserter(trans.LA));
+                    p.trans.push_back(trans);
+                }
+            }
+        }
+    }
+
     void print(nga_status *node, std::ostream &os) {
         if (node == nullptr)
             return;
@@ -879,8 +1075,6 @@ namespace clib {
         }
     }
 
-
-
     void dump_first_set(nga_rule *rule, std::ostream &os) {
         os << "-- Tokens: ";
         for (auto &t : rule->tokensList) {
@@ -902,6 +1096,32 @@ namespace clib {
         os << std::endl;
     }
 
+    std::tuple<pda_edge_t, string_t> pda_edge_string[] = {
+        std::make_tuple(e_shift, "shift"),
+        std::make_tuple(e_move, "move"),
+        std::make_tuple(e_left_recursion, "left_recursion"),
+        std::make_tuple(e_reduce, "reduce"),
+        std::make_tuple(e_finish, "finish"),
+    };
+
+    const string_t &pda_edge_str(pda_edge_t type) {
+        assert(type >= e_shift && type <= e_finish);
+        return std::get<1>(pda_edge_string[type]);
+    }
+
+    std::tuple<pda_inst_t, string_t> pda_inst_string[] = {
+        std::make_tuple(i_shift, "shift"),
+        std::make_tuple(i_pass, "pass"),
+        std::make_tuple(i_pass_recursion, "pass_recursion"),
+        std::make_tuple(i_pass_reduce, "pass_reduce"),
+        std::make_tuple(i_finish, "finish"),
+    };
+
+    const string_t &pda_inst_str(pda_inst_t type) {
+        assert(type >= i_shift && type <= i_finish);
+        return std::get<1>(pda_inst_string[type]);
+    }
+
     void cunit::dump(std::ostream &os) {
         os << "==== RULE ====" << std::endl;
         for (auto &k : rules) {
@@ -915,6 +1135,33 @@ namespace clib {
             std::cout << std::endl;
             dump_first_set(&k.second, os);
             print(k.second.status, os);
+            os << std::endl;
+        }
+        os << "==== PDA  ====" << std::endl;
+        os << "** [Initial] State: " << pdas[0].label << std::endl;
+        os << std::endl;
+        for (auto &pda : pdas) {
+            os << "**" << (pda.final ? " [FINAL]" : "") << " State #" << pda.id << ": " << pda.label << std::endl;
+            for (auto &trans : pda.trans) {
+                os << "    --> __________________" << std::endl;
+                os << "    --> #" << trans.jump << ": " << pdas[trans.jump].label << std::endl;
+                os << "    -->     Type: " << pda_edge_str(trans.type) << ", Inst: " << pda_inst_str(trans.inst) << std::endl;
+                if (trans.type == e_reduce) {
+                    os << "    -->     Reduce: " << trans.label << std::endl;
+                }
+                if (!trans.LA.empty()) {
+                    for (auto i = 0; i < trans.LA.size(); ++i) {
+                        if (i % 5 == 0) {
+                            os << "    -->     LA: ";
+                        }
+                        print(trans.LA[i], nullptr, os);
+                        os << " ";
+                        if (i % 5 == 4 || i == trans.LA.size() - 1) {
+                            os << std::endl;
+                        }
+                    }
+                }
+            }
             os << std::endl;
         }
     }
