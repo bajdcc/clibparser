@@ -5,7 +5,7 @@
 int main() {
     using namespace clib;
     try {
-        cparser p("1 + 2");
+        cparser p("1 + 2 * 3 + 4 - 5 / 6");
         auto root = p.parse();
         cast::print(root, 0, std::cout);
     } catch (const cexception &e) {

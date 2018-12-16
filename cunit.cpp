@@ -932,7 +932,6 @@ namespace clib {
                                     true);
                                 edge.data = node;
                                 edge.type = e_shift;
-                                edge.inst = i_shift;
                                 decltype(token_set) res;
                                 std::set_difference(ru->tokensFirstset.begin(),
                                                     ru->tokensFirstset.end(),
@@ -952,7 +951,6 @@ namespace clib {
                             true);
                         edge.data = node;
                         edge.type = e_move;
-                        edge.inst = i_pass;
                         token_set.insert(to_ref(node)->child);
                         decltype(token_set) res{to_ref(node)->child};
                         LA.insert(std::make_pair(&edge, res));
@@ -974,7 +972,6 @@ namespace clib {
                             [o](auto it) { return it.nga == o->begin; })->pda->rule]->u)) {
                             // LEFT RECURSION
                             edge.type = e_left_recursion;
-                            edge.inst = i_pass_recursion;
                             decltype(token_set) res;
                             auto _outs = get_filter_out_edges(edge.end, [](auto it) { return true; });
                             for (auto &_o : _outs) {
@@ -994,7 +991,6 @@ namespace clib {
                         } else {
                             // REDUCE
                             edge.type = e_reduce;
-                            edge.inst = i_pass_reduce;
                             prev.insert(std::make_pair(&edge, std::find_if(
                                 status_list.begin(),
                                 status_list.end(),
@@ -1005,7 +1001,6 @@ namespace clib {
                     if (is_init) {
                         auto &edge = *(pda_edge *) connect(pda_status, pda_status, true);
                         edge.type = e_finish;
-                        edge.inst = i_finish;
                         LA.insert(std::make_pair(&edge, decltype(token_set)()));
                     }
                 }
@@ -1024,6 +1019,7 @@ namespace clib {
                 pda.id = i;
                 pda.rule = c->rule;
                 pda.final = c->final;
+                pda.name = to_rule(rules_list[pda.rule]->u)->s;
                 pda.label = c->label;
                 pdas.push_back(pda);
             }
@@ -1035,7 +1031,6 @@ namespace clib {
                     pda_trans trans{};
                     trans.jump = pids[(pda_status *) edge->end];
                     trans.type = edge->type;
-                    trans.inst = edge->inst;
                     auto v = prev.find(edge);
                     if (v != prev.end()) {
                         trans.status = pids[v->second];
@@ -1048,6 +1043,10 @@ namespace clib {
                 }
             }
         }
+    }
+
+    const std::vector<pda_rule> &cunit::get_pda() const {
+        return pdas;
     }
 
     void print(nga_status *node, std::ostream &os) {
@@ -1096,12 +1095,12 @@ namespace clib {
         os << std::endl;
     }
 
-    std::tuple<pda_edge_t, string_t> pda_edge_string[] = {
-        std::make_tuple(e_shift, "shift"),
-        std::make_tuple(e_move, "move"),
-        std::make_tuple(e_left_recursion, "left_recursion"),
-        std::make_tuple(e_reduce, "reduce"),
-        std::make_tuple(e_finish, "finish"),
+    std::tuple<pda_edge_t, string_t, int> pda_edge_string[] = {
+        std::make_tuple(e_shift, "shift", 2),
+        std::make_tuple(e_move, "move", 1),
+        std::make_tuple(e_left_recursion, "recursion", 3),
+        std::make_tuple(e_reduce, "reduce", 4),
+        std::make_tuple(e_finish, "finish", 0),
     };
 
     const string_t &pda_edge_str(pda_edge_t type) {
@@ -1109,17 +1108,9 @@ namespace clib {
         return std::get<1>(pda_edge_string[type]);
     }
 
-    std::tuple<pda_inst_t, string_t> pda_inst_string[] = {
-        std::make_tuple(i_shift, "shift"),
-        std::make_tuple(i_pass, "pass"),
-        std::make_tuple(i_pass_recursion, "pass_recursion"),
-        std::make_tuple(i_pass_reduce, "pass_reduce"),
-        std::make_tuple(i_finish, "finish"),
-    };
-
-    const string_t &pda_inst_str(pda_inst_t type) {
-        assert(type >= i_shift && type <= i_finish);
-        return std::get<1>(pda_inst_string[type]);
+    const int &pda_edge_priority(pda_edge_t type) {
+        assert(type >= e_shift && type <= e_finish);
+        return std::get<2>(pda_edge_string[type]);
     }
 
     void cunit::dump(std::ostream &os) {
@@ -1145,7 +1136,7 @@ namespace clib {
             for (auto &trans : pda.trans) {
                 os << "    --> __________________" << std::endl;
                 os << "    --> #" << trans.jump << ": " << pdas[trans.jump].label << std::endl;
-                os << "    -->     Type: " << pda_edge_str(trans.type) << ", Inst: " << pda_inst_str(trans.inst) << std::endl;
+                os << "    -->     Type: " << pda_edge_str(trans.type) << std::endl;
                 if (trans.type == e_reduce) {
                     os << "    -->     Reduce: " << trans.label << std::endl;
                 }

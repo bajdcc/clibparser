@@ -88,6 +88,35 @@ namespace clib {
         return node;
     }
 
+    void cast::remove(ast_node *node) {
+        if (node->parent && node->parent->child == node) {
+            if (node->next == node) {
+                node->parent->child = nullptr;
+            } else {
+                node->parent->child = node->next;
+            }
+        }
+        if (node->prev && node->prev != node) {
+            node->prev->next = node->next;
+        }
+        if (node->next && node->next != node) {
+            node->next->prev = node->prev;
+        }
+        if (node->child) {
+            auto f = node->child;
+            auto i = f;
+            i->parent = nullptr;
+            if (i->next != f) {
+                i = i->next;
+                do {
+                    i->parent = nullptr;
+                    i = i->next;
+                } while (i != f);
+            }
+        }
+        nodes.free(node);
+    }
+
     void cast::to(ast_to_t type) {
         switch (type) {
             case to_parent:
@@ -166,27 +195,16 @@ namespace clib {
             case ast_root: // 根结点，全局声明
                 ast_recursion(node->child, level, os, rec);
                 break;
-            case ast_env:
-            case ast_sub:
-            case ast_lambda:
-                break;
-            case ast_sexpr:
+            case ast_collection:
                 os << '(';
                 ast_recursion(node->child, level + 1, os, rec);
                 os << ')';
                 break;
-            case ast_qexpr:
-                if (!node->child) {
-                    os << "nil";
-                } else if (node->child == node->child->next) {
-                    os << '`';
-                    ast_recursion(node->child, level + 1, os, rec);
-                } else {
-                    os << '`';
-                    os << '(';
-                    ast_recursion(node->child, level + 1, os, rec);
-                    os << ')';
-                }
+            case ast_keyword:
+                os << KEYWORD_STRING(node->data._keyword);
+                break;
+            case ast_operator:
+                os << OP_STRING(node->data._op);
                 break;
             case ast_literal:
                 os << node->data._string;
@@ -233,7 +251,7 @@ namespace clib {
                 break;
         }
         if (node->parent) {
-            if ((node->parent->flag == ast_qexpr  || node->parent->flag == ast_sexpr) &&
+            if ((node->parent->flag == ast_collection) &&
                 node->next != node->parent->child) {
                 os << ' ';
             }
@@ -276,11 +294,9 @@ namespace clib {
 
     std::tuple<ast_t, string_t, int> ast_list[] = {
         std::make_tuple(ast_root,       "root",     0),
-        std::make_tuple(ast_env,        "env",      0),
-        std::make_tuple(ast_sub,        "sub",      0),
-        std::make_tuple(ast_lambda,     "lambda",   0),
-        std::make_tuple(ast_sexpr,      "S-exp",    0),
-        std::make_tuple(ast_qexpr,      "Q-exp",    0),
+        std::make_tuple(ast_collection, "coll",     0),
+        std::make_tuple(ast_keyword,    "keyword",  0),
+        std::make_tuple(ast_operator,   "operator", 0),
         std::make_tuple(ast_literal,    "literal",  0),
         std::make_tuple(ast_string,     "string",   0),
         std::make_tuple(ast_char,       "char",     1),

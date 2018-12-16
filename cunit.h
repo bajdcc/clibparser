@@ -94,23 +94,21 @@ namespace clib {
         e_finish,
     };
 
-    enum pda_inst_t {
-        i_shift,
-        i_pass,
-        i_pass_recursion,
-        i_pass_reduce,
-        i_finish,
-    };
-
     struct pda_edge : public nga_edge {
         pda_edge_t type;
-        pda_inst_t inst;
     };
 
     struct nga_edge_list {
         nga_edge_list *prev, *next;
         nga_edge *edge;
     };
+
+    unit_rule *to_rule(unit *u);
+    unit_token *to_token(unit *u);
+    unit_collection *to_collection(unit *u);
+    unit_collection *to_ref(unit *u);
+    const string_t &pda_edge_str(pda_edge_t type);
+    const int &pda_edge_priority(pda_edge_t type);
 
     class unit_builder {
     public:
@@ -138,7 +136,6 @@ namespace clib {
     struct pda_trans {
         int jump;
         pda_edge_t type;
-        pda_inst_t inst;
         int status;
         string_t label;
         std::vector<unit *> LA;
@@ -148,6 +145,7 @@ namespace clib {
         int id;
         int rule;
         bool final;
+        string_t name;
         string_t label;
         std::vector<pda_trans> trans;
     };
@@ -175,6 +173,8 @@ namespace clib {
         nga_edge *enga(unit *node, bool init) override;
         nga_edge *enga(unit *node, unit *u) override;
         nga_edge *connect(nga_status *a, nga_status *b, bool is_pda = false) override;
+
+        const std::vector<pda_rule> &get_pda() const;
 
     private:
         nga_status *status();

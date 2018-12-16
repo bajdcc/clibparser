@@ -28,9 +28,15 @@ namespace clib {
 
         void gen();
         void program();
+        ast_node *terminal();
+
+        bool valid_trans(const pda_trans &trans) const;
+        void do_trans(const pda_trans &trans);
+        bool LA(unit *u) const;
 
     private:
         void expect(bool, const string_t &);
+        void match_keyword(keyword_t);
         void match_operator(operator_t);
         void match_type(lexer_t);
         void match_number();
@@ -40,6 +46,8 @@ namespace clib {
 
     private:
         lexer_t base_type{l_none};
+        std::vector<int> state_stack;
+        std::vector<ast_node *> ast_stack;
 
     private:
         cunit unit;

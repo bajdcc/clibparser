@@ -16,11 +16,9 @@ namespace clib {
 
     enum ast_t {
         ast_root,
-        ast_env,
-        ast_sub,
-        ast_lambda,
-        ast_sexpr,
-        ast_qexpr,
+        ast_collection,
+        ast_keyword,
+        ast_operator,
         ast_literal,
         ast_string,
         ast_char,
@@ -61,6 +59,8 @@ namespace clib {
             DEFINE_NODE_DATA(double)
 #undef DEFINE_NODE_DATA
             const char *_string;
+            keyword_t _keyword;
+            operator_t _op;
         } data; // 数据
 
         // 树型数据结构，广义表
@@ -83,6 +83,8 @@ namespace clib {
         ast_node *new_node(ast_t type);
         ast_node *new_child(ast_t type, bool step = true);
         ast_node *new_sibling(ast_t type, bool step = true);
+
+        void remove(ast_node*);
 
         ast_node *add_child(ast_node*);
         static ast_node *set_child(ast_node*, ast_node*);
