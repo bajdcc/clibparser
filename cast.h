@@ -59,6 +59,7 @@ namespace clib {
             DEFINE_NODE_DATA(double)
 #undef DEFINE_NODE_DATA
             const char *_string;
+            const char *_identifier;
             keyword_t _keyword;
             operator_t _op;
         } data; // 数据

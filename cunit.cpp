@@ -10,6 +10,7 @@
 #include "cunit.h"
 #include "cexception.h"
 
+#define SHOW_RULE 0
 #define SHOW_LABEL 0
 #define SHOW_CLOSURE 0
 
@@ -187,7 +188,7 @@ namespace clib {
     unit &cunit::rule(const string_t &s) {
         auto f = rules.find(s);
         if (f == rules.end()) {
-            auto &rule = (*nodes.alloc<unit_rule>()).set_s(str(s)).set_t(u_rule).init(this);
+            auto &rule = (*nodes.alloc<unit_rule>()).set_s(str(s)).set_child(nullptr).set_t(u_rule).init(this);
             nga_rule r;
             r.id = rules.size();
             r.status = nullptr;
@@ -285,6 +286,11 @@ namespace clib {
     void cunit::gen_nga() {
         for (auto &rule : rules) {
             current_rule = to_rule(rule.second.u);
+#if SHOW_RULE
+            print(current_rule, nullptr, std::cout);
+            std::cout << std::endl;
+#endif
+            assert(current_rule->child);
             rule.second.status = delete_epsilon(conv_nga(current_rule->child));
         }
         current_rule = nullptr;
@@ -867,7 +873,7 @@ namespace clib {
         if (status->in)
             return true;
         return status->out && has_filter_in_edges(status->out,
-            [rule](auto it) { return it->data && !(it->data->t == u_rule_ref && to_ref(it->data)->child == rule); });
+                                                  [rule](auto it) { return it->data && !(it->data->t == u_rule_ref && to_ref(it->data)->child == rule); });
     }
 
     bool is_left_resursive_edge(nga_edge *edge, unit *rule) {
@@ -933,8 +939,9 @@ namespace clib {
                                 edge.data = node;
                                 edge.type = e_shift;
                                 decltype(token_set) res;
-                                std::set_difference(ru->tokensFirstset.begin(),
-                                                    ru->tokensFirstset.end(),
+                                auto &fs = rules_list[ids[rr]]->tokensFirstset;
+                                std::set_difference(fs.begin(),
+                                                    fs.end(),
                                                     token_set.begin(),
                                                     token_set.end(),
                                                     std::inserter(res, res.begin()));

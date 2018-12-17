@@ -5,12 +5,14 @@ C++实现的LR Parser Generator，正在设计中，PDA表已生成，AST已生�
 ## 文章
 
 - [【Parser系列】实现LR分析——开篇](https://zhuanlan.zhihu.com/p/52478414)
+- [【Parser系列】实现LR分析——生成AST](https://zhuanlan.zhihu.com/p/52528516)
 
 ## 功能
 
 - 词法分析阶段由lexer完成，返回各类终结符。
 - 语法分析阶段由parser完成，输入产生式，通过生成LALR表来进行分析。
 - **LR识别完成，生成AST完成。**
+- **目前正在尝试实现C语言文法。**
 
 文法支持顺序、分支、可选。目前可以根据LR文法**自动**生成AST。后续会对AST进行标记。
 
@@ -304,6 +306,9 @@ void cparser::gen() {
 - [x] 生成抽象语法树
     - [x] 自动生成AST结构
     - [ ] 语义动作
+- [x] 设计语言
+    - [x] 使用[C语言文法](https://github.com/antlr/grammars-v4/blob/master/c/C.g4)
+    - [ ] 解决移进/归约冲突问题
 
 1. 将文法树转换成PDA表（完成）
 2. 根据PDA表生成AST（完成）

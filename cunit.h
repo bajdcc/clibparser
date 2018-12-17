@@ -13,7 +13,7 @@
 #include <bitset>
 #include "memory.h"
 
-#define UNIT_NODE_MEM (2 * 1024)
+#define UNIT_NODE_MEM (32 * 1024)
 
 namespace clib {
 
