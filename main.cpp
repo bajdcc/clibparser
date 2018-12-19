@@ -5,7 +5,12 @@
 int main() {
     using namespace clib;
     try {
-        cparser p("int main(){}");
+        cparser p(R"(
+int main() {
+    int a, b, c;
+    float d, e, f;
+}
+)");
         auto root = p.parse();
         cast::print(root, 0, std::cout);
     } catch (const cexception &e) {

@@ -940,11 +940,7 @@ namespace clib {
                                 edge.type = e_shift;
                                 decltype(token_set) res;
                                 auto &fs = rules_list[ids[rr]]->tokensFirstset;
-                                std::set_difference(fs.begin(),
-                                                    fs.end(),
-                                                    token_set.begin(),
-                                                    token_set.end(),
-                                                    std::inserter(res, res.begin()));
+                                res.insert(fs.begin(), fs.end());
                                 LA.insert(std::make_pair(&edge, res));
                             }
                         }

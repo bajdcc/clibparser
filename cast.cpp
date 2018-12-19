@@ -292,30 +292,34 @@ namespace clib {
         return nullptr;
     }
 
-    std::tuple<ast_t, string_t, int> ast_list[] = {
-        std::make_tuple(ast_root,       "root",     0),
-        std::make_tuple(ast_collection, "coll",     0),
-        std::make_tuple(ast_keyword,    "keyword",  0),
-        std::make_tuple(ast_operator,   "operator", 0),
-        std::make_tuple(ast_literal,    "literal",  0),
-        std::make_tuple(ast_string,     "string",   0),
-        std::make_tuple(ast_char,       "char",     1),
-        std::make_tuple(ast_uchar,      "uchar",    2),
-        std::make_tuple(ast_short,      "short",    3),
-        std::make_tuple(ast_ushort,     "ushort",   4),
-        std::make_tuple(ast_int,        "int",      5),
-        std::make_tuple(ast_uint,       "uint",     6),
-        std::make_tuple(ast_long,       "long",     7),
-        std::make_tuple(ast_ulong,      "ulong",    8),
-        std::make_tuple(ast_float,      "float",    9),
-        std::make_tuple(ast_double,     "double",   10),
+    std::tuple<ast_t, string_t, lexer_t, int> ast_list[] = {
+        std::make_tuple(ast_root, "root", l_none, 0),
+        std::make_tuple(ast_collection, "coll", l_none, 0),
+        std::make_tuple(ast_keyword, "keyword", l_none, 0),
+        std::make_tuple(ast_operator, "operator", l_operator , 0),
+        std::make_tuple(ast_literal, "literal", l_identifier, 0),
+        std::make_tuple(ast_string, "string", l_string, 0),
+        std::make_tuple(ast_char, "char", l_char, 1),
+        std::make_tuple(ast_uchar, "uchar", l_uchar, 2),
+        std::make_tuple(ast_short, "short", l_short, 3),
+        std::make_tuple(ast_ushort, "ushort", l_ushort, 4),
+        std::make_tuple(ast_int, "int", l_int, 5),
+        std::make_tuple(ast_uint, "uint", l_uint, 6),
+        std::make_tuple(ast_long, "long", l_long, 7),
+        std::make_tuple(ast_ulong, "ulong", l_ulong, 8),
+        std::make_tuple(ast_float, "float", l_float, 9),
+        std::make_tuple(ast_double, "double", l_double, 10),
     };
 
     const string_t &cast::ast_str(ast_t type) {
         return std::get<1>(ast_list[type]);
     }
 
+    bool cast::ast_equal(ast_t type, lexer_t lex) {
+        return std::get<2>(ast_list[type]) == lex;
+    }
+
     int cast::ast_prior(ast_t type) {
-        return std::get<2>(ast_list[type]);
+        return std::get<3>(ast_list[type]);
     }
 }

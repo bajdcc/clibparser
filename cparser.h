@@ -12,6 +12,15 @@
 
 namespace clib {
 
+    struct backtrace_t {
+        int lexer_index;
+        std::vector<int> state_stack;
+        std::vector<ast_node *> ast_stack;
+        int current_state;
+        int coll_index;
+        std::vector<int> trans_ids;
+    };
+
     class cparser {
     public:
         explicit cparser(const string_t &str);
@@ -31,7 +40,7 @@ namespace clib {
         ast_node *terminal();
 
         bool valid_trans(const pda_trans &trans) const;
-        void do_trans(const pda_trans &trans);
+        void do_trans(int state, const pda_trans &trans);
         bool LA(unit *u) const;
 
     private:
@@ -48,6 +57,9 @@ namespace clib {
         lexer_t base_type{l_none};
         std::vector<int> state_stack;
         std::vector<ast_node *> ast_stack;
+        std::vector<ast_node *> ast_cache;
+        int ast_cache_index{0};
+        std::vector<ast_node *> ast_coll_cache;
 
     private:
         cunit unit;

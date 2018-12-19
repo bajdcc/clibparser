@@ -99,6 +99,7 @@ namespace clib {
 
         static void print(ast_node *node, int level, std::ostream &os);
         static const string_t &ast_str(ast_t type);
+        static bool ast_equal(ast_t type, lexer_t lex);
         static int ast_prior(ast_t type);
 
         static ast_node *index(ast_node *node, int index);

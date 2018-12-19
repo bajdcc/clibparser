@@ -13,6 +13,7 @@
 #include "cunit.h"
 
 #define TRACE_PARSING 1
+#define DUMP_PDA 0
 
 namespace clib {
 
@@ -319,8 +320,8 @@ namespace clib {
         directDeclarator
             = Identifier
               | _lparan_ + declarator + _rparan_
-              | directDeclarator + (_lsquare_ + (*typeQualifierList + (*assignmentExpression | _times_) + _rsquare_
-                                                 | _lparan_ + (parameterTypeList | *identifierList) + _rparan_));
+              | directDeclarator + ((_lsquare_ + *typeQualifierList + (assignmentExpression | _times_) + _rsquare_)
+                                    | (_lparan_ + (parameterTypeList | *identifierList) + _rparan_));
         pointer = (_times_ | _bit_xor_) + (*typeQualifierList + *pointer);
         typeQualifierList = *typeQualifierList + typeQualifier;
         parameterTypeList = parameterList + _comma_ + _ellipsis_;
@@ -333,7 +334,7 @@ namespace clib {
                              | *pointer + directAbstractDeclarator;
         directAbstractDeclarator = _lparan_ + abstractDeclarator + _rparan_
                                    | *directAbstractDeclarator +
-                                     (_lsquare_ + (*typeQualifierList + (*assignmentExpression | _times_) + _rsquare_)
+                                     ((_lsquare_ + ((*typeQualifierList + *assignmentExpression) | _times_) + _rsquare_)
                                       | _lparan_ + *parameterTypeList + _rparan_);
         typedefName = Identifier;
         initializer = assignmentExpression | _lbrace_ + initializerList + *_comma_ + _rbrace_;
@@ -376,8 +377,10 @@ namespace clib {
         externalDeclaration = functionDefinition | declaration | _semi_;
         functionDefinition = *declarationSpecifiers + declarator + *declarationList + compoundStatement;
         declarationList = *declarationList + declaration;
-        unit.gen(&program);
-        //unit.dump(std::cout);
+        unit.gen(&compilationUnit);
+#if DUMP_PDA
+        unit.dump(std::cout);
+#endif
     }
 
     void cparser::program() {
@@ -386,47 +389,104 @@ namespace clib {
         ast_stack.clear();
         state_stack.push_back(0);
         ast_stack.push_back(ast.get_root());
+        std::vector<int> jumps;
         auto &pdas = unit.get_pda();
         std::vector<int> trans_ids;
-        auto state = 0;
-        for (;;) {
-            auto current_state = pdas[state];
-            if (lexer.is_type(l_end)) {
-                if (current_state.final) {
-                    if (state_stack.empty())
-                        break;
-                } else {
-                    std::cout << current_state.label << std::endl;
-                    throw cexception("parsing unexpected EOF");
-                }
-            }
-            auto &trans = current_state.trans;
-            trans_ids.clear();
-            for (auto i = 0; i < trans.size(); ++i) {
-                auto &cs = trans[i];
-                if (valid_trans(cs))
-                    trans_ids.push_back(i | pda_edge_priority(cs.type) << 16);
-            }
-            if (trans_ids.empty()) {
-                std::cout << current_state.label << std::endl;
-                throw cexception("parsing error");
-            }
-            std::sort(trans_ids.begin(), trans_ids.end());
-            auto trans_id = trans_ids.front() & ((1 << 16) - 1);
-            auto &t = trans[trans_id];
-            if (t.type == e_finish) {
-                if (!lexer.is_type(l_end)) {
-                    std::cout << current_state.label << std::endl;
-                    throw cexception("parsing redundant code");
-                }
-            }
-            auto jump = trans[trans_id].jump;
+        backtrace_t bk_tmp;
+        bk_tmp.lexer_index = 0;
+        bk_tmp.state_stack = state_stack;
+        bk_tmp.ast_stack = ast_stack;
+        bk_tmp.current_state = 0;
+        bk_tmp.coll_index = 0;
+        std::vector<backtrace_t> bks;
+        bks.push_back(bk_tmp);
+        auto success = false;
+        while (!success && !bks.empty()) {
+            auto bk = &bks.back();
+            auto bk_now = &bks.back();
+            auto bki = bks.size() - 1;
+            ast_cache_index = bk->lexer_index;
+            state_stack = bk->state_stack;
+            ast_stack = bk->ast_stack;
+            auto state = bk->current_state;
+            for (;;) {
+                auto &current_state = pdas[state];
+                if (lexer.is_type(l_end)) {
+                    if (current_state.final) {
+                        if (state_stack.empty()) {
+                            success = true;
+                            break;
+                        }
+                    } else {
 #if TRACE_PARSING
-            printf("State: %3d => To: %3d   -- Action: %-10s -- Rule: %s\n",
-                   state, jump, pda_edge_str(t.type).c_str(), current_state.label.c_str());
+                        std::cout << "parsing unexpected EOF: " << current_state.label << std::endl;
 #endif
-            do_trans(trans[trans_id]);
-            state = jump;
+                        break;
+                    }
+                }
+                auto &trans = current_state.trans;
+                auto trans_id = -1;
+                if (!bk->trans_ids.empty()) {
+                    trans_id = bk->trans_ids.back() & ((1 << 16) - 1);
+                    bk->trans_ids.pop_back();
+                } else {
+                    trans_ids.clear();
+                    for (auto i = 0; i < trans.size(); ++i) {
+                        auto &cs = trans[i];
+                        if (valid_trans(cs))
+                            trans_ids.push_back(i | pda_edge_priority(cs.type) << 16);
+                    }
+                    if (!trans_ids.empty()) {
+                        std::sort(trans_ids.begin(), trans_ids.end(), std::greater<>());
+                        trans_id = trans_ids.back() & ((1 << 16) - 1);
+                        trans_ids.pop_back();
+                        if (!trans_ids.empty()) {
+                            bk_tmp.lexer_index = ast_cache_index;
+                            bk_tmp.state_stack = state_stack;
+                            bk_tmp.ast_stack = ast_stack;
+                            bk_tmp.current_state = state;
+                            bk_tmp.trans_ids = trans_ids;
+                            bk_tmp.coll_index = ast_coll_cache.size();
+                            bks.push_back(bk_tmp);
+                            bk = &bks[bki];
+                            bk_now = &bks.back();
+                        }
+                    }
+                }
+                if (trans_id == -1) {
+#if TRACE_PARSING
+                    std::cout << "parsing error: " << current_state.label << std::endl;
+#endif
+                    break;
+                }
+                auto &t = trans[trans_id];
+                if (t.type == e_finish) {
+                    if (!lexer.is_type(l_end)) {
+#if TRACE_PARSING
+                        std::cout << "parsing redundant code: " << current_state.label << std::endl;
+#endif
+                        break;
+                    }
+                }
+                auto jump = trans[trans_id].jump;
+#if TRACE_PARSING
+                printf("State: %3d => To: %3d   -- Action: %-10s -- Rule: %s\n",
+                       state, jump, pda_edge_str(t.type).c_str(), current_state.label.c_str());
+#endif
+                do_trans(state, trans[trans_id]);
+                state = jump;
+            }
+            if (!success) {
+                if (bk->trans_ids.empty()) {
+                    auto size = ast_coll_cache.size();
+                    for (auto i = bk_now->coll_index; i < size; ++i) {
+                        auto &coll = ast_coll_cache[i];
+                        assert(coll->flag == ast_collection);
+                        ast.remove(coll);
+                    }
+                }
+                bks.erase(bks.begin() + bki);
+            }
         }
     }
 
@@ -434,22 +494,31 @@ namespace clib {
         if (lexer.is_type(l_end)) { // 结尾
             error("unexpected token EOF of expression");
         }
+        if (ast_cache_index < ast_cache.size()) {
+            return ast_cache[ast_cache_index++];
+        }
         if (lexer.is_type(l_operator)) {
             auto node = ast.new_node(ast_operator);
             node->data._op = lexer.get_operator();
             match_operator(node->data._op);
+            ast_cache.push_back(node);
+            ast_cache_index++;
             return node;
         }
         if (lexer.is_type(l_keyword)) {
             auto node = ast.new_node(ast_keyword);
             node->data._keyword = lexer.get_keyword();
             match_keyword(node->data._keyword);
+            ast_cache.push_back(node);
+            ast_cache_index++;
             return node;
         }
         if (lexer.is_type(l_identifier)) {
             auto node = ast.new_node(ast_literal);
             ast.set_str(node, lexer.get_identifier());
             match_type(l_identifier);
+            ast_cache.push_back(node);
+            ast_cache_index++;
             return node;
         }
         if (lexer.is_number()) {
@@ -477,6 +546,8 @@ namespace clib {
                     break;
             }
             match_number();
+            ast_cache.push_back(node);
+            ast_cache_index++;
             return node;
         }
         if (lexer.is_type(l_string)) {
@@ -496,6 +567,8 @@ namespace clib {
             }
             auto node = ast.new_node(ast_string);
             ast.set_str(node, ss.str());
+            ast_cache.push_back(node);
+            ast_cache_index++;
             return node;
         }
         error("invalid type");
@@ -523,8 +596,9 @@ namespace clib {
             case e_left_recursion:
                 break;
             case e_reduce: {
-                assert(state_stack.size() >= 2);
-                if (trans.status != *(state_stack.rbegin() + 1))
+                if (state_stack.empty())
+                    return false;
+                if (trans.status != state_stack.back())
                     return false;
             }
                 break;
@@ -536,11 +610,13 @@ namespace clib {
         return true;
     }
 
-    void cparser::do_trans(const pda_trans &trans) {
+    void cparser::do_trans(int state, const pda_trans &trans) {
         switch (trans.type) {
             case e_shift: {
-                state_stack.push_back(trans.jump);
-                ast_stack.push_back(ast.new_node(ast_collection));
+                state_stack.push_back(state);
+                auto new_node = ast.new_node(ast_collection);
+                ast_coll_cache.push_back(new_node);
+                ast_stack.push_back(new_node);
             }
                 break;
             case e_move: {
@@ -553,13 +629,7 @@ namespace clib {
                 auto new_ast = ast_stack.back();
                 state_stack.pop_back();
                 ast_stack.pop_back();
-                if (cast::children_size(new_ast) > 1) {
-                    cast::set_child(ast_stack.back(), new_ast);
-                } else {
-                    auto child = new_ast->child;
-                    ast.remove(new_ast);
-                    cast::set_child(ast_stack.back(), child);
-                }
+                cast::set_child(ast_stack.back(), new_ast);
             }
                 break;
             case e_finish:
@@ -572,6 +642,14 @@ namespace clib {
         if (u->t != u_token)
             return false;
         auto token = to_token(u);
+        if (ast_cache_index < ast_cache.size()) {
+            auto &cache = ast_cache[ast_cache_index];
+            if (token->type == l_keyword)
+                return cache->flag == ast_keyword && cache->data._keyword == token->value.keyword;
+            if (token->type == l_operator)
+                return cache->flag == ast_operator && cache->data._op == token->value.op;
+            return cast::ast_equal((ast_t) cache->flag, token->type);
+        }
         if (token->type == l_keyword)
             return lexer.is_keyword(token->value.keyword);
         if (token->type == l_operator)
