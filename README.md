@@ -10,6 +10,7 @@ C++实现的LR Parser Generator。
 
 - [【Parser系列】实现LR分析——开篇](https://zhuanlan.zhihu.com/p/52478414)
 - [【Parser系列】实现LR分析——生成AST](https://zhuanlan.zhihu.com/p/52528516)
+- [【Parser系列】实现LR分析——支持C语言文法](https://zhuanlan.zhihu.com/p/52812144)
 
 ## 功能
 
@@ -27,7 +28,7 @@ int main() {
     using namespace clib;
     try {
         cparser p(R"(
-int main() {
+int main(int (*g)()) {
     int a, b, c;
     float d, e, f;
 }
@@ -41,7 +42,11 @@ int main() {
 }
 ```
 
-结果：`((((((int))) ((main ( ))) ({ ((((((int))) ((((a))) , (((b))) , (((c)))) ;)) (((((float))) ((((d))) , (((e))) , (((f)))) ;))) }))))`
+结果：
+```txt
+((((((int))) ((main ( ((((((int))) ((( ((*) (g)) ) ( )))))) ))) ({ ((((((int))) ((((a))) , (((b))) , (((c)))) ;)) (((((f
+loat))) ((((d))) , (((e))) , (((f)))) ;))) }))))
+```
 结果未去括号。
 
 ## 调试信息
@@ -54,154 +59,16 @@ int main() {
 
 **由于太长，文法定义和下推自动机在根目录下的grammar.txt文件中！**
 
-以下为下推自动机的识别过程：
+以下为下推自动机的识别过程（**太长，略**），如需查看，请修改cparser.cpp中的：
 
 ```cpp
-State:   0 => To:   1   -- Action: shift      -- Rule: compilationUnit => @ translationUnit [ compilationUnit ]
-State:   1 => To:   2   -- Action: shift      -- Rule: translationUnit => [ @ translationUnit ] externalDeclaration
-State:   2 => To:   4   -- Action: shift      -- Rule: externalDeclaration => @ ( functionDefinition | declaration | ';' )
-State:   4 => To:   7   -- Action: shift      -- Rule: functionDefinition => [ @ declarationSpecifiers ] declarator [ declarationList ] compoundStatement
-State:   7 => To:  11   -- Action: shift      -- Rule: declarationSpecifiers => @ declarationSpecifier [ declarationSpecifiers ]
-State:  11 => To:  18   -- Action: shift      -- Rule: declarationSpecifier => @ ( storageClassSpecifier | typeSpecifier | typeQualifier )
-State:  18 => To:  34   -- Action: move       -- Rule: typeSpecifier => @ ( void | char | short | int | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName | typeSpecifier pointer )
-State:  34 => To:  55   -- Action: reduce     -- Rule: typeSpecifier => ( void | char | short | int @ | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName | typeSpecifier pointer )
-State:  55 => To:  73   -- Action: reduce     -- Rule: declarationSpecifier => ( storageClassSpecifier | typeSpecifier @ | typeQualifier )
-State:  73 => To:   7   -- Action: shift      -- Rule: declarationSpecifiers => declarationSpecifier @ [ declarationSpecifiers ]
-State:   7 => To:  11   -- Action: shift      -- Rule: declarationSpecifiers => @ declarationSpecifier [ declarationSpecifiers ]
-State:  11 => To:  18   -- Action: shift      -- Rule: declarationSpecifier => @ ( storageClassSpecifier | typeSpecifier | typeQualifier )
-State:  18 => To:  43   -- Action: shift      -- Rule: typeSpecifier => @ ( void | char | short | int | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName | typeSpecifier pointer )
-State:  43 => To:  60   -- Action: move       -- Rule: typedefName => @ #identifier#
-State:  60 => To:  88   -- Action: reduce     -- Rule: typedefName => #identifier# @
-State:  88 => To:  55   -- Action: reduce     -- Rule: typeSpecifier => ( void | char | short | int | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName @ | typeSpecifier pointer )
-State:  55 => To:  73   -- Action: reduce     -- Rule: declarationSpecifier => ( storageClassSpecifier | typeSpecifier @ | typeQualifier )
-State:  73 => To: 110   -- Action: reduce     -- Rule: declarationSpecifiers => declarationSpecifier @ [ declarationSpecifiers ]
-State: 110 => To: 113   -- Action: reduce     -- Rule: declarationSpecifiers => declarationSpecifier [ declarationSpecifiers @ ]
-State: 113 => To:   8   -- Action: shift      -- Rule: functionDefinition => [ declarationSpecifiers @ ] declarator [ declarationList ] compoundStatement
-State:   8 => To:  13   -- Action: shift      -- Rule: declarator => [ @ pointer ] directDeclarator
-State:  13 => To:  23   -- Action: move       -- Rule: directDeclarator => @ ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-parsing error: directDeclarator => ( #identifier# | '(' @ declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  73 => To: 113   -- Action: reduce     -- Rule: declarationSpecifiers => declarationSpecifier @ [ declarationSpecifiers ]
-State: 113 => To:   8   -- Action: shift      -- Rule: functionDefinition => [ declarationSpecifiers @ ] declarator [ declarationList ] compoundStatement
-State:   8 => To:  13   -- Action: shift      -- Rule: declarator => [ @ pointer ] directDeclarator
-State:  13 => To:  22   -- Action: move       -- Rule: directDeclarator => @ ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  22 => To:  50   -- Action: recursion  -- Rule: directDeclarator => ( #identifier# @ | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  50 => To:  71   -- Action: move       -- Rule: directDeclarator => ( #identifier# | '(' declarator ')' | directDeclarator @ ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  71 => To: 104   -- Action: move       -- Rule: directDeclarator => ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' @ ( parameterTypeList | [ identifierList ] ) ')' ) )
-State: 104 => To:  49   -- Action: reduce     -- Rule: directDeclarator => ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' @ ) )
-State:  49 => To:  66   -- Action: reduce     -- Rule: declarator => [ pointer ] directDeclarator @
-State:  66 => To:  98   -- Action: shift      -- Rule: functionDefinition => [ declarationSpecifiers ] declarator @ [ declarationList ] compoundStatement
-State:  98 => To: 132   -- Action: move       -- Rule: compoundStatement => @ '{' [ blockItemList ] '}'
-State: 132 => To: 163   -- Action: shift      -- Rule: compoundStatement => '{' @ [ blockItemList ] '}'
-State: 163 => To: 198   -- Action: shift      -- Rule: blockItemList => [ @ blockItemList ] blockItem
-State: 198 => To:   5   -- Action: shift      -- Rule: blockItem => @ ( statement | declaration )
-State:   5 => To:   7   -- Action: shift      -- Rule: declaration => @ declarationSpecifiers [ initDeclaratorList ] ';'
-State:   7 => To:  11   -- Action: shift      -- Rule: declarationSpecifiers => @ declarationSpecifier [ declarationSpecifiers ]
-State:  11 => To:  18   -- Action: shift      -- Rule: declarationSpecifier => @ ( storageClassSpecifier | typeSpecifier | typeQualifier )
-State:  18 => To:  34   -- Action: move       -- Rule: typeSpecifier => @ ( void | char | short | int | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName | typeSpecifier pointer )
-State:  34 => To:  55   -- Action: reduce     -- Rule: typeSpecifier => ( void | char | short | int @ | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName | typeSpecifier pointer )
-State:  55 => To:  73   -- Action: reduce     -- Rule: declarationSpecifier => ( storageClassSpecifier | typeSpecifier @ | typeQualifier )
-State:  73 => To:   7   -- Action: shift      -- Rule: declarationSpecifiers => declarationSpecifier @ [ declarationSpecifiers ]
-State:   7 => To:  11   -- Action: shift      -- Rule: declarationSpecifiers => @ declarationSpecifier [ declarationSpecifiers ]
-State:  11 => To:  18   -- Action: shift      -- Rule: declarationSpecifier => @ ( storageClassSpecifier | typeSpecifier | typeQualifier )
-State:  18 => To:  43   -- Action: shift      -- Rule: typeSpecifier => @ ( void | char | short | int | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName | typeSpecifier pointer )
-State:  43 => To:  60   -- Action: move       -- Rule: typedefName => @ #identifier#
-State:  60 => To:  88   -- Action: reduce     -- Rule: typedefName => #identifier# @
-State:  88 => To:  55   -- Action: reduce     -- Rule: typeSpecifier => ( void | char | short | int | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName @ | typeSpecifier pointer )
-State:  55 => To:  73   -- Action: reduce     -- Rule: declarationSpecifier => ( storageClassSpecifier | typeSpecifier @ | typeQualifier )
-State:  73 => To: 110   -- Action: reduce     -- Rule: declarationSpecifiers => declarationSpecifier @ [ declarationSpecifiers ]
-State: 110 => To: 109   -- Action: reduce     -- Rule: declarationSpecifiers => declarationSpecifier [ declarationSpecifiers @ ]
-parsing error: declaration => declarationSpecifiers @ [ initDeclaratorList ] ';'
-State:  73 => To: 109   -- Action: reduce     -- Rule: declarationSpecifiers => declarationSpecifier @ [ declarationSpecifiers ]
-State: 109 => To: 146   -- Action: shift      -- Rule: declaration => declarationSpecifiers @ [ initDeclaratorList ] ';'
-State: 146 => To: 179   -- Action: shift      -- Rule: initDeclaratorList => [ @ initDeclaratorList ',' ] initDeclarator
-State: 179 => To:   8   -- Action: shift      -- Rule: initDeclarator => @ declarator [ '=' initializer ]
-State:   8 => To:  13   -- Action: shift      -- Rule: declarator => [ @ pointer ] directDeclarator
-State:  13 => To:  22   -- Action: move       -- Rule: directDeclarator => @ ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  22 => To:  49   -- Action: reduce     -- Rule: directDeclarator => ( #identifier# @ | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  49 => To:  67   -- Action: reduce     -- Rule: declarator => [ pointer ] directDeclarator @
-State:  67 => To: 101   -- Action: reduce     -- Rule: initDeclarator => declarator @ [ '=' initializer ]
-State: 101 => To: 136   -- Action: recursion  -- Rule: initDeclaratorList => [ initDeclaratorList ',' ] initDeclarator @
-State: 136 => To: 165   -- Action: move       -- Rule: initDeclaratorList => [ initDeclaratorList @ ',' ] initDeclarator
-State: 165 => To: 179   -- Action: shift      -- Rule: initDeclaratorList => [ initDeclaratorList ',' @ ] initDeclarator
-State: 179 => To:   8   -- Action: shift      -- Rule: initDeclarator => @ declarator [ '=' initializer ]
-State:   8 => To:  13   -- Action: shift      -- Rule: declarator => [ @ pointer ] directDeclarator
-State:  13 => To:  22   -- Action: move       -- Rule: directDeclarator => @ ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  22 => To:  49   -- Action: reduce     -- Rule: directDeclarator => ( #identifier# @ | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  49 => To:  67   -- Action: reduce     -- Rule: declarator => [ pointer ] directDeclarator @
-State:  67 => To: 101   -- Action: reduce     -- Rule: initDeclarator => declarator @ [ '=' initializer ]
-State: 101 => To: 136   -- Action: recursion  -- Rule: initDeclaratorList => [ initDeclaratorList ',' ] initDeclarator @
-State: 136 => To: 165   -- Action: move       -- Rule: initDeclaratorList => [ initDeclaratorList @ ',' ] initDeclarator
-State: 165 => To: 179   -- Action: shift      -- Rule: initDeclaratorList => [ initDeclaratorList ',' @ ] initDeclarator
-State: 179 => To:   8   -- Action: shift      -- Rule: initDeclarator => @ declarator [ '=' initializer ]
-State:   8 => To:  13   -- Action: shift      -- Rule: declarator => [ @ pointer ] directDeclarator
-State:  13 => To:  22   -- Action: move       -- Rule: directDeclarator => @ ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  22 => To:  49   -- Action: reduce     -- Rule: directDeclarator => ( #identifier# @ | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  49 => To:  67   -- Action: reduce     -- Rule: declarator => [ pointer ] directDeclarator @
-State:  67 => To: 101   -- Action: reduce     -- Rule: initDeclarator => declarator @ [ '=' initializer ]
-State: 101 => To: 134   -- Action: reduce     -- Rule: initDeclaratorList => [ initDeclaratorList ',' ] initDeclarator @
-State: 134 => To: 145   -- Action: move       -- Rule: declaration => declarationSpecifiers [ initDeclaratorList @ ] ';'
-State: 145 => To: 176   -- Action: reduce     -- Rule: declaration => declarationSpecifiers [ initDeclaratorList ] ';' @
-State: 176 => To: 211   -- Action: reduce     -- Rule: blockItem => ( statement | declaration @ )
-State: 211 => To: 249   -- Action: recursion  -- Rule: blockItemList => [ blockItemList ] blockItem @
-State: 249 => To: 198   -- Action: shift      -- Rule: blockItemList => [ blockItemList @ ] blockItem
-State: 198 => To:   5   -- Action: shift      -- Rule: blockItem => @ ( statement | declaration )
-State:   5 => To:   7   -- Action: shift      -- Rule: declaration => @ declarationSpecifiers [ initDeclaratorList ] ';'
-State:   7 => To:  11   -- Action: shift      -- Rule: declarationSpecifiers => @ declarationSpecifier [ declarationSpecifiers ]
-State:  11 => To:  18   -- Action: shift      -- Rule: declarationSpecifier => @ ( storageClassSpecifier | typeSpecifier | typeQualifier )
-State:  18 => To:  36   -- Action: move       -- Rule: typeSpecifier => @ ( void | char | short | int | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName | typeSpecifier pointer )
-State:  36 => To:  55   -- Action: reduce     -- Rule: typeSpecifier => ( void | char | short | int | long | float @ | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName | typeSpecifier pointer )
-State:  55 => To:  73   -- Action: reduce     -- Rule: declarationSpecifier => ( storageClassSpecifier | typeSpecifier @ | typeQualifier )
-State:  73 => To:   7   -- Action: shift      -- Rule: declarationSpecifiers => declarationSpecifier @ [ declarationSpecifiers ]
-State:   7 => To:  11   -- Action: shift      -- Rule: declarationSpecifiers => @ declarationSpecifier [ declarationSpecifiers ]
-State:  11 => To:  18   -- Action: shift      -- Rule: declarationSpecifier => @ ( storageClassSpecifier | typeSpecifier | typeQualifier )
-State:  18 => To:  43   -- Action: shift      -- Rule: typeSpecifier => @ ( void | char | short | int | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName | typeSpecifier pointer )
-State:  43 => To:  60   -- Action: move       -- Rule: typedefName => @ #identifier#
-State:  60 => To:  88   -- Action: reduce     -- Rule: typedefName => #identifier# @
-State:  88 => To:  55   -- Action: reduce     -- Rule: typeSpecifier => ( void | char | short | int | long | float | double | signed | unsigned | bool | structOrUnionSpecifier | enumSpecifier | typedefName @ | typeSpecifier pointer )
-State:  55 => To:  73   -- Action: reduce     -- Rule: declarationSpecifier => ( storageClassSpecifier | typeSpecifier @ | typeQualifier )
-State:  73 => To: 110   -- Action: reduce     -- Rule: declarationSpecifiers => declarationSpecifier @ [ declarationSpecifiers ]
-State: 110 => To: 109   -- Action: reduce     -- Rule: declarationSpecifiers => declarationSpecifier [ declarationSpecifiers @ ]
-parsing error: declaration => declarationSpecifiers @ [ initDeclaratorList ] ';'
-State:  73 => To: 109   -- Action: reduce     -- Rule: declarationSpecifiers => declarationSpecifier @ [ declarationSpecifiers ]
-State: 109 => To: 146   -- Action: shift      -- Rule: declaration => declarationSpecifiers @ [ initDeclaratorList ] ';'
-State: 146 => To: 179   -- Action: shift      -- Rule: initDeclaratorList => [ @ initDeclaratorList ',' ] initDeclarator
-State: 179 => To:   8   -- Action: shift      -- Rule: initDeclarator => @ declarator [ '=' initializer ]
-State:   8 => To:  13   -- Action: shift      -- Rule: declarator => [ @ pointer ] directDeclarator
-State:  13 => To:  22   -- Action: move       -- Rule: directDeclarator => @ ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  22 => To:  49   -- Action: reduce     -- Rule: directDeclarator => ( #identifier# @ | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  49 => To:  67   -- Action: reduce     -- Rule: declarator => [ pointer ] directDeclarator @
-State:  67 => To: 101   -- Action: reduce     -- Rule: initDeclarator => declarator @ [ '=' initializer ]
-State: 101 => To: 136   -- Action: recursion  -- Rule: initDeclaratorList => [ initDeclaratorList ',' ] initDeclarator @
-State: 136 => To: 165   -- Action: move       -- Rule: initDeclaratorList => [ initDeclaratorList @ ',' ] initDeclarator
-State: 165 => To: 179   -- Action: shift      -- Rule: initDeclaratorList => [ initDeclaratorList ',' @ ] initDeclarator
-State: 179 => To:   8   -- Action: shift      -- Rule: initDeclarator => @ declarator [ '=' initializer ]
-State:   8 => To:  13   -- Action: shift      -- Rule: declarator => [ @ pointer ] directDeclarator
-State:  13 => To:  22   -- Action: move       -- Rule: directDeclarator => @ ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  22 => To:  49   -- Action: reduce     -- Rule: directDeclarator => ( #identifier# @ | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  49 => To:  67   -- Action: reduce     -- Rule: declarator => [ pointer ] directDeclarator @
-State:  67 => To: 101   -- Action: reduce     -- Rule: initDeclarator => declarator @ [ '=' initializer ]
-State: 101 => To: 136   -- Action: recursion  -- Rule: initDeclaratorList => [ initDeclaratorList ',' ] initDeclarator @
-State: 136 => To: 165   -- Action: move       -- Rule: initDeclaratorList => [ initDeclaratorList @ ',' ] initDeclarator
-State: 165 => To: 179   -- Action: shift      -- Rule: initDeclaratorList => [ initDeclaratorList ',' @ ] initDeclarator
-State: 179 => To:   8   -- Action: shift      -- Rule: initDeclarator => @ declarator [ '=' initializer ]
-State:   8 => To:  13   -- Action: shift      -- Rule: declarator => [ @ pointer ] directDeclarator
-State:  13 => To:  22   -- Action: move       -- Rule: directDeclarator => @ ( #identifier# | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  22 => To:  49   -- Action: reduce     -- Rule: directDeclarator => ( #identifier# @ | '(' declarator ')' | directDeclarator ( '[' [ typeQualifierList ] ( assignmentExpression | '*' ) ']' | '(' ( parameterTypeList | [ identifierList ] ) ')' ) )
-State:  49 => To:  67   -- Action: reduce     -- Rule: declarator => [ pointer ] directDeclarator @
-State:  67 => To: 101   -- Action: reduce     -- Rule: initDeclarator => declarator @ [ '=' initializer ]
-State: 101 => To: 134   -- Action: reduce     -- Rule: initDeclaratorList => [ initDeclaratorList ',' ] initDeclarator @
-State: 134 => To: 145   -- Action: move       -- Rule: declaration => declarationSpecifiers [ initDeclaratorList @ ] ';'
-State: 145 => To: 176   -- Action: reduce     -- Rule: declaration => declarationSpecifiers [ initDeclaratorList ] ';' @
-State: 176 => To: 211   -- Action: reduce     -- Rule: blockItem => ( statement | declaration @ )
-State: 211 => To: 250   -- Action: reduce     -- Rule: blockItemList => [ blockItemList ] blockItem @
-State: 250 => To: 162   -- Action: move       -- Rule: compoundStatement => '{' [ blockItemList @ ] '}'
-State: 162 => To: 196   -- Action: reduce     -- Rule: compoundStatement => '{' [ blockItemList ] '}' @
-State: 196 => To: 233   -- Action: reduce     -- Rule: functionDefinition => [ declarationSpecifiers ] declarator [ declarationList ] compoundStatement @
-State: 233 => To:   6   -- Action: reduce     -- Rule: externalDeclaration => ( functionDefinition @ | declaration | ';' )
-State:   6 => To:   9   -- Action: reduce     -- Rule: translationUnit => [ translationUnit ] externalDeclaration @
-State:   9 => To:   9   -- Action: finish     -- Rule: compilationUnit => translationUnit @ [ compilationUnit ]
-((((((int))) ((main ( ))) ({ ((((((int))) ((((a))) , (((b))) , (((c)))) ;)) (((((float))) ((((d))) , (((e))) , (((f)))) ;))) }))))
+#define TRACE_PARSING 0
+#define DUMP_PDA 0
+#define DEBUG_AST 0
+#define CHECK_AST 0
 ```
+
+将值改为1即可。
 
 ## 测试用例
 
@@ -225,10 +92,11 @@ State:   9 => To:   9   -- Action: finish     -- Rule: compilationUnit => transl
     - [x] 打印PDA结构（独立于内存池）
 - [x] 生成抽象语法树
     - [x] 自动生成AST结构
+    - [ ] 美化AST结构
     - [ ] 语义动作
 - [x] 设计语言
     - [x] 使用[C语言文法](https://github.com/antlr/grammars-v4/blob/master/c/C.g4)
-    - [x] 实现回溯，解决移进/归约冲突问题
+    - [x] 实现回溯，解决移进/归约冲突问题，解决回溯的诸多BUG
 
 1. 将文法树转换表（完成）
 2. 根据PDA表生成AST（完成）
@@ -239,6 +107,7 @@ State:   9 => To:   9   -- Action: finish     -- Rule: compilationUnit => transl
 - [x] PDA表的生成时使用了内存池来保存结点，当生成PDA表后，内存池可以全部回收
 - [x] 生成AST时减少嵌套结点
 - [ ] 优化回溯时产生的数据结构，减少拷贝
+- [ ] 解析成功时释放结点内存
 
 ## 参考
 

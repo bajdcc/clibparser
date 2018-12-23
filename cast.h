@@ -102,6 +102,8 @@ namespace clib {
         static bool ast_equal(ast_t type, lexer_t lex);
         static int ast_prior(ast_t type);
 
+        static void unlink(ast_node *node);
+
         static ast_node *index(ast_node *node, int index);
         static ast_node *index(ast_node *node, const string_t &index);
 

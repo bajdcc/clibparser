@@ -355,6 +355,7 @@ namespace clib {
             default:
                 break;
         }
+        return false;
     }
 
     void cunit::check_nga() {
@@ -568,7 +569,7 @@ namespace clib {
         return new_edge;
     }
 
-    void *cunit::disconnect(nga_status *status) {
+    void cunit::disconnect(nga_status *status) {
         auto ins = get_children(status->in);
         for (auto &edge : ins) {
             remove_edge(edge->edge->end->in, edge);

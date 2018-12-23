@@ -12,13 +12,15 @@
 #include "cast.h"
 #include "cunit.h"
 
-#define TRACE_PARSING 1
+#define TRACE_PARSING 0
 #define DUMP_PDA 0
+#define DEBUG_AST 0
+#define CHECK_AST 0
 
 namespace clib {
 
     cparser::cparser(const string_t &str)
-        : lexer(str) {}
+            : lexer(str) {}
 
     ast_node *cparser::parse() {
         // 清空词法分析结果
@@ -262,10 +264,10 @@ namespace clib {
                             | _lparan_ + typeName + _rparan_ + _lbrace_ + initializerList + *_comma_ + _rbrace_;
         argumentExpressionList = *(argumentExpressionList + _comma_) + assignmentExpression;
         unaryExpression
-            = postfixExpression
-              | (_plus_plus_ | _minus_minus_) + unaryExpression
-              | unaryOperator + castExpression
-              | _sizeof_ + (unaryExpression | _lparan_ + typeName + _rparan_);
+                = postfixExpression
+                  | (_plus_plus_ | _minus_minus_) + unaryExpression
+                  | unaryOperator + castExpression
+                  | _sizeof_ + (unaryExpression | _lparan_ + typeName + _rparan_);
         unaryOperator = _bit_and_ | _times_ | _plus_ | _minus_ | _bit_not_ | _logical_not_;
         castExpression = _lparan_ + typeName + _rparan_ + castExpression | unaryExpression;
         multiplicativeExpression = castExpression | multiplicativeExpression +
@@ -292,9 +294,9 @@ namespace clib {
         declarationSpecifiers = declarationSpecifier + *declarationSpecifiers;
         declarationSpecifiers2 = declarationSpecifier + *declarationSpecifiers;
         declarationSpecifier
-            = storageClassSpecifier
-              | typeSpecifier
-              | typeQualifier;
+                = storageClassSpecifier
+                  | typeSpecifier
+                  | typeQualifier;
         initDeclaratorList = *(initDeclaratorList + _comma_) + initDeclarator;
         initDeclarator = declarator + *(_assign_ + initializer);
         storageClassSpecifier = _typedef_ | _extern_ | _static_ | _auto_ | _register_;
@@ -304,7 +306,7 @@ namespace clib {
                         | typedefName
                         | typeSpecifier + pointer;
         structOrUnionSpecifier =
-            structOrUnion + (Identifier | (*Identifier + _lbrace_ + structDeclarationList + _rbrace_));
+                structOrUnion + (Identifier | (*Identifier + _lbrace_ + structDeclarationList + _rbrace_));
         structOrUnion = _struct_ | _union_;
         structDeclarationList = *structDeclarationList + structDeclaration;
         structDeclaration = specifierQualifierList + *structDeclaratorList + _semi_;
@@ -318,13 +320,13 @@ namespace clib {
         typeQualifier = _const_ | _volatile_;
         declarator = *pointer + directDeclarator;
         directDeclarator
-            = Identifier
-              | _lparan_ + declarator + _rparan_
-              | directDeclarator + ((_lsquare_ + *typeQualifierList + (assignmentExpression | _times_) + _rsquare_)
-                                    | (_lparan_ + (parameterTypeList | *identifierList) + _rparan_));
+                = Identifier
+                  | _lparan_ + declarator + _rparan_
+                  | directDeclarator + ((_lsquare_ + *typeQualifierList + (assignmentExpression | _times_) + _rsquare_)
+                                        | (_lparan_ + (parameterTypeList | *identifierList) + _rparan_));
         pointer = (_times_ | _bit_xor_) + (*typeQualifierList + *pointer);
         typeQualifierList = *typeQualifierList + typeQualifier;
-        parameterTypeList = parameterList + _comma_ + _ellipsis_;
+        parameterTypeList = parameterList + *(_comma_ + _ellipsis_);
         parameterList = *(parameterList + _comma_) + parameterDeclaration;
         parameterDeclaration = declarationSpecifiers + declarator
                                | declarationSpecifiers2 + *abstractDeclarator;
@@ -344,12 +346,12 @@ namespace clib {
         designator = _lsquare_ + constantExpression + _rsquare_
                      | _dot_ + Identifier;
         statement
-            = labeledStatement
-              | compoundStatement
-              | expressionStatement
-              | selectionStatement
-              | iterationStatement
-              | jumpStatement;
+                = labeledStatement
+                  | compoundStatement
+                  | expressionStatement
+                  | selectionStatement
+                  | iterationStatement
+                  | jumpStatement;
         labeledStatement = (Identifier
                             | _case_ + constantExpression
                             | _default_) + _assign_ + statement;
@@ -358,12 +360,12 @@ namespace clib {
         blockItem = statement | declaration;
         expressionStatement = *expression + _semi_;
         selectionStatement
-            = _if_ + _lparan_ + expression + _rparan_ + statement + *(_else_ + statement)
-              | _switch_ + _lparan_ + expression + _rparan_ + statement;
+                = _if_ + _lparan_ + expression + _rparan_ + statement + *(_else_ + statement)
+                  | _switch_ + _lparan_ + expression + _rparan_ + statement;
         iterationStatement
-            = _while_ + _lparan_ + expression + _rparan_ + statement
-              | _do_ + statement + _while_ + _lparan_ + expression + _rparan_ + _semi_
-              | _for_ + _lparan_ + forCondition + _rparan_ + statement;
+                = _while_ + _lparan_ + expression + _rparan_ + statement
+                  | _do_ + statement + _while_ + _lparan_ + expression + _rparan_ + _semi_
+                  | _for_ + _lparan_ + forCondition + _rparan_ + statement;
         forCondition = (forDeclaration | *expression) + _semi_ + *forExpression + _semi_ + *forExpression;
         forDeclaration = declarationSpecifiers + *initDeclaratorList;
         forExpression = *(forExpression + _comma_) + assignmentExpression;
@@ -383,6 +385,31 @@ namespace clib {
 #endif
     }
 
+    void check_ast(ast_node *node) {
+#if CHECK_AST
+        if (node->child) {
+            auto &c = node->child;
+            auto i = c;
+            assert(i->parent == node);
+            check_ast(i);
+            if (i->next != i) {
+                assert(i->prev->next == i);
+                assert(i->next->prev == i);
+                i = i->next;
+                do {
+                    assert(i->parent == node);
+                    assert(i->prev->next == i);
+                    assert(i->next->prev == i);
+                    check_ast(i);
+                    i = i->next;
+                } while (i != c);
+            } else {
+                assert(i->prev == i);
+            }
+        }
+#endif
+    }
+
     void cparser::program() {
         next();
         state_stack.clear();
@@ -398,95 +425,169 @@ namespace clib {
         bk_tmp.ast_stack = ast_stack;
         bk_tmp.current_state = 0;
         bk_tmp.coll_index = 0;
+        bk_tmp.reduce_index = 0;
+        bk_tmp.direction = b_next;
         std::vector<backtrace_t> bks;
         bks.push_back(bk_tmp);
-        auto success = false;
-        while (!success && !bks.empty()) {
+        auto trans_id = -1;
+        while (!bks.empty()) {
             auto bk = &bks.back();
-            auto bk_now = &bks.back();
-            auto bki = bks.size() - 1;
+            if (bk->direction == b_success || bk->direction == b_fail) {
+                break;
+            }
+            if (bk->direction == b_fallback) {
+                if (bk->trans_ids.empty()) {
+                    if (bks.size() > 1) {
+                        bks.pop_back();
+                        bks.back().direction = b_error;
+                        bk = &bks.back();
+                    } else {
+                        bk->direction = b_fail;
+                        continue;
+                    }
+                }
+            }
             ast_cache_index = bk->lexer_index;
             state_stack = bk->state_stack;
             ast_stack = bk->ast_stack;
             auto state = bk->current_state;
-            for (;;) {
-                auto &current_state = pdas[state];
-                if (lexer.is_type(l_end)) {
-                    if (current_state.final) {
-                        if (state_stack.empty()) {
-                            success = true;
+            if (bk->direction != b_error)
+                for (;;) {
+                    auto &current_state = pdas[state];
+                    if (lexer.is_type(l_end)) {
+                        if (current_state.final) {
+                            if (state_stack.empty()) {
+                                bk->direction = b_success;
+                                break;
+                            }
+                        } else {
+#if TRACE_PARSING
+                            std::cout << "parsing unexpected EOF: " << current_state.label << std::endl;
+#endif
+                            bk->direction = b_error;
                             break;
                         }
+                    }
+                    auto &trans = current_state.trans;
+                    if (trans_id == -1 && !bk->trans_ids.empty()) {
+                        trans_id = bk->trans_ids.back() & ((1 << 16) - 1);
+                        bk->trans_ids.pop_back();
                     } else {
-#if TRACE_PARSING
-                        std::cout << "parsing unexpected EOF: " << current_state.label << std::endl;
-#endif
-                        break;
-                    }
-                }
-                auto &trans = current_state.trans;
-                auto trans_id = -1;
-                if (!bk->trans_ids.empty()) {
-                    trans_id = bk->trans_ids.back() & ((1 << 16) - 1);
-                    bk->trans_ids.pop_back();
-                } else {
-                    trans_ids.clear();
-                    for (auto i = 0; i < trans.size(); ++i) {
-                        auto &cs = trans[i];
-                        if (valid_trans(cs))
-                            trans_ids.push_back(i | pda_edge_priority(cs.type) << 16);
-                    }
-                    if (!trans_ids.empty()) {
-                        std::sort(trans_ids.begin(), trans_ids.end(), std::greater<>());
-                        trans_id = trans_ids.back() & ((1 << 16) - 1);
-                        trans_ids.pop_back();
+                        trans_ids.clear();
+                        for (auto i = 0; i < trans.size(); ++i) {
+                            auto &cs = trans[i];
+                            if (valid_trans(cs))
+                                trans_ids.push_back(i | pda_edge_priority(cs.type) << 16);
+                        }
                         if (!trans_ids.empty()) {
-                            bk_tmp.lexer_index = ast_cache_index;
-                            bk_tmp.state_stack = state_stack;
-                            bk_tmp.ast_stack = ast_stack;
-                            bk_tmp.current_state = state;
-                            bk_tmp.trans_ids = trans_ids;
-                            bk_tmp.coll_index = ast_coll_cache.size();
-                            bks.push_back(bk_tmp);
-                            bk = &bks[bki];
-                            bk_now = &bks.back();
+                            std::sort(trans_ids.begin(), trans_ids.end(), std::greater<>());
+                            if (trans_ids.size() > 1) {
+                                bk_tmp.lexer_index = ast_cache_index;
+                                bk_tmp.state_stack = state_stack;
+                                bk_tmp.ast_stack = ast_stack;
+                                bk_tmp.current_state = state;
+                                bk_tmp.trans_ids = trans_ids;
+                                bk_tmp.coll_index = ast_coll_cache.size();
+                                bk_tmp.reduce_index = ast_reduce_cache.size();
+                                bk_tmp.direction = b_next;
+#if DEBUG_AST
+                                for (auto i = 0; i < bks.size(); ++i) {
+                                    auto &_bk = bks[i];
+                                    printf("[DEBUG] Branch old: i=%d, LI=%d, SS=%d, AS=%d, S=%d, TS=%d, CI=%d, RI=%d, TK=%d\n",
+                                           i, _bk.lexer_index, _bk.state_stack.size(),
+                                           _bk.ast_stack.size(), _bk.current_state, _bk.trans_ids.size(),
+                                           _bk.coll_index, _bk.reduce_index, _bk.ast_ids.size());
+                                }
+#endif
+                                bks.push_back(bk_tmp);
+                                bk = &bks.back();
+#if DEBUG_AST
+                                printf("[DEBUG] Branch new: BS=%d, LI=%d, SS=%d, AS=%d, S=%d, TS=%d, CI=%d, RI=%d, TK=%d\n",
+                                       bks.size(), bk_tmp.lexer_index, bk_tmp.state_stack.size(),
+                                       bk_tmp.ast_stack.size(), bk_tmp.current_state, bk_tmp.trans_ids.size(),
+                                       bk_tmp.coll_index, bk_tmp.reduce_index, bk_tmp.ast_ids.size());
+#endif
+                                bk->direction = b_next;
+                                break;
+                            } else {
+                                trans_id = trans_ids.back() & ((1 << 16) - 1);
+                                trans_ids.pop_back();
+                            }
+                        } else {
+#if TRACE_PARSING
+                            std::cout << "parsing error: " << current_state.label << std::endl;
+#endif
+                            bk->direction = b_error;
+                            break;
                         }
                     }
-                }
-                if (trans_id == -1) {
+                    auto &t = trans[trans_id];
+                    if (t.type == e_finish) {
+                        if (!lexer.is_type(l_end)) {
 #if TRACE_PARSING
-                    std::cout << "parsing error: " << current_state.label << std::endl;
+                            std::cout << "parsing redundant code: " << current_state.label << std::endl;
 #endif
-                    break;
-                }
-                auto &t = trans[trans_id];
-                if (t.type == e_finish) {
-                    if (!lexer.is_type(l_end)) {
-#if TRACE_PARSING
-                        std::cout << "parsing redundant code: " << current_state.label << std::endl;
-#endif
-                        break;
+                            bk->direction = b_error;
+                            break;
+                        }
                     }
-                }
-                auto jump = trans[trans_id].jump;
+                    auto jump = trans[trans_id].jump;
 #if TRACE_PARSING
-                printf("State: %3d => To: %3d   -- Action: %-10s -- Rule: %s\n",
-                       state, jump, pda_edge_str(t.type).c_str(), current_state.label.c_str());
+                    printf("State: %3d => To: %3d   -- Action: %-10s -- Rule: %s\n",
+                           state, jump, pda_edge_str(t.type).c_str(), current_state.label.c_str());
 #endif
-                do_trans(state, trans[trans_id]);
-                state = jump;
-            }
-            if (!success) {
-                if (bk->trans_ids.empty()) {
-                    auto size = ast_coll_cache.size();
-                    for (auto i = bk_now->coll_index; i < size; ++i) {
-                        auto &coll = ast_coll_cache[i];
-                        assert(coll->flag == ast_collection);
-                        ast.remove(coll);
-                    }
+                    do_trans(state, *bk, trans[trans_id]);
+                    state = jump;
                 }
-                bks.erase(bks.begin() + bki);
+            if (bk->direction == b_error) {
+#if DEBUG_AST
+                for (auto i = 0; i < bks.size(); ++i) {
+                    auto &_bk = bks[i];
+                    printf("[DEBUG] Backtrace failed: i=%d, LI=%d, SS=%d, AS=%d, S=%d, TS=%d, CI=%d, RI=%d, TK=%d\n",
+                           i, _bk.lexer_index, _bk.state_stack.size(),
+                           _bk.ast_stack.size(), _bk.current_state, _bk.trans_ids.size(),
+                           _bk.coll_index, _bk.reduce_index, _bk.ast_ids.size());
+                }
+#endif
+                for (auto &i : bk->ast_ids) {
+                    auto &token = ast_cache[i];
+#if DEBUG_AST
+                    printf("[DEBUG] Backtrace failed, unlink token: %p, PB=%p\n", token, token->parent);
+#endif
+                    check_ast(token);
+                    cast::unlink(token);
+                    check_ast(token);
+                }
+                auto size = ast_reduce_cache.size();
+                for (auto i = size; i > bk->reduce_index; --i) {
+                    auto &coll = ast_reduce_cache[i - 1];
+#if DEBUG_AST
+                    printf("[DEBUG] Backtrace failed, unlink: %p, PB=%p, NE=%d, CB=%d\n",
+                           coll, coll->parent, cast::children_size(coll->parent), cast::children_size(coll));
+#endif
+                    check_ast(coll);
+                    cast::unlink(coll);
+                    check_ast(coll);
+                }
+                ast_reduce_cache.erase(ast_reduce_cache.begin() + bk->reduce_index, ast_reduce_cache.end());
+                size = ast_coll_cache.size();
+                for (auto i = size; i > bk->coll_index; --i) {
+                    auto &coll = ast_coll_cache[i - 1];
+                    assert(coll->flag == ast_collection);
+#if DEBUG_AST
+                    printf("[DEBUG] Backtrace failed, delete coll: %p, PB=%p, CB=%p, NE=%d, CS=%d\n",
+                           coll, coll->parent, coll->child,
+                           cast::children_size(coll->parent), cast::children_size(coll));
+#endif
+                    check_ast(coll);
+                    cast::unlink(coll);
+                    check_ast(coll);
+                    ast.remove(coll);
+                }
+                ast_coll_cache.erase(ast_coll_cache.begin() + bk->coll_index, ast_coll_cache.end());
+                bk->direction = b_fallback;
             }
+            trans_id = -1;
         }
     }
 
@@ -610,26 +711,50 @@ namespace clib {
         return true;
     }
 
-    void cparser::do_trans(int state, const pda_trans &trans) {
+    void cparser::do_trans(int state, backtrace_t &bk, const pda_trans &trans) {
         switch (trans.type) {
             case e_shift: {
                 state_stack.push_back(state);
                 auto new_node = ast.new_node(ast_collection);
+#if DEBUG_AST
+                printf("[DEBUG] Shift: top=%p, new=%p, CS=%d\n", ast_stack.back(), new_node,
+                       cast::children_size(ast_stack.back()));
+#endif
                 ast_coll_cache.push_back(new_node);
                 ast_stack.push_back(new_node);
             }
                 break;
             case e_move: {
-                cast::set_child(ast_stack.back(), terminal());
+                bk.ast_ids.insert(ast_cache_index);
+                auto t = terminal();
+#if CHECK_AST
+                check_ast(t);
+#endif
+#if DEBUG_AST
+                printf("[DEBUG] Move: parent=%p, child=%p, CS=%d\n", ast_stack.back(), t,
+                       cast::children_size(ast_stack.back()));
+#endif
+                cast::set_child(ast_stack.back(), t);
             }
                 break;
             case e_left_recursion:
                 break;
             case e_reduce: {
                 auto new_ast = ast_stack.back();
+                check_ast(new_ast);
+                if (new_ast->flag != ast_collection) {
+                    bk.ast_ids.insert(ast_cache_index);
+                }
                 state_stack.pop_back();
                 ast_stack.pop_back();
+                ast_reduce_cache.push_back(new_ast);
+#if DEBUG_AST
+                printf("[DEBUG] Reduce: parent=%p, child=%p, CS=%d, AS=%d, RI=%d\n",
+                       ast_stack.back(), new_ast, cast::children_size(ast_stack.back()),
+                       ast_stack.size(), ast_reduce_cache.size());
+#endif
                 cast::set_child(ast_stack.back(), new_ast);
+                check_ast(ast_stack.back());
             }
                 break;
             case e_finish:

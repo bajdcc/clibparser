@@ -6,7 +6,7 @@ int main() {
     using namespace clib;
     try {
         cparser p(R"(
-int main() {
+int main(int (*g)()) {
     int a, b, c;
     float d, e, f;
 }

@@ -747,7 +747,7 @@ LEX_T(t) clexer::get_store_##t(int index) const \
 
     lexer_t clexer::next_operator() {
         auto c = local();
-        auto p = sinOp[c];
+        auto p = sinOp[(int) c];
         if (p == 0) {
             return record_error(e_invalid_operator, 1);
         }

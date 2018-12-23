@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <bitset>
+#include <array>
 #include "types.h"
 
 namespace clib {

@@ -183,7 +183,7 @@ namespace clib {
         void remove_edge(nga_edge_list *&list, nga_edge_list *edge);
         const char *label(unit *focused, bool front);
         void label(unit *node, unit *parent, unit *focused, bool front, std::ostream &os);
-        void *disconnect(nga_status *status);
+        void disconnect(nga_status *status);
 
     public:
         void gen(unit *root);

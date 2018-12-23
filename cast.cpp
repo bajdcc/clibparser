@@ -293,22 +293,22 @@ namespace clib {
     }
 
     std::tuple<ast_t, string_t, lexer_t, int> ast_list[] = {
-        std::make_tuple(ast_root, "root", l_none, 0),
-        std::make_tuple(ast_collection, "coll", l_none, 0),
-        std::make_tuple(ast_keyword, "keyword", l_none, 0),
-        std::make_tuple(ast_operator, "operator", l_operator , 0),
-        std::make_tuple(ast_literal, "literal", l_identifier, 0),
-        std::make_tuple(ast_string, "string", l_string, 0),
-        std::make_tuple(ast_char, "char", l_char, 1),
-        std::make_tuple(ast_uchar, "uchar", l_uchar, 2),
-        std::make_tuple(ast_short, "short", l_short, 3),
-        std::make_tuple(ast_ushort, "ushort", l_ushort, 4),
-        std::make_tuple(ast_int, "int", l_int, 5),
-        std::make_tuple(ast_uint, "uint", l_uint, 6),
-        std::make_tuple(ast_long, "long", l_long, 7),
-        std::make_tuple(ast_ulong, "ulong", l_ulong, 8),
-        std::make_tuple(ast_float, "float", l_float, 9),
-        std::make_tuple(ast_double, "double", l_double, 10),
+            std::make_tuple(ast_root, "root", l_none, 0),
+            std::make_tuple(ast_collection, "coll", l_none, 0),
+            std::make_tuple(ast_keyword, "keyword", l_none, 0),
+            std::make_tuple(ast_operator, "operator", l_operator , 0),
+            std::make_tuple(ast_literal, "literal", l_identifier, 0),
+            std::make_tuple(ast_string, "string", l_string, 0),
+            std::make_tuple(ast_char, "char", l_char, 1),
+            std::make_tuple(ast_uchar, "uchar", l_uchar, 2),
+            std::make_tuple(ast_short, "short", l_short, 3),
+            std::make_tuple(ast_ushort, "ushort", l_ushort, 4),
+            std::make_tuple(ast_int, "int", l_int, 5),
+            std::make_tuple(ast_uint, "uint", l_uint, 6),
+            std::make_tuple(ast_long, "long", l_long, 7),
+            std::make_tuple(ast_ulong, "ulong", l_ulong, 8),
+            std::make_tuple(ast_float, "float", l_float, 9),
+            std::make_tuple(ast_double, "double", l_double, 10),
     };
 
     const string_t &cast::ast_str(ast_t type) {
@@ -321,5 +321,53 @@ namespace clib {
 
     int cast::ast_prior(ast_t type) {
         return std::get<3>(ast_list[type]);
+    }
+
+    void cast::unlink(ast_node *node) {
+        if (node->parent) {
+            auto &parent = node->parent;
+            auto &ptr = node;
+            auto i = parent->child;
+            if (i->next == i) {
+                assert(i->prev == i);
+                assert(parent->child == node);
+                parent->child = nullptr;
+                node->parent = nullptr;
+                node->prev = node->next = node;
+                return;
+            }
+            if (i == ptr) {
+                parent->child = i->next;
+                i->prev->next = parent->child;
+                parent->child->prev = parent->child;
+                node->parent = nullptr;
+                node->prev = node->next = node;
+                return;
+            }
+            i = i->next;
+            if (i == ptr) {
+                auto &other = ptr->next;
+                other->next = other->prev = other;
+                node->parent = nullptr;
+                node->prev = node->next = node;
+                return;
+            }
+            while (i != parent->child) {
+                if (i->next == ptr) {
+                    if (i->next->next == parent->child) {
+                        i->next = parent->child;
+                        parent->child->prev = i;
+                    } else {
+                        i->next->next->prev = i;
+                        i->next = i->next->next;
+                    }
+                    break;
+                } else {
+                    i = i->next;
+                }
+            }
+            node->parent = nullptr;
+            node->prev = node->next = node;
+        }
     }
 }
