@@ -257,8 +257,7 @@ namespace clib {
         postfixExpression = primaryExpression
                             | postfixExpression + (_lsquare_ + expression + _rsquare_
                                                    | _lparan_ + *argumentExpressionList + _rparan_
-                                                   | _dot_ + Identifier
-                                                   | _pointer_ + Identifier
+                                                   | (_dot_ + _pointer_) + Identifier
                                                    | _plus_plus_
                                                    | _minus_minus_)
                             | _lparan_ + typeName + _rparan_ + _lbrace_ + initializerList + *_comma_ + _rbrace_;
@@ -554,21 +553,21 @@ namespace clib {
 #endif
                 for (auto &i : bk->ast_ids) {
                     auto &token = ast_cache[i];
+                    check_ast(token);
 #if DEBUG_AST
                     printf("[DEBUG] Backtrace failed, unlink token: %p, PB=%p\n", token, token->parent);
 #endif
-                    check_ast(token);
                     cast::unlink(token);
                     check_ast(token);
                 }
                 auto size = ast_reduce_cache.size();
                 for (auto i = size; i > bk->reduce_index; --i) {
                     auto &coll = ast_reduce_cache[i - 1];
+                    check_ast(coll);
 #if DEBUG_AST
                     printf("[DEBUG] Backtrace failed, unlink: %p, PB=%p, NE=%d, CB=%d\n",
                            coll, coll->parent, cast::children_size(coll->parent), cast::children_size(coll));
 #endif
-                    check_ast(coll);
                     cast::unlink(coll);
                     check_ast(coll);
                 }
@@ -577,12 +576,12 @@ namespace clib {
                 for (auto i = size; i > bk->coll_index; --i) {
                     auto &coll = ast_coll_cache[i - 1];
                     assert(coll->flag == ast_collection);
+                    check_ast(coll);
 #if DEBUG_AST
                     printf("[DEBUG] Backtrace failed, delete coll: %p, PB=%p, CB=%p, NE=%d, CS=%d\n",
                            coll, coll->parent, coll->child,
                            cast::children_size(coll->parent), cast::children_size(coll));
 #endif
-                    check_ast(coll);
                     cast::unlink(coll);
                     check_ast(coll);
                     ast.remove(coll);

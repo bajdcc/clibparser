@@ -64,6 +64,7 @@ namespace clib {
         do {
             n++;
             i = i->next;
+            assert(i);
         } while (i != node);
         return n;
     }
@@ -332,23 +333,15 @@ namespace clib {
                 node->prev = node->next = node;
                 return;
             }
-            if (i == ptr) {
+            if (ptr == parent->child) {
                 parent->child = i->next;
                 i->prev->next = parent->child;
-                parent->child->prev = parent->child;
+                parent->child->prev = i->prev;
                 node->parent = nullptr;
                 node->prev = node->next = node;
                 return;
             }
-            i = i->next;
-            if (i == ptr) {
-                auto &other = ptr->next;
-                other->next = other->prev = other;
-                node->parent = nullptr;
-                node->prev = node->next = node;
-                return;
-            }
-            while (i != parent->child) {
+            do {
                 if (i->next == ptr) {
                     if (i->next->next == parent->child) {
                         i->next = parent->child;
@@ -361,7 +354,7 @@ namespace clib {
                 } else {
                     i = i->next;
                 }
-            }
+            } while (i != parent->child);
             node->parent = nullptr;
             node->prev = node->next = node;
         }
