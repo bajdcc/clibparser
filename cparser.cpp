@@ -257,7 +257,7 @@ namespace clib {
         postfixExpression = primaryExpression
                             | postfixExpression + (_lsquare_ + expression + _rsquare_
                                                    | _lparan_ + *argumentExpressionList + _rparan_
-                                                   | (_dot_ + _pointer_) + Identifier
+                                                   | (_dot_ | _pointer_) + Identifier
                                                    | _plus_plus_
                                                    | _minus_minus_)
                             | _lparan_ + typeName + _rparan_ + _lbrace_ + initializerList + *_comma_ + _rbrace_;
@@ -529,7 +529,7 @@ namespace clib {
 #if TRACE_PARSING
                             std::cout << "parsing redundant code: " << current_state.label << std::endl;
 #endif
-                            bk->direction = b_error;
+                            bk->direction = b_fail;
                             break;
                         }
                     }

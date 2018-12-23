@@ -11,6 +11,7 @@ C++实现的LR Parser Generator。
 - [【Parser系列】实现LR分析——开篇](https://zhuanlan.zhihu.com/p/52478414)
 - [【Parser系列】实现LR分析——生成AST](https://zhuanlan.zhihu.com/p/52528516)
 - [【Parser系列】实现LR分析——支持C语言文法](https://zhuanlan.zhihu.com/p/52812144)
+- [【Parser系列】实现LR分析——完成编译器前端！](https://zhuanlan.zhihu.com/p/53070412)
 
 ## 功能
 
@@ -152,6 +153,8 @@ compilationUnit
 采用[Antlr 4 - C test](https://github.com/antlr/grammars-v4/tree/master/c/examples)中的9个c文件。
 
 测试文件在test.cpp中，编译为clibparser-test。
+
+**9个测试用例均通过。Release模式下时间不超过1秒。**
 
 ## 目标
 

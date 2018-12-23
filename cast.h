@@ -9,8 +9,8 @@
 #include "types.h"
 #include "memory.h"
 
-#define AST_NODE_MEM (2 * 1024)
-#define AST_STR_MEM (2 * 1024)
+#define AST_NODE_MEM (8 * 1024)
+#define AST_STR_MEM (8 * 1024)
 
 namespace clib {
 
