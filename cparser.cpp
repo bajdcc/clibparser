@@ -415,9 +415,12 @@ namespace clib {
         state_stack.clear();
         ast_stack.clear();
         state_stack.push_back(0);
-        ast_stack.push_back(ast.get_root());
-        std::vector<int> jumps;
         auto &pdas = unit.get_pda();
+        auto root = ast.new_node(ast_collection);
+        root->data._string = pdas[0].name.c_str();
+        cast::set_child(ast.get_root(), root);
+        ast_stack.push_back(root);
+        std::vector<int> jumps;
         std::vector<int> trans_ids;
         backtrace_t bk_tmp;
         bk_tmp.lexer_index = 0;
@@ -716,6 +719,8 @@ namespace clib {
             case e_shift: {
                 state_stack.push_back(state);
                 auto new_node = ast.new_node(ast_collection);
+                auto &pdas = unit.get_pda();
+                new_node->data._string = pdas[trans.jump].name.c_str();
 #if DEBUG_AST
                 printf("[DEBUG] Shift: top=%p, new=%p, CS=%d\n", ast_stack.back(), new_node,
                        cast::children_size(ast_stack.back()));

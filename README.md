@@ -44,10 +44,87 @@ int main(int (*g)()) {
 
 结果：
 ```txt
-((((((int))) ((main ( ((((((int))) ((( ((*) (g)) ) ( )))))) ))) ({ ((((((int))) ((((a))) , (((b))) , (((c)))) ;)) (((((f
-loat))) ((((d))) , (((e))) , (((f)))) ;))) }))))
+compilationUnit
+  translationUnit
+    externalDeclaration
+      functionDefinition
+        declarationSpecifiers
+          declarationSpecifier
+            typeSpecifier
+              keyword: int
+        declarator
+          directDeclarator
+            id: main
+            operator: (
+            parameterTypeList
+              parameterList
+                parameterDeclaration
+                  declarationSpecifiers
+                    declarationSpecifier
+                      typeSpecifier
+                        keyword: int
+                  declarator
+                    directDeclarator
+                      operator: (
+                      declarator
+                        pointer
+                          operator: *
+                        directDeclarator
+                          id: g
+                      operator: )
+                      operator: (
+                      operator: )
+            operator: )
+        compoundStatement
+          operator: {
+          blockItemList
+            blockItem
+              declaration
+                declarationSpecifiers
+                  declarationSpecifier
+                    typeSpecifier
+                      keyword: int
+                initDeclaratorList
+                  initDeclarator
+                    declarator
+                      directDeclarator
+                        id: a
+                  operator: ,
+                  initDeclarator
+                    declarator
+                      directDeclarator
+                        id: b
+                  operator: ,
+                  initDeclarator
+                    declarator
+                      directDeclarator
+                        id: c
+                operator: ;
+            blockItem
+              declaration
+                declarationSpecifiers
+                  declarationSpecifier
+                    typeSpecifier
+                      keyword: float
+                initDeclaratorList
+                  initDeclarator
+                    declarator
+                      directDeclarator
+                        id: d
+                  operator: ,
+                  initDeclarator
+                    declarator
+                      directDeclarator
+                        id: e
+                  operator: ,
+                  initDeclarator
+                    declarator
+                      directDeclarator
+                        id: f
+                operator: ;
+          operator: }
 ```
-结果未去括号。
+~~结果未去括号。~~
 
 ## 调试信息
 
@@ -92,7 +169,7 @@ loat))) ((((d))) , (((e))) , (((f)))) ;))) }))))
     - [x] 打印PDA结构（独立于内存池）
 - [x] 生成抽象语法树
     - [x] 自动生成AST结构
-    - [ ] 美化AST结构
+    - [x] 美化AST结构
     - [ ] 语义动作
 - [x] 设计语言
     - [x] 使用[C语言文法](https://github.com/antlr/grammars-v4/blob/master/c/C.g4)

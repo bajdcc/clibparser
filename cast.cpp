@@ -191,28 +191,29 @@ namespace clib {
             return;
         auto rec = [&](auto n, auto l, auto &os) { cast::print(n, l, os); };
         auto type = (ast_t) node->flag;
+        os << std::setfill(' ') << std::setw(level * 2) << "";
         switch (type) {
             case ast_root: // 根结点，全局声明
                 ast_recursion(node->child, level, os, rec);
                 break;
             case ast_collection:
-                os << '(';
+                os << node->data._string << std::endl;
                 ast_recursion(node->child, level + 1, os, rec);
-                os << ')';
                 break;
             case ast_keyword:
-                os << KEYWORD_STRING(node->data._keyword);
+                os << "keyword: " << KEYWORD_STRING(node->data._keyword) << std::endl;
                 break;
             case ast_operator:
-                os << OP_STRING(node->data._op);
+                os << "operator: " << OP_STRING(node->data._op) << std::endl;
                 break;
             case ast_literal:
-                os << node->data._string;
+                os << "id: " << node->data._string << std::endl;
                 break;
             case ast_string:
-                os << '"' << display_str(node->data._string) << '"';
+                os << "string: " << '"' << display_str(node->data._string) << '"' << std::endl;
                 break;
             case ast_char:
+                os << "char: ";
                 if (isprint(node->data._char))
                     os << '\'' << node->data._char << '\'';
                 else if (node->data._char == '\n')
@@ -221,40 +222,35 @@ namespace clib {
                     os << "'\\x" << std::setiosflags(std::ios::uppercase) << std::hex
                        << std::setfill('0') << std::setw(2)
                        << (unsigned int) node->data._char << '\'';
+                os << std::endl;
                 break;
             case ast_uchar:
-                os << (unsigned int) node->data._uchar;
+                os << "uchar: " << (unsigned int) node->data._uchar << std::endl;
                 break;
             case ast_short:
-                os << node->data._short;
+                os << "short: " << node->data._short << std::endl;
                 break;
             case ast_ushort:
-                os << node->data._ushort;
+                os << "ushort: " << node->data._ushort << std::endl;
                 break;
             case ast_int:
-                os << node->data._int;
+                os << "int: " << node->data._int << std::endl;
                 break;
             case ast_uint:
-                os << node->data._uint;
+                os << "uint: " << node->data._uint << std::endl;
                 break;
             case ast_long:
-                os << node->data._long;
+                os << "long: " << node->data._long << std::endl;
                 break;
             case ast_ulong:
-                os << node->data._ulong;
+                os << "ulong: " << node->data._ulong << std::endl;
                 break;
             case ast_float:
-                os << node->data._float;
+                os << "float: " << node->data._float << std::endl;
                 break;
             case ast_double:
-                os << node->data._double;
+                os << "double: " << node->data._double << std::endl;
                 break;
-        }
-        if (node->parent) {
-            if ((node->parent->flag == ast_collection) &&
-                node->next != node->parent->child) {
-                os << ' ';
-            }
         }
     }
 
