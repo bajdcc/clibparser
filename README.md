@@ -149,7 +149,9 @@ compilationUnit
 
 ## 测试用例
 
-暂无
+采用[Antlr 4 - C test](https://github.com/antlr/grammars-v4/tree/master/c/examples)中的9个c文件。
+
+测试文件在test.cpp中，编译为clibparser-test。
 
 ## 目标
 

@@ -747,22 +747,102 @@ LEX_T(t) clexer::get_store_##t(int index) const \
 
     lexer_t clexer::next_operator() {
         auto c = local();
-        auto p = sinOp[(int) c];
-        if (p == 0) {
+        if (bitOp[0].test((uint) c)) { // 操作符第一个char判断非法
+            auto c2 = local(1);
+            if (c2 != -1 && bitOp[1].test((uint) c2)) { // 操作符第二个char判断非法，否则解析单字符操作符
+                auto c3 = local(2);
+                if (c3 != -1 && (c3 == '=' || c3 == '.')) { // 操作符第三个char判断非法，否则解析双字符操作符
+                    // 三字符操作符
+                    auto p = op__start;
+                    if (c3 == '=') { // 手动判断
+                        if (c == c2) {
+                            if (c == '<') {
+                                p = op_left_shift_assign;
+                            } else if (c == '>') {
+                                p = op_left_shift_assign;
+                            }
+                        }
+                    } else {
+                        if (c == '.' && c2 == '.') {
+                            p = op_ellipsis;
+                        }
+                    }
+                    if (p == op__start) {
+                        return record_error(e_invalid_operator, 3);
+                    } else {
+                        bags._operator = (operator_t) p;
+                        move(3);
+                        return l_operator;
+                    }
+                } else {
+                    // 双字符操作符
+                    if (c2 == '=') {
+                        auto p = sinOp[c];
+                        if (p == 0 || p > op_logical_not) {
+                            // 单字符操作符
+                            auto p = sinOp[c];
+                            bags._operator = (operator_t) p;
+                            move(1);
+                            return l_operator;
+                        }
+                        bags._operator = (operator_t) (p + 1); // 从 '?' 到 '?='
+                        move(2);
+                        return l_operator;
+                    }
+                    auto p = op__start;
+                    if (c == c2) { // 相同位的双字符操作符
+                        switch (c2) {
+                            case '+':
+                                p = op_plus_plus;
+                                break;
+                            case '-':
+                                p = op_minus_minus;
+                                break;
+                            case '&':
+                                p = op_logical_and;
+                                break;
+                            case '|':
+                                p = op_logical_or;
+                                break;
+                            case '<':
+                                p = op_left_shift;
+                                break;
+                            case '>':
+                                p = op_right_shift;
+                                break;
+                            default:
+                                break;
+                        }
+                    } else if (c == '-' && c2 == '>') { // '->'
+                        p = op_pointer;
+                    }
+                    if (p == op__start) { // 双字符非法，则回退到单字符
+                        auto p = sinOp[c];
+                        if (p == 0) {
+                            return record_error(e_invalid_operator, 1);
+                        }
+                        bags._operator = (operator_t) p;
+                        move(1);
+                        return l_operator;
+                    } else {
+                        bags._operator = (operator_t) p;
+                        move(2);
+                        return l_operator;
+                    }
+                }
+            } else {
+                // 单字符操作符
+                auto p = sinOp[c];
+                if (p == 0) {
+                    return record_error(e_invalid_operator, 1);
+                }
+                bags._operator = (operator_t) p;
+                move(1);
+                return l_operator;
+            }
+        } else {
             return record_error(e_invalid_operator, 1);
         }
-        if (p == op__end) {
-            uint i;
-            for (i = index + 1; i < length && sinOp[str[i]] == op__end &&
-                !(isalnum(str[i]) || isspace(str[i])); i++);
-            auto s = str.substr(index, i - index);
-            bags._identifier = s;
-            move((uint) s.length());
-            return l_identifier;
-        }
-        bags._operator = (operator_t) p;
-        move(1);
-        return l_operator;
     }
 
     int clexer::local() {
