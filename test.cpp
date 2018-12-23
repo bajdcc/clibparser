@@ -9,7 +9,9 @@ void test(const string_t &s) {
     try {
         cparser p(s);
         auto root = p.parse();
-        //cast::print(root, 0, std::cout);
+        std::cout << "======== CODE ========" << std::endl;
+        std::cout << s << std::endl;
+        cast::print(root, 0, std::cout);
         std::cout << "PASSED " << ++i << std::endl;
     } catch (const cexception &e) {
         std::cout << "RUNTIME ERROR: " << e.msg << std::endl;

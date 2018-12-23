@@ -50,7 +50,7 @@ namespace clib {
                        ERROR_STRING(err.err).c_str(),
                        err.str.c_str());
             }
-        } while (token == l_newline || token == l_space || token == l_error);
+        } while (token == l_newline || token == l_space || token == l_error || token == l_comment);
 #if 0
         if (token != l_end) {
             qDebug("[%04d:%03d] %-12s - %s\n",

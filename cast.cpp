@@ -192,7 +192,7 @@ namespace clib {
             return;
         auto rec = [&](auto n, auto l, auto &os) { cast::print(n, l, os); };
         auto type = (ast_t) node->flag;
-        os << std::setfill(' ') << std::setw(level * 2) << "";
+        os << std::setfill(' ') << std::setw(level) << "";
         switch (type) {
             case ast_root: // 根结点，全局声明
                 ast_recursion(node->child, level, os, rec);
