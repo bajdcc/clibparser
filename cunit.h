@@ -145,7 +145,7 @@ namespace clib {
         int id;
         int rule;
         bool final;
-        string_t name;
+        coll_t coll;
         string_t label;
         std::vector<pda_trans> trans;
     };
@@ -162,7 +162,7 @@ namespace clib {
         unit &token(const lexer_t &type);
         unit &token(const operator_t &op);
         unit &token(const keyword_t &keyword);
-        unit &rule(const string_t &s);
+        unit &rule(const string_t &s, coll_t t);
 
         unit_collection &append(unit *collection, unit *child) override;
         unit_collection &merge(unit *a, unit *b) override;
@@ -205,6 +205,7 @@ namespace clib {
         std::unordered_set<std::string> strings;
         std::vector<std::string> labels;
         std::map<std::string, nga_rule> rules;
+        std::unordered_map<const char *, coll_t> rulesMap;
         std::vector<pda_rule> pdas;
         unit_rule *current_rule{nullptr};
     };

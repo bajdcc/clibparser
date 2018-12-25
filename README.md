@@ -19,6 +19,7 @@ C++实现的LR Parser Generator。
 - 语法分析阶段由parser完成，输入产生式，通过生成LALR表来进行分析。
 - **LR识别完成，生成AST完成。**
 - **[C语言文法](https://github.com/antlr/grammars-v4/blob/master/c/C.g4)基本实现！请参阅cparser.cpp！支持多种基本数据类型。**
+- 虚拟机指令生成。
 
 文法支持顺序、分支、可选。目前可以根据LR文法**自动**生成AST。后续会对AST进行标记。
 
@@ -179,6 +180,13 @@ compilationUnit
 - [x] 设计语言
     - [x] 使用[C语言文法](https://github.com/antlr/grammars-v4/blob/master/c/C.g4)
     - [x] 实现回溯，解决移进/归约冲突问题，解决回溯的诸多BUG
+- [ ] 虚拟机
+    - [ ] 设计指令（寄存器式分配）
+    - [ ] 设计符号表
+    - [ ] 解析类型系统
+    - [ ] 生成指令
+    - [ ] 虚页分配（已实现）
+    - [ ] 运行指令
 
 1. 将文法树转换表（完成）
 2. 根据PDA表生成AST（完成）
@@ -190,6 +198,7 @@ compilationUnit
 - [x] 生成AST时减少嵌套结点
 - [ ] 优化回溯时产生的数据结构，减少拷贝
 - [ ] 解析成功时释放结点内存
+- [x] 将集合结点的标记修改成枚举
 
 ## 参考
 

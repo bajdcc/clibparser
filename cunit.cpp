@@ -185,7 +185,7 @@ namespace clib {
         return (unit_collection &) (*nodes.alloc<unit_collection>()).set_child(a).set_t(u_optional).init(this);
     }
 
-    unit &cunit::rule(const string_t &s) {
+    unit &cunit::rule(const string_t &s, coll_t t) {
         auto f = rules.find(s);
         if (f == rules.end()) {
             auto &rule = (*nodes.alloc<unit_rule>()).set_s(str(s)).set_child(nullptr).set_t(u_rule).init(this);
@@ -194,6 +194,7 @@ namespace clib {
             r.status = nullptr;
             r.u = to_rule(&rule);
             r.recursive = 0;
+            rulesMap.insert(std::make_pair(r.u->s, t));
             rules.insert(std::make_pair(s, r));
             return *r.u;
         }
@@ -1023,7 +1024,7 @@ namespace clib {
                 pda.id = i;
                 pda.rule = c->rule;
                 pda.final = c->final;
-                pda.name = to_rule(rules_list[pda.rule]->u)->s;
+                pda.coll = rulesMap[to_rule(rules_list[pda.rule]->u)->s];
                 pda.label = c->label;
                 pdas.push_back(pda);
             }

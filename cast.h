@@ -62,6 +62,7 @@ namespace clib {
             const char *_identifier;
             keyword_t _keyword;
             operator_t _op;
+            coll_t _coll;
         } data; // 数据
 
         // 树型数据结构，广义表

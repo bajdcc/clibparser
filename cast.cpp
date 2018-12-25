@@ -198,7 +198,7 @@ namespace clib {
                 ast_recursion(node->child, level, os, rec);
                 break;
             case ast_collection:
-                os << node->data._string << std::endl;
+                os << COLL_STRING(node->data._coll) << std::endl;
                 ast_recursion(node->child, level + 1, os, rec);
                 break;
             case ast_keyword:

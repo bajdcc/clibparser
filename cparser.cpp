@@ -168,7 +168,7 @@ namespace clib {
         DEF_LEX(space, Space);
         DEF_LEX(newline, Newline);
 #undef DEF_LEX
-#define DEF_RULE(name) auto &name = unit.rule(#name)
+#define DEF_RULE(name) auto &name = unit.rule(#name, c_##name)
         DEF_RULE(program);
         DEF_RULE(primaryExpression);
         DEF_RULE(constant);
@@ -416,7 +416,7 @@ namespace clib {
         state_stack.push_back(0);
         auto &pdas = unit.get_pda();
         auto root = ast.new_node(ast_collection);
-        root->data._string = pdas[0].name.c_str();
+        root->data._coll = pdas[0].coll;
         cast::set_child(ast.get_root(), root);
         ast_stack.push_back(root);
         std::vector<int> jumps;
@@ -719,7 +719,7 @@ namespace clib {
                 state_stack.push_back(state);
                 auto new_node = ast.new_node(ast_collection);
                 auto &pdas = unit.get_pda();
-                new_node->data._string = pdas[trans.jump].name.c_str();
+                new_node->data._coll = pdas[trans.jump].coll;
 #if DEBUG_AST
                 printf("[DEBUG] Shift: top=%p, new=%p, CS=%d\n", ast_stack.back(), new_node,
                        cast::children_size(ast_stack.back()));
