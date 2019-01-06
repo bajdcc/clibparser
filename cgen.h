@@ -17,8 +17,7 @@ namespace clib {
         s_type,
         s_type_base,
         s_type_typedef,
-        s_type_ptr_t,
-        s_type_array_t,
+        s_sym_id,
     };
 
     class sym_t {
@@ -28,11 +27,13 @@ namespace clib {
 
     class type_t : public sym_t {
     public:
+        explicit type_t(int ptr = 0);
+        int ptr;
     };
 
     class type_base_t : public type_t {
     public:
-        explicit type_base_t(lexer_t type);
+        explicit type_base_t(lexer_t type, int ptr = 0);
         string_t to_string() override;
         lexer_t type;
     };
@@ -42,17 +43,12 @@ namespace clib {
         std::weak_ptr<sym_t> sym;
     };
 
-    class type_ptr_t : public type_t {
+    class sym_id_t : public sym_t {
     public:
-        explicit type_ptr_t(const std::shared_ptr<type_t> &base, int ptr);
+        explicit sym_id_t(const std::shared_ptr<type_t>& base, string_t id);
         string_t to_string() override;
         std::shared_ptr<type_t> base;
-        int ptr;
-    };
-
-    class type_array_t : public type_t {
-        std::shared_ptr<type_t> base;
-        int size;
+        string_t id;
     };
 
     // 生成虚拟机指令

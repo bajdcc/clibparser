@@ -9,6 +9,7 @@ int main() {
         cparser p(R"(
 int main() {
     unsigned int *a, *b;
+    float d, *e, f;
 }
 )");
         auto root = p.parse();

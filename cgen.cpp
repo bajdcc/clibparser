@@ -12,6 +12,7 @@
 #define AST_IS_KEYWORD_N(node, k) (AST_IS_KEYWORD(node) && (node)->data._keyword == (k))
 #define AST_IS_OP(node) ((node)->flag == ast_operator)
 #define AST_IS_OP_N(node, k) (AST_IS_OP(node) && (node)->data._op == (k))
+#define AST_IS_ID(node) ((node)->flag == ast_literal)
 
 #define LOG_TYPE 1
 
@@ -21,21 +22,23 @@ namespace clib {
         return "[Symbol]";
     }
 
-    type_base_t::type_base_t(lexer_t type) : type(type) {}
+    type_t::type_t(int ptr) : ptr(ptr) {}
+
+    type_base_t::type_base_t(lexer_t type, int ptr) : type_t(ptr), type(type) {}
 
     string_t type_base_t::to_string() {
-        return LEX_STRING(type);
-    }
-
-    type_ptr_t::type_ptr_t(const std::shared_ptr<type_t> &base, int ptr): base(base), ptr(ptr) {}
-
-    string_t type_ptr_t::to_string() {
         std::stringstream ss;
-        ss << base->to_string();
+        ss << LEX_STRING(type);
         for (int i = 0; i < ptr; ++i) {
             ss << '*';
         }
         return ss.str();
+    }
+
+    sym_id_t::sym_id_t(const std::shared_ptr<type_t> &base, string_t id) : base(base), id(id) {}
+
+    string_t sym_id_t::to_string() {
+        return base->to_string() + " " + id;
     }
 
     void cgen::gen(ast_node *node) {
@@ -119,7 +122,10 @@ namespace clib {
         }
         if (!tmp.back().empty()) {
             //assert(tmp.back().size() == 1);
-            (tmp.rbegin() + 1)->push_back(tmp.back().front());
+            auto &top = tmp[tmp.size() - 2];
+            for (auto &t : tmp.back()) {
+                top.push_back(t);
+            }
         }
         tmp.pop_back();
         if (!ast.back().empty()) {
@@ -282,6 +288,7 @@ namespace clib {
             case c_externalDeclaration:
                 break;
             case c_functionDefinition:
+                symbols.emplace_back();
                 break;
             case c_declarationList:
                 break;
@@ -401,7 +408,7 @@ namespace clib {
                     for (auto &a : asts) {
                         assert(AST_IS_OP_N(a, op_times));
                     }
-                    base_type = std::make_shared<type_ptr_t>(base_type, asts.size());
+                    base_type->ptr = asts.size();
                 }
                 asts.clear();
 #if LOG_TYPE
@@ -414,7 +421,32 @@ namespace clib {
                 break;
             case c_declarationSpecifier:
                 break;
-            case c_initDeclaratorList:
+            case c_initDeclaratorList: {
+                auto type = std::dynamic_pointer_cast<type_base_t>((tmp.rbegin() + 1)->front());
+                {
+                    assert(AST_IS_ID(asts[0]));
+                    auto new_id = std::make_shared<sym_id_t>(type, asts[0]->data._string);
+                    symbols.back().insert(std::make_pair(asts[0]->data._string, new_id));
+#if LOG_TYPE
+                    std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
+#endif
+                }
+                auto ptr = 0;
+                for (int i = 1; i < asts.size(); ++i) {
+                    if (AST_IS_OP_N(asts[i], op_times)) {
+                        ptr++;
+                    } else {
+                        assert(AST_IS_ID(asts[i]));
+                        auto new_type = std::make_shared<type_base_t>(type->type, ptr);
+                        auto new_id = std::make_shared<sym_id_t>(new_type, asts[i]->data._string);
+#if LOG_TYPE
+                        std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
+#endif
+                        symbols.back().insert(std::make_pair(asts[i]->data._string, new_id));
+                        ptr = 0;
+                    }
+                }
+            }
                 break;
             case c_initDeclarator:
                 break;
@@ -511,6 +543,7 @@ namespace clib {
             case c_externalDeclaration:
                 break;
             case c_functionDefinition:
+                symbols.pop_back();
                 break;
             case c_declarationList:
                 break;
