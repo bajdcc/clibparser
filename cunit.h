@@ -40,6 +40,7 @@ namespace clib {
         unit &operator+(const unit &u);
         unit &operator|(const unit &u);
         unit &operator*();
+        unit &operator~();
         unit &init(unit_builder *builder);
         unit &set_t(unit_t type);
     };
@@ -57,8 +58,10 @@ namespace clib {
     };
 
     struct unit_collection : public unit {
+        bool skip;
         unit *child;
 
+        unit_collection &set_skip(bool skip);
         unit_collection &set_child(unit *node);
     };
 
@@ -83,11 +86,13 @@ namespace clib {
 
     struct nga_edge {
         nga_status *begin, *end;
+        bool skip;
         unit *data;
     };
 
     enum pda_edge_t {
         e_shift,
+        e_pass,
         e_move,
         e_left_recursion,
         e_reduce,

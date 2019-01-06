@@ -251,27 +251,26 @@ namespace clib {
         primaryExpression = Identifier
                             | constant
                             | String
-                            | _lparan_ + expression + _rparan_;
+                            | ~_lparan_ + expression + ~_rparan_;
         constant = Char | UnsignedChar | Short | UnsignedShort | Integer | UnsignedInteger |
                    Long | UnsignedLong | Float | Double;
         postfixExpression = primaryExpression
-                            | postfixExpression + (_lsquare_ + expression + _rsquare_
-                                                   | _lparan_ + *argumentExpressionList + _rparan_
+                            | postfixExpression + (~_lsquare_ + expression + ~_rsquare_
+                                                   | ~_lparan_ + *argumentExpressionList + ~_rparan_
                                                    | (_dot_ | _pointer_) + Identifier
                                                    | _plus_plus_
                                                    | _minus_minus_)
-                            | _lparan_ + typeName + _rparan_ + _lbrace_ + initializerList + *_comma_ + _rbrace_;
-        argumentExpressionList = *(argumentExpressionList + _comma_) + assignmentExpression;
+                            | ~_lparan_ + typeName + ~_rparan_ + ~_lbrace_ + initializerList + *~_comma_ + ~_rbrace_;
+        argumentExpressionList = *(argumentExpressionList + ~_comma_) + assignmentExpression;
         unaryExpression
-                = postfixExpression
-                  | (_plus_plus_ | _minus_minus_) + unaryExpression
-                  | unaryOperator + castExpression
-                  | _sizeof_ + (unaryExpression | _lparan_ + typeName + _rparan_);
+            = postfixExpression
+              | (_plus_plus_ | _minus_minus_) + unaryExpression
+              | unaryOperator + castExpression
+              | _sizeof_ + (unaryExpression | ~_lparan_ + typeName + ~_rparan_);
         unaryOperator = _bit_and_ | _times_ | _plus_ | _minus_ | _bit_not_ | _logical_not_;
-        castExpression = _lparan_ + typeName + _rparan_ + castExpression | unaryExpression;
+        castExpression = ~_lparan_ + typeName + ~_rparan_ + castExpression | unaryExpression;
         multiplicativeExpression = castExpression | multiplicativeExpression +
-                                                    (_times_ + castExpression | _divide_ + castExpression |
-                                                     _mod_ + castExpression);
+                                                    ((_times_ |_divide_ | _mod_) + castExpression);
         additiveExpression = *(additiveExpression + (_plus_ | _minus_)) + multiplicativeExpression;
         shiftExpression = *(shiftExpression + (_left_shift_ | _right_shift_)) + additiveExpression;
         relationalExpression = *(relationalExpression +
@@ -287,17 +286,17 @@ namespace clib {
         assignmentExpression = conditionalExpression | unaryExpression + assignmentOperator + assignmentExpression;
         assignmentOperator = _assign_ | _times_assign_ | _div_assign_ | _mod_assign_ |
                              _plus_assign_ | _minus_assign_ | _left_shift_assign_ | _right_shift_assign_;
-        expression = *(expression + _comma_) + assignmentExpression;
+        expression = *(expression + ~_comma_) + assignmentExpression;
         constantExpression = conditionalExpression;
-        declaration = declarationSpecifiers + *initDeclaratorList + _semi_;
-        declarationSpecifiers = declarationSpecifier + *declarationSpecifiers;
-        declarationSpecifiers2 = declarationSpecifier + *declarationSpecifiers;
+        declaration = declarationSpecifiers + *initDeclaratorList + ~_semi_;
+        declarationSpecifiers = *declarationSpecifiers + declarationSpecifier;
+        declarationSpecifiers2 = *declarationSpecifiers + declarationSpecifier;
         declarationSpecifier
-                = storageClassSpecifier
-                  | typeSpecifier
-                  | typeQualifier;
-        initDeclaratorList = *(initDeclaratorList + _comma_) + initDeclarator;
-        initDeclarator = declarator + *(_assign_ + initializer);
+            = storageClassSpecifier
+              | typeSpecifier
+              | typeQualifier;
+        initDeclaratorList = *(initDeclaratorList + ~_comma_) + initDeclarator;
+        initDeclarator = declarator + *(~_assign_ + initializer);
         storageClassSpecifier = _typedef_ | _extern_ | _static_ | _auto_ | _register_;
         typeSpecifier = _void_ | _char_ | _short_ | _int_ | _long_ | _float_ | _double_ | _signed_ | _unsigned_ | _bool_
                         | structOrUnionSpecifier
@@ -305,77 +304,72 @@ namespace clib {
                         | typedefName
                         | typeSpecifier + pointer;
         structOrUnionSpecifier =
-                structOrUnion + (Identifier | (*Identifier + _lbrace_ + structDeclarationList + _rbrace_));
+            structOrUnion + (Identifier | (*Identifier + ~_lbrace_ + structDeclarationList + ~_rbrace_));
         structOrUnion = _struct_ | _union_;
         structDeclarationList = *structDeclarationList + structDeclaration;
-        structDeclaration = specifierQualifierList + *structDeclaratorList + _semi_;
+        structDeclaration = specifierQualifierList + *structDeclaratorList + ~_semi_;
         specifierQualifierList = (typeSpecifier | typeQualifier) + *specifierQualifierList;
-        structDeclaratorList = *(structDeclaratorList + _comma_) + structDeclarator;
-        structDeclarator = declarator | *declarator + _assign_ + constantExpression;
-        enumSpecifier = _enum_ + ((*Identifier + _lbrace_ + enumeratorList + *_comma_ + _lbrace_) | Identifier);
-        enumeratorList = *(enumeratorList + _comma_) + enumerator;
-        enumerator = enumerationConstant + *(_assign_ + constantExpression);
+        structDeclaratorList = *(structDeclaratorList + ~_comma_) + structDeclarator;
+        structDeclarator = declarator | *declarator + ~_assign_ + constantExpression;
+        enumSpecifier = ~_enum_ + ((*Identifier + ~_lbrace_ + enumeratorList + *~_comma_ + ~_lbrace_) | Identifier);
+        enumeratorList = *(enumeratorList + ~_comma_) + enumerator;
+        enumerator = enumerationConstant + *(~_assign_ + constantExpression);
         enumerationConstant = Identifier;
         typeQualifier = _const_ | _volatile_;
         declarator = *pointer + directDeclarator;
         directDeclarator
-                = Identifier
-                  | _lparan_ + declarator + _rparan_
-                  | directDeclarator + ((_lsquare_ + *typeQualifierList + (assignmentExpression | _times_) + _rsquare_)
-                                        | (_lparan_ + (parameterTypeList | *identifierList) + _rparan_));
+            = Identifier
+              | ~_lparan_ + declarator + ~_rparan_
+              | directDeclarator + ((~_lsquare_ + *typeQualifierList + (assignmentExpression | _times_) + ~_rsquare_)
+                                    | (~_lparan_ + (parameterTypeList | *identifierList) + ~_rparan_));
         pointer = (_times_ | _bit_xor_) + (*typeQualifierList + *pointer);
         typeQualifierList = *typeQualifierList + typeQualifier;
-        parameterTypeList = parameterList + *(_comma_ + _ellipsis_);
-        parameterList = *(parameterList + _comma_) + parameterDeclaration;
+        parameterTypeList = parameterList + *(~_comma_ + _ellipsis_);
+        parameterList = *(parameterList + ~_comma_) + parameterDeclaration;
         parameterDeclaration = declarationSpecifiers + declarator
                                | declarationSpecifiers2 + *abstractDeclarator;
-        identifierList = *(identifierList + _comma_) + Identifier;
+        identifierList = *(identifierList + ~_comma_) + Identifier;
         typeName = specifierQualifierList + *abstractDeclarator;
         abstractDeclarator = pointer
                              | *pointer + directAbstractDeclarator;
-        directAbstractDeclarator = _lparan_ + abstractDeclarator + _rparan_
+        directAbstractDeclarator = ~_lparan_ + abstractDeclarator + ~_rparan_
                                    | *directAbstractDeclarator +
                                      ((_lsquare_ + ((*typeQualifierList + *assignmentExpression) | _times_) + _rsquare_)
                                       | _lparan_ + *parameterTypeList + _rparan_);
         typedefName = Identifier;
-        initializer = assignmentExpression | _lbrace_ + initializerList + *_comma_ + _rbrace_;
-        initializerList = *(initializerList + _comma_) + *designation + initializer;
+        initializer = assignmentExpression | _lbrace_ + initializerList + *~_comma_ + _rbrace_;
+        initializerList = *(initializerList + ~_comma_) + *designation + initializer;
         designation = designatorList + _assign_;
         designatorList = *designatorList + designator;
         designator = _lsquare_ + constantExpression + _rsquare_
                      | _dot_ + Identifier;
-        statement
-                = labeledStatement
-                  | compoundStatement
-                  | expressionStatement
-                  | selectionStatement
-                  | iterationStatement
-                  | jumpStatement;
+        statement = labeledStatement
+                    | compoundStatement
+                    | expressionStatement
+                    | selectionStatement
+                    | iterationStatement
+                    | jumpStatement;
         labeledStatement = (Identifier
                             | _case_ + constantExpression
                             | _default_) + _assign_ + statement;
-        compoundStatement = _lbrace_ + *blockItemList + _rbrace_;
+        compoundStatement = ~_lbrace_ + *blockItemList + ~_rbrace_;
         blockItemList = *blockItemList + blockItem;
         blockItem = statement | declaration;
-        expressionStatement = *expression + _semi_;
+        expressionStatement = *expression + ~_semi_;
         selectionStatement
-                = _if_ + _lparan_ + expression + _rparan_ + statement + *(_else_ + statement)
-                  | _switch_ + _lparan_ + expression + _rparan_ + statement;
+            = _if_ + ~_lparan_ + expression + ~_rparan_ + statement + *(_else_ + statement)
+              | _switch_ + ~_lparan_ + expression + ~_rparan_ + statement;
         iterationStatement
-                = _while_ + _lparan_ + expression + _rparan_ + statement
-                  | _do_ + statement + _while_ + _lparan_ + expression + _rparan_ + _semi_
-                  | _for_ + _lparan_ + forCondition + _rparan_ + statement;
+            = _while_ + ~_lparan_ + expression + ~_rparan_ + statement
+              | _do_ + statement + _while_ + ~_lparan_ + expression + ~_rparan_ + _semi_
+              | _for_ + ~_lparan_ + forCondition + ~_rparan_ + statement;
         forCondition = (forDeclaration | *expression) + _semi_ + *forExpression + _semi_ + *forExpression;
         forDeclaration = declarationSpecifiers + *initDeclaratorList;
-        forExpression = *(forExpression + _comma_) + assignmentExpression;
-        jumpStatement = _goto_ +
-                        Identifier + _semi_
-                        | _continue_ + _semi_
-                        | _break_ + _semi_
-                        | _return_ + *expression + _semi_;
+        forExpression = *(forExpression + ~_comma_) + assignmentExpression;
+        jumpStatement = (_goto_ + Identifier | _continue_ | _break_ | _return_ + *expression) + ~_semi_;
         compilationUnit = translationUnit + *compilationUnit;
         translationUnit = *translationUnit + externalDeclaration;
-        externalDeclaration = functionDefinition | declaration | _semi_;
+        externalDeclaration = functionDefinition | declaration | ~_semi_;
         functionDefinition = *declarationSpecifiers + declarator + *declarationList + compoundStatement;
         declarationList = *declarationList + declaration;
         unit.gen(&compilationUnit);
@@ -694,6 +688,8 @@ namespace clib {
         switch (trans.type) {
             case e_shift:
                 break;
+            case e_pass:
+                break;
             case e_move:
                 break;
             case e_left_recursion:
@@ -726,6 +722,18 @@ namespace clib {
 #endif
                 ast_coll_cache.push_back(new_node);
                 ast_stack.push_back(new_node);
+            }
+                break;
+            case e_pass: {
+                bk.ast_ids.insert(ast_cache_index);
+                terminal();
+#if CHECK_AST
+                check_ast(t);
+#endif
+#if DEBUG_AST
+                printf("[DEBUG] Move: parent=%p, child=%p, CS=%d\n", ast_stack.back(), t,
+                       cast::children_size(ast_stack.back()));
+#endif
             }
                 break;
             case e_move: {

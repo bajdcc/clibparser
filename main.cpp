@@ -7,9 +7,8 @@ int main() {
     using namespace clib;
     try {
         cparser p(R"(
-int main(int (*g)()) {
-    int a, b, c;
-    float d, e, f;
+int main() {
+    unsigned int *a, *b;
 }
 )");
         auto root = p.parse();

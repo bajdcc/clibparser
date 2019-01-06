@@ -21,7 +21,7 @@ C++实现的LR Parser Generator。
 - **[C语言文法](https://github.com/antlr/grammars-v4/blob/master/c/C.g4)基本实现！请参阅cparser.cpp！支持多种基本数据类型。**
 - 虚拟机指令生成。
 
-文法支持顺序、分支、可选。目前可以根据LR文法**自动**生成AST。后续会对AST进行标记。
+文法支持顺序、分支、可选、跳过终结符。目前可以根据LR文法**自动**生成AST。后续会对AST进行标记。
 
 ## 顶层调用
 
