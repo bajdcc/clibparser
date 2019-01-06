@@ -23,6 +23,7 @@ namespace clib {
 
     class sym_t {
     public:
+        virtual string_t to_string();
     };
 
     class type_t : public sym_t {
@@ -31,8 +32,9 @@ namespace clib {
 
     class type_base_t : public type_t {
     public:
-        explicit type_base_t(keyword_t token);
-        keyword_t token;
+        explicit type_base_t(lexer_t type);
+        string_t to_string() override;
+        lexer_t type;
     };
 
     class type_typedef_t : public type_t {
@@ -42,6 +44,8 @@ namespace clib {
 
     class type_ptr_t : public type_t {
     public:
+        explicit type_ptr_t(const std::shared_ptr<type_t> &base, int ptr);
+        string_t to_string() override;
         std::shared_ptr<type_t> base;
         int ptr;
     };
@@ -65,10 +69,13 @@ namespace clib {
         void gen_rec(ast_node *node, int level);
         void gen_coll(const std::vector<ast_node *> &nodes, int level, coll_t t);
 
+        void error(const string_t &);
+
     private:
         std::vector<LEX_T(int)> text; // 代码
         std::vector<LEX_T(char)> data; // 数据
         std::vector<std::unordered_map<LEX_T(string), std::shared_ptr<sym_t>>> symbols; // 符号表
+        std::vector<std::vector<ast_node *>> ast;
         std::vector<std::vector<std::shared_ptr<sym_t>>> tmp;
     };
 }
