@@ -43,6 +43,7 @@ namespace clib {
 
     void cgen::gen(ast_node *node) {
         symbols.clear();
+        symbols.emplace_back();
         tmp.clear();
         tmp.emplace_back();
         ast.clear();

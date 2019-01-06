@@ -12,7 +12,7 @@
 #include "cast.h"
 #include "cunit.h"
 
-#define TRACE_PARSING 0
+#define TRACE_PARSING 1
 #define DUMP_PDA 0
 #define DEBUG_AST 0
 #define CHECK_AST 0
@@ -288,7 +288,7 @@ namespace clib {
                              _plus_assign_ | _minus_assign_ | _left_shift_assign_ | _right_shift_assign_;
         expression = *(expression + ~_comma_) + assignmentExpression;
         constantExpression = conditionalExpression;
-        declaration = declarationSpecifiers + *initDeclaratorList + ~_semi_;
+        declaration = declarationSpecifiers + initDeclaratorList + ~_semi_;
         declarationSpecifiers = *declarationSpecifiers + declarationSpecifier;
         declarationSpecifiers2 = *declarationSpecifiers + declarationSpecifier;
         declarationSpecifier

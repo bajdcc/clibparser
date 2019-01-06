@@ -7,10 +7,12 @@ int main() {
     using namespace clib;
     try {
         cparser p(R"(
+int a;
 int main() {
     unsigned int *a, *b;
     float d, *e, f;
 }
+int *b;
 )");
         auto root = p.parse();
         cast::print(root, 0, std::cout);
