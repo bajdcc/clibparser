@@ -18,15 +18,27 @@
 
 namespace clib {
 
-    string_t sym_t::to_string() {
+    string_t sym_t::to_string() const {
         return "[Symbol]";
+    }
+
+    int sym_t::size() const {
+        return 0;
+    }
+
+    symbol_t sym_t::get_type() const {
+        return s_sym;
     }
 
     type_t::type_t(int ptr) : ptr(ptr) {}
 
+    symbol_t type_t::get_type() const {
+        return s_type;
+    }
+
     type_base_t::type_base_t(lexer_t type, int ptr) : type_t(ptr), type(type) {}
 
-    string_t type_base_t::to_string() {
+    string_t type_base_t::to_string() const {
         std::stringstream ss;
         ss << LEX_STRING(type);
         for (int i = 0; i < ptr; ++i) {
@@ -35,10 +47,57 @@ namespace clib {
         return ss.str();
     }
 
-    sym_id_t::sym_id_t(const std::shared_ptr<type_t> &base, string_t id) : base(base), id(id) {}
+    int type_base_t::size() const {
+        if (ptr > 0)
+            return sizeof(void *);
+        switch (type) {
+#define DEFINE_LEXER_SIZE(t) case l_##t: return LEX_SIZEOF(t);
+            DEFINE_LEXER_SIZE(char)
+            DEFINE_LEXER_SIZE(uchar)
+            DEFINE_LEXER_SIZE(short)
+            DEFINE_LEXER_SIZE(ushort)
+            DEFINE_LEXER_SIZE(int)
+            DEFINE_LEXER_SIZE(uint)
+            DEFINE_LEXER_SIZE(long)
+            DEFINE_LEXER_SIZE(ulong)
+            DEFINE_LEXER_SIZE(float)
+            DEFINE_LEXER_SIZE(double)
+            DEFINE_LEXER_SIZE(operator)
+            DEFINE_LEXER_SIZE(keyword)
+            DEFINE_LEXER_SIZE(identifier)
+            DEFINE_LEXER_SIZE(string)
+            DEFINE_LEXER_SIZE(comment)
+            DEFINE_LEXER_SIZE(space)
+            DEFINE_LEXER_SIZE(newline)
+            DEFINE_LEXER_SIZE(error)
+#undef DEFINE_LEXER_SIZE
+            default:
+                assert(!"invalid get_type");
+                return 0;
+        }
+    }
 
-    string_t sym_id_t::to_string() {
-        return base->to_string() + " " + id;
+    symbol_t type_base_t::get_type() const {
+        return s_type_base;
+    }
+
+    symbol_t type_typedef_t::get_type() const {
+        return s_type_typedef;
+    }
+
+    sym_id_t::sym_id_t(const std::shared_ptr<type_t> &base, const string_t &id)
+        : base(base), id(id) {}
+
+    string_t sym_id_t::to_string() const {
+        std::stringstream ss;
+        ss << base->to_string() << " " << id << ", ";
+        ss << "Class: " << sym_class_string(clazz) << ", ";
+        ss << "Addr: " << addr;
+        return ss.str();
+    }
+
+    symbol_t sym_id_t::get_type() const {
+        return s_sym_id;
     }
 
     void cgen::gen(ast_node *node) {
@@ -101,7 +160,7 @@ namespace clib {
                 break;
             case ast_collection: {
                 auto children = gen_get_children(node->child);
-                gen_coll(children, level + 1, node->data._coll);
+                gen_coll(children, level + 1, node);
             }
                 break;
             case ast_keyword:
@@ -136,8 +195,8 @@ namespace clib {
         ast.pop_back();
     }
 
-    void cgen::gen_coll(const std::vector<ast_node *> &nodes, int level, coll_t t) {
-        switch (t) {
+    void cgen::gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node) {
+        switch (node->data._coll) {
             case c_program:
                 break;
             case c_primaryExpression:
@@ -298,7 +357,7 @@ namespace clib {
             gen_rec(node, level);
         }
         auto &asts = ast.back();
-        switch (t) {
+        switch (node->data._coll) {
             case c_program:
                 break;
             case c_primaryExpression:
@@ -370,7 +429,7 @@ namespace clib {
                                 type = l_ulong;
                                 break;
                             default:
-                                error("invalid unsigned * type");
+                                error("invalid unsigned * get_type");
                                 break;
                         }
                         asts.erase(asts.begin());
@@ -399,7 +458,7 @@ namespace clib {
                             type = l_short;
                             break;
                         default:
-                            error("invalid unsigned * type");
+                            error("invalid unsigned * get_type");
                             break;
                     }
                     asts.erase(asts.begin());
@@ -423,10 +482,18 @@ namespace clib {
             case c_declarationSpecifier:
                 break;
             case c_initDeclaratorList: {
+                auto clazz = z_undefined;
+                if (node->parent->parent->data._coll == c_externalDeclaration) {
+                    clazz = z_global_var;
+                } else {
+                    clazz = z_local_var;
+                }
                 auto type = std::dynamic_pointer_cast<type_base_t>((tmp.rbegin() + 1)->front());
                 {
                     assert(AST_IS_ID(asts[0]));
                     auto new_id = std::make_shared<sym_id_t>(type, asts[0]->data._string);
+                    new_id->clazz = clazz;
+                    allocate(*new_id);
                     symbols.back().insert(std::make_pair(asts[0]->data._string, new_id));
 #if LOG_TYPE
                     std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
@@ -440,6 +507,8 @@ namespace clib {
                         assert(AST_IS_ID(asts[i]));
                         auto new_type = std::make_shared<type_base_t>(type->type, ptr);
                         auto new_id = std::make_shared<sym_id_t>(new_type, asts[i]->data._string);
+                        new_id->clazz = clazz;
+                        allocate(*new_id);
 #if LOG_TYPE
                         std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
 #endif
@@ -555,5 +624,34 @@ namespace clib {
         std::stringstream ss;
         ss << "GEN ERROR: " << str;
         throw cexception(ss.str());
+    }
+
+    void cgen::allocate(sym_id_t &id) {
+        if (id.base->get_type() == s_type_base) {
+            const auto &type = std::dynamic_pointer_cast<type_base_t>(id.base);
+            if (id.clazz == z_global_var) {
+                id.addr = data.size();
+                for (auto i = 0; i < type->size(); ++i) {
+                    data.push_back(0);
+                }
+            } else if (id.clazz == z_local_var) {
+
+            } else {
+                assert(!"not supported");
+            }
+        } else {
+            assert(!"not supported");
+        }
+    }
+
+    std::tuple<sym_class_t, string_t> sym_class_string_list[] = {
+        std::make_tuple(z_undefined, "undefined"),
+        std::make_tuple(z_global_var, "global id"),
+        std::make_tuple(z_local_var, "local id"),
+    };
+
+    const string_t &sym_class_string(sym_class_t t) {
+        assert(t >= z_undefined && t < z_end);
+        return std::get<1>(sym_class_string_list[t]);
     }
 }

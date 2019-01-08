@@ -22,33 +22,51 @@ namespace clib {
 
     class sym_t {
     public:
-        virtual string_t to_string();
+        virtual symbol_t get_type() const;
+        virtual int size() const;
+        virtual string_t to_string() const;
     };
 
     class type_t : public sym_t {
     public:
         explicit type_t(int ptr = 0);
+        symbol_t get_type() const override;
         int ptr;
     };
 
     class type_base_t : public type_t {
     public:
         explicit type_base_t(lexer_t type, int ptr = 0);
-        string_t to_string() override;
+        symbol_t get_type() const override;
+        int size() const override;
+        string_t to_string() const override;
         lexer_t type;
     };
 
     class type_typedef_t : public type_t {
     public:
+        symbol_t get_type() const override;
         std::weak_ptr<sym_t> sym;
     };
 
+    enum sym_class_t {
+        z_undefined,
+        z_global_var,
+        z_local_var,
+        z_end,
+    };
+
+    const string_t &sym_class_string(sym_class_t);
+
     class sym_id_t : public sym_t {
     public:
-        explicit sym_id_t(const std::shared_ptr<type_t>& base, string_t id);
-        string_t to_string() override;
+        explicit sym_id_t(const std::shared_ptr<type_t>& base, const string_t &id);
+        symbol_t get_type() const override;
+        string_t to_string() const override;
         std::shared_ptr<type_t> base;
         string_t id;
+        sym_class_t clazz{z_undefined};
+        uint addr{0};
     };
 
     // 生成虚拟机指令
@@ -63,7 +81,9 @@ namespace clib {
         void gen(ast_node *node);
     private:
         void gen_rec(ast_node *node, int level);
-        void gen_coll(const std::vector<ast_node *> &nodes, int level, coll_t t);
+        void gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node);
+
+        void allocate(sym_id_t &id);
 
         void error(const string_t &);
 

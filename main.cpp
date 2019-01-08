@@ -8,11 +8,12 @@ int main() {
     try {
         cparser p(R"(
 int a;
+double *b;
 int main() {
     unsigned int *a, *b;
     float d, *e, f;
 }
-int *b;
+int *c;
 )");
         auto root = p.parse();
         cast::print(root, 0, std::cout);

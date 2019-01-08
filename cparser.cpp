@@ -12,7 +12,7 @@
 #include "cast.h"
 #include "cunit.h"
 
-#define TRACE_PARSING 1
+#define TRACE_PARSING 0
 #define DUMP_PDA 0
 #define DEBUG_AST 0
 #define CHECK_AST 0
@@ -811,7 +811,7 @@ namespace clib {
     }
 
     void cparser::match_type(lexer_t type) {
-        expect(lexer.is_type(type), string_t("expect type " + LEX_STRING(type)));
+        expect(lexer.is_type(type), string_t("expect get_type " + LEX_STRING(type)));
         next();
     }
 
