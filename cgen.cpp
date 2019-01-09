@@ -4,6 +4,7 @@
 //
 
 #include <iostream>
+#include <iterator>
 #include "cgen.h"
 #include "cast.h"
 #include "cexception.h"
@@ -13,6 +14,8 @@
 #define AST_IS_OP(node) ((node)->flag == ast_operator)
 #define AST_IS_OP_N(node, k) (AST_IS_OP(node) && (node)->data._op == (k))
 #define AST_IS_ID(node) ((node)->flag == ast_literal)
+#define AST_IS_COLL(node) ((node)->flag == ast_collection)
+#define AST_IS_COLL_N(node, k) (AST_IS_COLL(node) && (node)->data._coll == (k))
 
 #define LOG_TYPE 1
 
@@ -85,7 +88,7 @@ namespace clib {
         return s_type_typedef;
     }
 
-    sym_id_t::sym_id_t(const std::shared_ptr<type_t> &base, const string_t &id)
+    sym_id_t::sym_id_t(const type_t::ref &base, const string_t &id)
         : base(base), id(id) {}
 
     string_t sym_id_t::to_string() const {
@@ -98,6 +101,32 @@ namespace clib {
 
     symbol_t sym_id_t::get_type() const {
         return s_sym_id;
+    }
+
+    sym_func_t::sym_func_t(const type_t::ref &base, const string_t &id) : sym_id_t(base, id) {}
+
+    symbol_t sym_func_t::get_type() const {
+        return s_function;
+    }
+
+    template<class T>
+    std::string string_join(const std::vector<T> &v, const string_t &sep) {
+        std::stringstream ss;
+        ss << v[0]->to_string();
+        for (size_t i = 1; i < v.size(); ++i) {
+            ss << sep;
+            ss << v[i]->to_string();
+        }
+        return std::move(ss.str());
+    }
+
+    string_t sym_func_t::to_string() const {
+        std::stringstream ss;
+        ss << base->to_string() << " " << id << ", ";
+        ss << "Param: [" << string_join(params, "; ") << "], ";
+        ss << "Class: " << sym_class_string(clazz) << ", ";
+        ss << "Addr: " << addr;
+        return ss.str();
     }
 
     void cgen::gen(ast_node *node) {
@@ -407,7 +436,7 @@ namespace clib {
             case c_declaration:
                 break;
             case c_declarationSpecifiers: {
-                std::shared_ptr<type_t> base_type;
+                type_t::ref base_type;
                 if (AST_IS_KEYWORD_N(asts[0], k_unsigned)) { // unsigned ...
                     if (asts.size() == 1) {
                         asts.erase(asts.begin());
@@ -550,7 +579,24 @@ namespace clib {
                 break;
             case c_declarator:
                 break;
-            case c_directDeclarator:
+            case c_directDeclarator: {
+                if (nodes.size() >= 2 && AST_IS_ID(nodes[0]) && AST_IS_COLL_N(nodes[1], c_parameterTypeList)) {
+                    auto func = std::make_shared<sym_func_t>(
+                        std::dynamic_pointer_cast<type_t>(tmp.back().front()), nodes[0]->data._string);
+                    func->clazz = z_function;
+                    symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
+                    auto &tmps = tmp.back();
+                    for (auto i = 0; i < tmps.size(); ++i) {
+                        func->params.push_back(std::make_shared<sym_id_t>(
+                            std::dynamic_pointer_cast<type_t>(tmps[i]), asts[i + 1]->data._string));
+                        func->params.back()->clazz = z_param_var;
+                    }
+                    current_func = func;
+#if LOG_TYPE
+                    std::cout << "[DEBUG] Func: " << current_func.lock()->to_string() << std::endl;
+#endif
+                }
+            }
                 break;
             case c_pointer:
                 break;
@@ -560,7 +606,9 @@ namespace clib {
                 break;
             case c_parameterList:
                 break;
-            case c_parameterDeclaration:
+            case c_parameterDeclaration: {
+
+            }
                 break;
             case c_identifierList:
                 break;
@@ -612,8 +660,10 @@ namespace clib {
                 break;
             case c_externalDeclaration:
                 break;
-            case c_functionDefinition:
+            case c_functionDefinition: {
+                current_func.reset();
                 symbols.pop_back();
+            }
                 break;
             case c_declarationList:
                 break;
@@ -648,6 +698,8 @@ namespace clib {
         std::make_tuple(z_undefined, "undefined"),
         std::make_tuple(z_global_var, "global id"),
         std::make_tuple(z_local_var, "local id"),
+        std::make_tuple(z_param_var, "param id"),
+        std::make_tuple(z_function, "func id"),
     };
 
     const string_t &sym_class_string(sym_class_t t) {

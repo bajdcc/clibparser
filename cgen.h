@@ -18,6 +18,9 @@ namespace clib {
         s_type_base,
         s_type_typedef,
         s_sym_id,
+        s_function,
+        s_expression,
+        s_statement,
     };
 
     class sym_t {
@@ -29,6 +32,7 @@ namespace clib {
 
     class type_t : public sym_t {
     public:
+        using ref = std::shared_ptr<type_t>;
         explicit type_t(int ptr = 0);
         symbol_t get_type() const override;
         int ptr;
@@ -53,6 +57,8 @@ namespace clib {
         z_undefined,
         z_global_var,
         z_local_var,
+        z_param_var,
+        z_function,
         z_end,
     };
 
@@ -60,13 +66,22 @@ namespace clib {
 
     class sym_id_t : public sym_t {
     public:
-        explicit sym_id_t(const std::shared_ptr<type_t>& base, const string_t &id);
+        using ref = std::shared_ptr<sym_id_t>;
+        explicit sym_id_t(const type_t::ref& base, const string_t &id);
         symbol_t get_type() const override;
         string_t to_string() const override;
-        std::shared_ptr<type_t> base;
+        type_t::ref base;
         string_t id;
         sym_class_t clazz{z_undefined};
         uint addr{0};
+    };
+
+    class sym_func_t : public sym_id_t {
+    public:
+        explicit sym_func_t(const type_t::ref& base, const string_t &id);
+        symbol_t get_type() const override;
+        string_t to_string() const override;
+        std::vector<sym_id_t::ref> params;
     };
 
     // 生成虚拟机指令
@@ -93,6 +108,7 @@ namespace clib {
         std::vector<std::unordered_map<LEX_T(string), std::shared_ptr<sym_t>>> symbols; // 符号表
         std::vector<std::vector<ast_node *>> ast;
         std::vector<std::vector<std::shared_ptr<sym_t>>> tmp;
+        std::weak_ptr<sym_func_t> current_func;
     };
 }
 

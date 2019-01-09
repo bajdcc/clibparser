@@ -9,7 +9,7 @@ int main() {
         cparser p(R"(
 int a;
 double *b;
-int main() {
+int main(int c, float *d) {
     unsigned int *a, *b;
     float d, *e, f;
 }
