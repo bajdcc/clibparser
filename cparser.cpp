@@ -410,6 +410,7 @@ namespace clib {
         state_stack.push_back(0);
         auto &pdas = unit.get_pda();
         auto root = ast.new_node(ast_collection);
+        root->line = root->column = 0;
         root->data._coll = pdas[0].coll;
         cast::set_child(ast.get_root(), root);
         ast_stack.push_back(root);
@@ -596,6 +597,8 @@ namespace clib {
         }
         if (lexer.is_type(l_operator)) {
             auto node = ast.new_node(ast_operator);
+            node->line = lexer.get_last_line();
+            node->column = lexer.get_last_column();
             node->data._op = lexer.get_operator();
             match_operator(node->data._op);
             ast_cache.push_back(node);
@@ -604,6 +607,8 @@ namespace clib {
         }
         if (lexer.is_type(l_keyword)) {
             auto node = ast.new_node(ast_keyword);
+            node->line = lexer.get_last_line();
+            node->column = lexer.get_last_column();
             node->data._keyword = lexer.get_keyword();
             match_keyword(node->data._keyword);
             ast_cache.push_back(node);
@@ -612,6 +617,8 @@ namespace clib {
         }
         if (lexer.is_type(l_identifier)) {
             auto node = ast.new_node(ast_literal);
+            node->line = lexer.get_last_line();
+            node->column = lexer.get_last_column();
             ast.set_str(node, lexer.get_identifier());
             match_type(l_identifier);
             ast_cache.push_back(node);
@@ -625,6 +632,8 @@ namespace clib {
 #define DEFINE_NODE_INT(t) \
             case l_##t: \
                 node = ast.new_node(ast_##t); \
+                node->line = lexer.get_last_line(); \
+                node->column = lexer.get_last_column(); \
                 node->data._##t = lexer.get_##t(); \
                 break;
                 DEFINE_NODE_INT(char)
@@ -663,6 +672,8 @@ namespace clib {
                 match_type(l_string);
             }
             auto node = ast.new_node(ast_string);
+            node->line = lexer.get_last_line();
+            node->column = lexer.get_last_column();
             ast.set_str(node, ss.str());
             ast_cache.push_back(node);
             ast_cache_index++;
@@ -714,6 +725,7 @@ namespace clib {
             case e_shift: {
                 state_stack.push_back(state);
                 auto new_node = ast.new_node(ast_collection);
+                new_node->line = new_node->column = 0;
                 auto &pdas = unit.get_pda();
                 new_node->data._coll = pdas[trans.jump].coll;
 #if DEBUG_AST

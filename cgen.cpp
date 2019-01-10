@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <iterator>
+#include <unordered_set>
 #include "cgen.h"
 #include "cast.h"
 #include "cexception.h"
@@ -89,7 +90,7 @@ namespace clib {
     }
 
     sym_id_t::sym_id_t(const type_t::ref &base, const string_t &id)
-        : base(base), id(id) {}
+            : base(base), id(id) {}
 
     string_t sym_id_t::to_string() const {
         std::stringstream ss;
@@ -439,8 +440,10 @@ namespace clib {
                 type_t::ref base_type;
                 if (AST_IS_KEYWORD_N(asts[0], k_unsigned)) { // unsigned ...
                     if (asts.size() == 1) {
-                        asts.erase(asts.begin());
                         base_type = std::make_shared<type_base_t>(l_int);
+                        base_type->line = asts[0]->line;
+                        base_type->column = asts[0]->column;
+                        asts.erase(asts.begin());
                     } else {
                         assert(asts.size() > 1 && AST_IS_KEYWORD(asts[1]));
                         lexer_t type;
@@ -458,12 +461,14 @@ namespace clib {
                                 type = l_ulong;
                                 break;
                             default:
-                                error("invalid unsigned * get_type");
+                                error(asts[1], "invalid unsigned * get_type");
                                 break;
                         }
-                        asts.erase(asts.begin());
-                        asts.erase(asts.begin());
                         base_type = std::make_shared<type_base_t>(type);
+                        base_type->line = asts[0]->line;
+                        base_type->column = asts[0]->column;
+                        asts.erase(asts.begin());
+                        asts.erase(asts.begin());
                     }
                 } else {
                     lexer_t type;
@@ -487,11 +492,13 @@ namespace clib {
                             type = l_short;
                             break;
                         default:
-                            error("invalid unsigned * get_type");
+                            error(asts[0], "invalid * get_type");
                             break;
                     }
-                    asts.erase(asts.begin());
                     base_type = std::make_shared<type_base_t>(type);
+                    base_type->line = asts[0]->line;
+                    base_type->column = asts[0]->column;
+                    asts.erase(asts.begin());
                 }
                 if (!asts.empty()) {
                     for (auto &a : asts) {
@@ -521,9 +528,13 @@ namespace clib {
                 {
                     assert(AST_IS_ID(asts[0]));
                     auto new_id = std::make_shared<sym_id_t>(type, asts[0]->data._string);
+                    new_id->line = asts[0]->line;
+                    new_id->column = asts[0]->column;
                     new_id->clazz = clazz;
                     allocate(*new_id);
-                    symbols.back().insert(std::make_pair(asts[0]->data._string, new_id));
+                    if (!symbols.back().insert(std::make_pair(asts[0]->data._string, new_id)).second) {
+                        error(new_id.get(), "conflict id: " + new_id->to_string());
+                    }
 #if LOG_TYPE
                     std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
 #endif
@@ -536,12 +547,16 @@ namespace clib {
                         assert(AST_IS_ID(asts[i]));
                         auto new_type = std::make_shared<type_base_t>(type->type, ptr);
                         auto new_id = std::make_shared<sym_id_t>(new_type, asts[i]->data._string);
+                        new_id->line = asts[i]->line;
+                        new_id->column = asts[i]->column;
                         new_id->clazz = clazz;
                         allocate(*new_id);
 #if LOG_TYPE
                         std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
 #endif
-                        symbols.back().insert(std::make_pair(asts[i]->data._string, new_id));
+                        if (!symbols.back().insert(std::make_pair(asts[i]->data._string, new_id)).second) {
+                            error(new_id.get(), "conflict id: " + new_id->to_string());
+                        }
                         ptr = 0;
                     }
                 }
@@ -582,14 +597,21 @@ namespace clib {
             case c_directDeclarator: {
                 if (nodes.size() >= 2 && AST_IS_ID(nodes[0]) && AST_IS_COLL_N(nodes[1], c_parameterTypeList)) {
                     auto func = std::make_shared<sym_func_t>(
-                        std::dynamic_pointer_cast<type_t>(tmp.back().front()), nodes[0]->data._string);
+                            std::dynamic_pointer_cast<type_t>(tmp.back().front()), nodes[0]->data._string);
                     func->clazz = z_function;
                     symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
                     auto &tmps = tmp.back();
+                    std::unordered_set<string_t> ids;
                     for (auto i = 0; i < tmps.size(); ++i) {
-                        func->params.push_back(std::make_shared<sym_id_t>(
-                            std::dynamic_pointer_cast<type_t>(tmps[i]), asts[i + 1]->data._string));
+                        auto &name = asts[i + 1]->data._string;
+                        auto id = std::make_shared<sym_id_t>(std::dynamic_pointer_cast<type_t>(tmps[i]), name);
+                        id->line = asts[i + 1]->line;
+                        id->column = asts[i + 1]->column;
+                        func->params.push_back(id);
                         func->params.back()->clazz = z_param_var;
+                        if (!ids.insert(name).second) {
+                            error(id.get(), "conflict id: " + id->to_string());
+                        }
                     }
                     current_func = func;
 #if LOG_TYPE
@@ -676,6 +698,18 @@ namespace clib {
         throw cexception(ss.str());
     }
 
+    void cgen::error(ast_node *node, const string_t &str) {
+        std::stringstream ss;
+        ss << "GEN ERROR: " << "[" << node->line << ":" << node->column << "] " << str;
+        throw cexception(ss.str());
+    }
+
+    void cgen::error(sym_t *sym, const string_t &str) {
+        std::stringstream ss;
+        ss << "GEN ERROR: " << "[" << sym->line << ":" << sym->column << "] " << str;
+        throw cexception(ss.str());
+    }
+
     void cgen::allocate(sym_id_t &id) {
         if (id.base->get_type() == s_type_base) {
             const auto &type = std::dynamic_pointer_cast<type_base_t>(id.base);
@@ -695,11 +729,11 @@ namespace clib {
     }
 
     std::tuple<sym_class_t, string_t> sym_class_string_list[] = {
-        std::make_tuple(z_undefined, "undefined"),
-        std::make_tuple(z_global_var, "global id"),
-        std::make_tuple(z_local_var, "local id"),
-        std::make_tuple(z_param_var, "param id"),
-        std::make_tuple(z_function, "func id"),
+            std::make_tuple(z_undefined, "undefined"),
+            std::make_tuple(z_global_var, "global id"),
+            std::make_tuple(z_local_var, "local id"),
+            std::make_tuple(z_param_var, "param id"),
+            std::make_tuple(z_function, "func id"),
     };
 
     const string_t &sym_class_string(sym_class_t t) {

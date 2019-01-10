@@ -44,6 +44,7 @@ namespace clib {
     struct ast_node {
         // 类型
         uint32_t flag;
+        int line, column;
 
         union {
 #define DEFINE_NODE_DATA(t) LEX_T(t) _##t;
