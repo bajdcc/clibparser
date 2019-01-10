@@ -269,8 +269,7 @@ namespace clib {
               | _sizeof_ + (unaryExpression | ~_lparan_ + typeName + ~_rparan_);
         unaryOperator = _bit_and_ | _times_ | _plus_ | _minus_ | _bit_not_ | _logical_not_;
         castExpression = ~_lparan_ + typeName + ~_rparan_ + castExpression | unaryExpression;
-        multiplicativeExpression = castExpression | multiplicativeExpression +
-                                                    ((_times_ |_divide_ | _mod_) + castExpression);
+        multiplicativeExpression = *(multiplicativeExpression + (_times_ |_divide_ | _mod_)) + castExpression;
         additiveExpression = *(additiveExpression + (_plus_ | _minus_)) + multiplicativeExpression;
         shiftExpression = *(shiftExpression + (_left_shift_ | _right_shift_)) + additiveExpression;
         relationalExpression = *(relationalExpression +
@@ -288,7 +287,7 @@ namespace clib {
                              _plus_assign_ | _minus_assign_ | _left_shift_assign_ | _right_shift_assign_;
         expression = *(expression + ~_comma_) + assignmentExpression;
         constantExpression = conditionalExpression;
-        declaration = declarationSpecifiers + initDeclaratorList + ~_semi_;
+        declaration = declarationSpecifiers + *initDeclaratorList + ~_semi_;
         declarationSpecifiers = *declarationSpecifiers + declarationSpecifier;
         declarationSpecifiers2 = *declarationSpecifiers + declarationSpecifier;
         declarationSpecifier
@@ -450,19 +449,14 @@ namespace clib {
             auto state = bk->current_state;
             if (bk->direction != b_error)
                 for (;;) {
+                    auto is_end = lexer.is_type(l_end) && ast_cache_index >= ast_cache.size();
                     auto &current_state = pdas[state];
-                    if (lexer.is_type(l_end)) {
+                    if (is_end) {
                         if (current_state.final) {
                             if (state_stack.empty()) {
                                 bk->direction = b_success;
                                 break;
                             }
-                        } else {
-#if TRACE_PARSING
-                            std::cout << "parsing unexpected EOF: " << current_state.label << std::endl;
-#endif
-                            bk->direction = b_error;
-                            break;
                         }
                     }
                     auto &trans = current_state.trans;
@@ -471,10 +465,20 @@ namespace clib {
                         bk->trans_ids.pop_back();
                     } else {
                         trans_ids.clear();
-                        for (auto i = 0; i < trans.size(); ++i) {
-                            auto &cs = trans[i];
-                            if (valid_trans(cs))
-                                trans_ids.push_back(i | pda_edge_priority(cs.type) << 16);
+                        if (is_end) {
+                            for (auto i = 0; i < trans.size(); ++i) {
+                                auto &cs = trans[i];
+                                if (valid_trans(cs) && (cs.type != e_move && cs.type != e_pass)) {
+                                    trans_ids.push_back(i | pda_edge_priority(cs.type) << 16);
+                                }
+                            }
+                        } else {
+                            for (auto i = 0; i < trans.size(); ++i) {
+                                auto &cs = trans[i];
+                                if (valid_trans(cs)) {
+                                    trans_ids.push_back(i | pda_edge_priority(cs.type) << 16);
+                                }
+                            }
                         }
                         if (!trans_ids.empty()) {
                             std::sort(trans_ids.begin(), trans_ids.end(), std::greater<>());
@@ -530,8 +534,9 @@ namespace clib {
                     }
                     auto jump = trans[trans_id].jump;
 #if TRACE_PARSING
-                    printf("State: %3d => To: %3d   -- Action: %-10s -- Rule: %s\n",
-                           state, jump, pda_edge_str(t.type).c_str(), current_state.label.c_str());
+                    printf("[%d]%s State: %3d => To: %3d   -- Action: %-10s -- Rule: %s\n",
+                           ast_cache_index, is_end ? "*" : "", state, jump,
+                           pda_edge_str(t.type).c_str(), current_state.label.c_str());
 #endif
                     do_trans(state, *bk, trans[trans_id]);
                     state = jump;
@@ -589,7 +594,7 @@ namespace clib {
     }
 
     ast_node *cparser::terminal() {
-        if (lexer.is_type(l_end)) { // 结尾
+        if (lexer.is_type(l_end) && ast_cache_index >= ast_cache.size()) { // 结尾
             error("unexpected token EOF of expression");
         }
         if (ast_cache_index < ast_cache.size()) {
