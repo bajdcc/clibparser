@@ -103,7 +103,7 @@ namespace clib {
         void add_id(const type_base_t::ref &, sym_class_t, ast_node *);
 
         void error(const string_t &);
-        void error(ast_node *, const string_t &);
+        void error(ast_node *, const string_t &, bool info = false);
         void error(sym_t *, const string_t &);
 
     private:

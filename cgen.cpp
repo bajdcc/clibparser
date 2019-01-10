@@ -112,6 +112,8 @@ namespace clib {
 
     template<class T>
     std::string string_join(const std::vector<T> &v, const string_t &sep) {
+        if (v.empty())
+            return "";
         std::stringstream ss;
         ss << v[0]->to_string();
         for (size_t i = 1; i < v.size(); ++i) {
@@ -531,7 +533,8 @@ namespace clib {
                     if (AST_IS_OP_N(asts[i], op_times)) {
                         ptr++;
                     } else {
-                        add_id(type, clazz, asts[i]);
+                        auto new_type = std::make_shared<type_base_t>(type->type, ptr);
+                        add_id(new_type, clazz, asts[i]);
                         ptr = 0;
                     }
                 }
@@ -572,23 +575,31 @@ namespace clib {
             case c_directDeclarator: {
                 if (nodes.size() >= 2 && AST_IS_ID(nodes[0]) && AST_IS_COLL_N(nodes[1], c_parameterTypeList)) {
                     auto func = std::make_shared<sym_func_t>(
-                            std::dynamic_pointer_cast<type_t>(tmp.back().front()), nodes[0]->data._string);
+                            std::dynamic_pointer_cast<type_t>((tmp.rbegin() + 4)->front()), nodes[0]->data._string);
                     func->clazz = z_function;
                     symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
                     auto &tmps = tmp.back();
                     std::unordered_set<string_t> ids;
-                    for (auto i = 0; i < tmps.size(); ++i) {
-                        auto &name = asts[i + 1]->data._string;
-                        auto id = std::make_shared<sym_id_t>(std::dynamic_pointer_cast<type_t>(tmps[i]), name);
-                        id->line = asts[i + 1]->line;
-                        id->column = asts[i + 1]->column;
+                    for (auto i = 0; i < asts.size() - 1; ++i) {
+                        auto &pa = asts[i + 1];
+                        if (i >= tmps.size()) {
+                            error(pa, "invalid param: ", true);
+                        }
+                        if (!AST_IS_ID(pa)) {
+                            error(pa, "invalid param: ", true);
+                        }
+                        const auto &pt = std::dynamic_pointer_cast<type_t>(tmps[i]);
+                        auto &name = pa->data._string;
+                        auto id = std::make_shared<sym_id_t>(pt, name);
+                        id->line = pa->line;
+                        id->column = pa->column;
                         func->params.push_back(id);
                         func->params.back()->clazz = z_param_var;
                         if (!ids.insert(name).second) {
                             error(id.get(), "conflict id: " + id->to_string());
                         }
                         {
-                            auto f = symbols[0].find(asts[i + 1]->data._string);
+                            auto f = symbols[0].find(pa->data._string);
                             if (f != symbols[0].end()) {
                                 if (f->second->get_type() == s_function) {
                                     error(id.get(), "conflict id with function: " + id->to_string());
@@ -597,6 +608,9 @@ namespace clib {
                         }
                     }
                     current_func = func;
+                    tmps.clear();
+                    tmps.push_back(current_func.lock());
+                    asts.clear();
 #if LOG_TYPE
                     std::cout << "[DEBUG] Func: " << current_func.lock()->to_string() << std::endl;
 #endif
@@ -681,9 +695,12 @@ namespace clib {
         throw cexception(ss.str());
     }
 
-    void cgen::error(ast_node *node, const string_t &str) {
+    void cgen::error(ast_node *node, const string_t &str, bool info) {
         std::stringstream ss;
         ss << "GEN ERROR: " << "[" << node->line << ":" << node->column << "] " << str;
+        if (info) {
+            cast::print(node, 0, ss);
+        }
         throw cexception(ss.str());
     }
 
@@ -712,7 +729,7 @@ namespace clib {
     }
 
     void cgen::add_id(const type_base_t::ref &type, sym_class_t clazz, ast_node *node) {
-        assert(AST_IS_ID(asts[0]));
+        assert(AST_IS_ID(node));
         auto new_id = std::make_shared<sym_id_t>(type, node->data._string);
         new_id->line = node->line;
         new_id->column = node->column;

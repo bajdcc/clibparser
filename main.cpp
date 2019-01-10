@@ -14,6 +14,7 @@ int main(int c, float *d) {
     float d, *e, f;
 }
 int *c;
+int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 )");
         auto root = p.parse();
         cast::print(root, 0, std::cout);

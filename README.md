@@ -30,13 +30,19 @@ int main() {
     using namespace clib;
     try {
         cparser p(R"(
-int main(int (*g)()) {
-    int a, b, c;
-    float d, e, f;
+int a;
+double *b;
+int main(int c, float *d) {
+    unsigned int *a, *b;
+    float d, *e, f;
 }
+int *c;
+int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 )");
         auto root = p.parse();
         cast::print(root, 0, std::cout);
+        cgen gen;
+        gen.gen(root);
     } catch (const cexception &e) {
         std::cout << "RUNTIME ERROR: " << e.msg << std::endl;
     }
@@ -44,89 +50,39 @@ int main(int (*g)()) {
 }
 ```
 
-结果：
+结果（每个单词都保存了在源文件中的位置，这里省略）：
 ```txt
-compilationUnit
-  translationUnit
-    externalDeclaration
-      functionDefinition
-        declarationSpecifiers
-          declarationSpecifier
-            typeSpecifier
-              keyword: int
-        declarator
-          directDeclarator
-            id: main
-            operator: (
-            parameterTypeList
-              parameterList
-                parameterDeclaration
-                  declarationSpecifiers
-                    declarationSpecifier
-                      typeSpecifier
-                        keyword: int
-                  declarator
-                    directDeclarator
-                      operator: (
-                      declarator
-                        pointer
-                          operator: *
-                        directDeclarator
-                          id: g
-                      operator: )
-                      operator: (
-                      operator: )
-            operator: )
-        compoundStatement
-          operator: {
-          blockItemList
-            blockItem
-              declaration
-                declarationSpecifiers
-                  declarationSpecifier
-                    typeSpecifier
-                      keyword: int
-                initDeclaratorList
-                  initDeclarator
-                    declarator
-                      directDeclarator
-                        id: a
-                  operator: ,
-                  initDeclarator
-                    declarator
-                      directDeclarator
-                        id: b
-                  operator: ,
-                  initDeclarator
-                    declarator
-                      directDeclarator
-                        id: c
-                operator: ;
-            blockItem
-              declaration
-                declarationSpecifiers
-                  declarationSpecifier
-                    typeSpecifier
-                      keyword: float
-                initDeclaratorList
-                  initDeclarator
-                    declarator
-                      directDeclarator
-                        id: d
-                  operator: ,
-                  initDeclarator
-                    declarator
-                      directDeclarator
-                        id: e
-                  operator: ,
-                  initDeclarator
-                    declarator
-                      directDeclarator
-                        id: f
-                operator: ;
-          operator: }
+[DEBUG] Type: int
+[DEBUG] Id: int a, Class: global id, Addr: 0
+[DEBUG] Type: double*
+[DEBUG] Id: double* b, Class: global id, Addr: 4
+[DEBUG] Type: int
+[DEBUG] Type: int
+[DEBUG] Type: float*
+[DEBUG] Func: int main, Param: [int c, Class: param id, Addr: 0; float* d, Class: param id, Addr: 0], Class: func id, Ad
+dr: 0
+[DEBUG] Type: uint*
+[DEBUG] Id: uint* a, Class: local id, Addr: 0
+[DEBUG] Id: uint* b, Class: local id, Addr: 0
+[DEBUG] Type: float
+[DEBUG] Id: float d, Class: local id, Addr: 0
+[DEBUG] Id: float* e, Class: local id, Addr: 0
+[DEBUG] Id: float f, Class: local id, Addr: 0
+[DEBUG] Type: int*
+[DEBUG] Id: int* c, Class: global id, Addr: 8
+[DEBUG] Type: int
+[DEBUG] Type: uint
+[DEBUG] Type: double
+[DEBUG] Type: char
+[DEBUG] Func: int test, Param: [uint a, Class: param id, Addr: 0; double b, Class: param id, Addr: 0; char c, Class: par
+am id, Addr: 0], Class: func id, Addr: 0
+[DEBUG] Type: long
+[DEBUG] Func: int tb, Param: [long d, Class: param id, Addr: 0], Class: func id, Addr: 0
+[DEBUG] Type: int
+[DEBUG] Func: int td, Param: [int e, Class: param id, Addr: 0], Class: func id, Addr: 0
+[DEBUG] Id: int ta, Class: global id, Addr: 12
+[DEBUG] Id: int tc, Class: global id, Addr: 16
 ```
-~~结果未去括号。~~
 
 ## 调试信息
 
@@ -185,7 +141,9 @@ compilationUnit
     - [x] 输出错误单词的位置
     - [x] 基本类型（单一类型及其指针，不支持枚举、函数指针和结构体）
     - [x] 识别变量声明
-    - [ ] 识别函数声明（识别返回类型、参数、语句）
+    - [x] 识别函数声明（识别返回类型、参数）
+    - [ ] 识别语句
+    - [ ] 识别表达式
 - [ ] 虚拟机
     - [ ] 设计指令（寄存器式分配）
     - [ ] 设计符号表
