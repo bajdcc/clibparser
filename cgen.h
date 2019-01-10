@@ -100,6 +100,7 @@ namespace clib {
         void gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node);
 
         void allocate(sym_id_t &id);
+        void add_id(const type_base_t::ref &, sym_class_t, ast_node *);
 
         void error(const string_t &);
         void error(ast_node *, const string_t &);

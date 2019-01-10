@@ -525,38 +525,13 @@ namespace clib {
                     clazz = z_local_var;
                 }
                 auto type = std::dynamic_pointer_cast<type_base_t>((tmp.rbegin() + 1)->front());
-                {
-                    assert(AST_IS_ID(asts[0]));
-                    auto new_id = std::make_shared<sym_id_t>(type, asts[0]->data._string);
-                    new_id->line = asts[0]->line;
-                    new_id->column = asts[0]->column;
-                    new_id->clazz = clazz;
-                    allocate(*new_id);
-                    if (!symbols.back().insert(std::make_pair(asts[0]->data._string, new_id)).second) {
-                        error(new_id.get(), "conflict id: " + new_id->to_string());
-                    }
-#if LOG_TYPE
-                    std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
-#endif
-                }
+                add_id(type, clazz, asts[0]);
                 auto ptr = 0;
                 for (int i = 1; i < asts.size(); ++i) {
                     if (AST_IS_OP_N(asts[i], op_times)) {
                         ptr++;
                     } else {
-                        assert(AST_IS_ID(asts[i]));
-                        auto new_type = std::make_shared<type_base_t>(type->type, ptr);
-                        auto new_id = std::make_shared<sym_id_t>(new_type, asts[i]->data._string);
-                        new_id->line = asts[i]->line;
-                        new_id->column = asts[i]->column;
-                        new_id->clazz = clazz;
-                        allocate(*new_id);
-#if LOG_TYPE
-                        std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
-#endif
-                        if (!symbols.back().insert(std::make_pair(asts[i]->data._string, new_id)).second) {
-                            error(new_id.get(), "conflict id: " + new_id->to_string());
-                        }
+                        add_id(type, clazz, asts[i]);
                         ptr = 0;
                     }
                 }
@@ -611,6 +586,14 @@ namespace clib {
                         func->params.back()->clazz = z_param_var;
                         if (!ids.insert(name).second) {
                             error(id.get(), "conflict id: " + id->to_string());
+                        }
+                        {
+                            auto f = symbols[0].find(asts[i + 1]->data._string);
+                            if (f != symbols[0].end()) {
+                                if (f->second->get_type() == s_function) {
+                                    error(id.get(), "conflict id with function: " + id->to_string());
+                                }
+                            }
                         }
                     }
                     current_func = func;
@@ -725,6 +708,29 @@ namespace clib {
             }
         } else {
             assert(!"not supported");
+        }
+    }
+
+    void cgen::add_id(const type_base_t::ref &type, sym_class_t clazz, ast_node *node) {
+        assert(AST_IS_ID(asts[0]));
+        auto new_id = std::make_shared<sym_id_t>(type, node->data._string);
+        new_id->line = node->line;
+        new_id->column = node->column;
+        new_id->clazz = clazz;
+        allocate(*new_id);
+#if LOG_TYPE
+        std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
+#endif
+        if (!symbols.back().insert(std::make_pair(node->data._string, new_id)).second) {
+            error(new_id.get(), "conflict id: " + new_id->to_string());
+        }
+        if (symbols.size() > 1) {
+            auto f = symbols[0].find(node->data._string);
+            if (f != symbols[0].end()) {
+                if (f->second->get_type() == s_function) {
+                    error(new_id.get(), "conflict id with function: " + new_id->to_string());
+                }
+            }
         }
     }
 
