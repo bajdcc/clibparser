@@ -169,6 +169,7 @@ namespace clib {
         DEF_LEX(newline, Newline);
 #undef DEF_LEX
 #define DEF_RULE(name) auto &name = unit.rule(#name, c_##name)
+#define DEF_RULE_NOT_GREED(name) auto &name = unit.rule(#name, c_##name, true)
         DEF_RULE(program);
         DEF_RULE(primaryExpression);
         DEF_RULE(constant);
@@ -193,8 +194,8 @@ namespace clib {
         DEF_RULE(expression);
         DEF_RULE(constantExpression);
         DEF_RULE(declaration);
-        DEF_RULE(declarationSpecifiers);
-        DEF_RULE(declarationSpecifiers2);
+        DEF_RULE_NOT_GREED(declarationSpecifiers);
+        DEF_RULE_NOT_GREED(declarationSpecifiers2);
         DEF_RULE(declarationSpecifier);
         DEF_RULE(initDeclaratorList);
         DEF_RULE(initDeclarator);
@@ -247,6 +248,7 @@ namespace clib {
         DEF_RULE(functionDefinition);
         DEF_RULE(declarationList);
 #undef DEF_RULE
+#undef DEF_RULE_NOT_GREED
         program = compilationUnit;
         primaryExpression = Identifier
                             | constant
@@ -524,11 +526,11 @@ namespace clib {
                     }
                     auto &t = trans[trans_id];
                     if (t.type == e_finish) {
-                        if (!lexer.is_type(l_end)) {
+                        if (!is_end) {
 #if TRACE_PARSING
                             std::cout << "parsing redundant code: " << current_state.label << std::endl;
 #endif
-                            bk->direction = b_fail;
+                            bk->direction = b_error;
                             break;
                         }
                     }
@@ -710,6 +712,8 @@ namespace clib {
                 break;
             case e_left_recursion:
                 break;
+            case e_left_recursion_not_greed:
+                break;
             case e_reduce: {
                 if (state_stack.empty())
                     return false;
@@ -767,6 +771,8 @@ namespace clib {
             }
                 break;
             case e_left_recursion:
+                break;
+            case e_left_recursion_not_greed:
                 break;
             case e_reduce: {
                 auto new_ast = ast_stack.back();

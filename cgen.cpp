@@ -503,12 +503,17 @@ namespace clib {
                     asts.erase(asts.begin());
                 }
                 if (!asts.empty()) {
+                    auto ptr = 0;
                     for (auto &a : asts) {
-                        assert(AST_IS_OP_N(a, op_times));
+                        if (AST_IS_OP_N(a, op_times)) {
+                            ptr++;
+                        } else {
+                            break;
+                        }
                     }
-                    base_type->ptr = asts.size();
+                    base_type->ptr = ptr;
+                    asts.erase(asts.begin(), asts.begin() + ptr);
                 }
-                asts.clear();
 #if LOG_TYPE
                 std::cout << "[DEBUG] Type: " << base_type->to_string() << std::endl;
 #endif

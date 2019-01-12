@@ -127,6 +127,11 @@ namespace clib {
         return *this;
     }
 
+    unit_rule &unit_rule::set_not_greed(bool not_greed) {
+        this->not_greed = not_greed;
+        return *this;
+    }
+
     const char *cunit::str(const string_t &s) {
         auto f = strings.find(s);
         if (f == strings.end()) {
@@ -196,10 +201,10 @@ namespace clib {
         return (unit_collection &) (*nodes.alloc<unit_collection>()).set_child(a).set_t(u_optional).init(this);
     }
 
-    unit &cunit::rule(const string_t &s, coll_t t) {
+    unit &cunit::rule(const string_t &s, coll_t t, bool not_greed) {
         auto f = rules.find(s);
         if (f == rules.end()) {
-            auto &rule = (*nodes.alloc<unit_rule>()).set_s(str(s)).set_child(nullptr).set_t(u_rule).init(this);
+            auto &rule = (*nodes.alloc<unit_rule>()).set_s(str(s)).set_not_greed(not_greed).set_child(nullptr).set_t(u_rule).init(this);
             nga_rule r;
             r.id = rules.size();
             r.status = nullptr;
@@ -998,12 +1003,13 @@ namespace clib {
                                 [o](auto it) { return it.nga == o->end; })->pda,
                             true);
                         edge.data = o->data;
-                        if (is_left_resursive_edge(o, rules_list[std::find_if(
+                        auto jj = rules_list[std::find_if(
                             status_list.begin(),
                             status_list.end(),
-                            [o](auto it) { return it.nga == o->begin; })->pda->rule]->u)) {
+                            [o](auto it) { return it.nga == o->begin; })->pda->rule]->u;
+                        if (is_left_resursive_edge(o, jj)) {
                             // LEFT RECURSION
-                            edge.type = e_left_recursion;
+                            edge.type = jj->not_greed ? e_left_recursion_not_greed : e_left_recursion;
                             decltype(token_set) res;
                             auto _outs = get_filter_out_edges(edge.end, [](auto it) { return true; });
                             for (auto &_o : _outs) {
@@ -1129,9 +1135,10 @@ namespace clib {
 
     std::tuple<pda_edge_t, string_t, int> pda_edge_string[] = {
         std::make_tuple(e_shift, "shift", 2),
-        std::make_tuple(e_pass, "pass", 1),
+        std::make_tuple(e_pass, "pass", 10),
         std::make_tuple(e_move, "move", 1),
         std::make_tuple(e_left_recursion, "recursion", 3),
+        std::make_tuple(e_left_recursion_not_greed, "recursion(not greed)", 5),
         std::make_tuple(e_reduce, "reduce", 4),
         std::make_tuple(e_finish, "finish", 0),
     };

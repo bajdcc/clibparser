@@ -67,8 +67,10 @@ namespace clib {
 
     struct unit_rule : public unit_collection {
         const char *s;
+        bool not_greed{false};
 
         unit_rule &set_s(const char *str);
+        unit_rule &set_not_greed(bool not_greed);
     };
 
     struct nga_edge;
@@ -95,6 +97,7 @@ namespace clib {
         e_pass,
         e_move,
         e_left_recursion,
+        e_left_recursion_not_greed,
         e_reduce,
         e_finish,
     };
@@ -167,7 +170,7 @@ namespace clib {
         unit &token(const lexer_t &type);
         unit &token(const operator_t &op);
         unit &token(const keyword_t &keyword);
-        unit &rule(const string_t &s, coll_t t);
+        unit &rule(const string_t &s, coll_t t, bool not_greed = false);
 
         unit_collection &append(unit *collection, unit *child) override;
         unit_collection &merge(unit *a, unit *b) override;
