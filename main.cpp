@@ -7,9 +7,9 @@ int main() {
     using namespace clib;
     try {
         cparser p(R"(
-int a;
+int *a, *_a;
 double *b;
-int main(int c, float *d) {
+int *main(int c, float *d) {
     unsigned int *a, *b;
     float d, *e, f;
 }

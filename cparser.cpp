@@ -200,7 +200,7 @@ namespace clib {
         DEF_RULE(initDeclaratorList);
         DEF_RULE(initDeclarator);
         DEF_RULE(storageClassSpecifier);
-        DEF_RULE(typeSpecifier);
+        DEF_RULE_NOT_GREED(typeSpecifier);
         DEF_RULE(structOrUnionSpecifier);
         DEF_RULE(structOrUnion);
         DEF_RULE(structDeclarationList);

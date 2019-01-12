@@ -1138,7 +1138,7 @@ namespace clib {
         std::make_tuple(e_pass, "pass", 10),
         std::make_tuple(e_move, "move", 1),
         std::make_tuple(e_left_recursion, "recursion", 3),
-        std::make_tuple(e_left_recursion_not_greed, "recursion(not greed)", 5),
+        std::make_tuple(e_left_recursion_not_greed, "recursion", 5),
         std::make_tuple(e_reduce, "reduce", 4),
         std::make_tuple(e_finish, "finish", 0),
     };

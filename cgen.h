@@ -26,6 +26,7 @@ namespace clib {
     class sym_t {
     public:
         virtual symbol_t get_type() const;
+        virtual symbol_t get_base_type() const;
         virtual int size() const;
         virtual string_t to_string() const;
         int line{0}, column{0};
@@ -36,6 +37,7 @@ namespace clib {
         using ref = std::shared_ptr<type_t>;
         explicit type_t(int ptr = 0);
         symbol_t get_type() const override;
+        symbol_t get_base_type() const override;
         int ptr;
     };
 
@@ -70,6 +72,7 @@ namespace clib {
         using ref = std::shared_ptr<sym_id_t>;
         explicit sym_id_t(const type_t::ref& base, const string_t &id);
         symbol_t get_type() const override;
+        symbol_t get_base_type() const override;
         string_t to_string() const override;
         type_t::ref base;
         string_t id;
@@ -81,6 +84,7 @@ namespace clib {
     public:
         explicit sym_func_t(const type_t::ref& base, const string_t &id);
         symbol_t get_type() const override;
+        symbol_t get_base_type() const override;
         string_t to_string() const override;
         std::vector<sym_id_t::ref> params;
     };

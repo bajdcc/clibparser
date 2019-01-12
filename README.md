@@ -53,23 +53,24 @@ int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 结果（每个单词都保存了在源文件中的位置，这里省略）：
 ```txt
 [DEBUG] Type: int
-[DEBUG] Id: int a, Class: global id, Addr: 0
-[DEBUG] Type: double*
-[DEBUG] Id: double* b, Class: global id, Addr: 4
+[DEBUG] Id: int* a, Class: global id, Addr: 0
+[DEBUG] Id: int* _a, Class: global id, Addr: 4
+[DEBUG] Type: double
+[DEBUG] Id: double* b, Class: global id, Addr: 8
 [DEBUG] Type: int
 [DEBUG] Type: int
 [DEBUG] Type: float*
-[DEBUG] Func: int main, Param: [int c, Class: param id, Addr: 0; float* d, Class: param id, Addr: 0], Class: func id, Ad
-dr: 0
-[DEBUG] Type: uint*
+[DEBUG] Func: int* main, Param: [int c, Class: param id, Addr: 0; float* d, Class: param id, Addr: 0], Class: func id, A
+ddr: 0
+[DEBUG] Type: uint
 [DEBUG] Id: uint* a, Class: local id, Addr: 0
 [DEBUG] Id: uint* b, Class: local id, Addr: 0
 [DEBUG] Type: float
 [DEBUG] Id: float d, Class: local id, Addr: 0
 [DEBUG] Id: float* e, Class: local id, Addr: 0
 [DEBUG] Id: float f, Class: local id, Addr: 0
-[DEBUG] Type: int*
-[DEBUG] Id: int* c, Class: global id, Addr: 8
+[DEBUG] Type: int
+[DEBUG] Id: int* c, Class: global id, Addr: 12
 [DEBUG] Type: int
 [DEBUG] Type: uint
 [DEBUG] Type: double
@@ -80,8 +81,8 @@ am id, Addr: 0], Class: func id, Addr: 0
 [DEBUG] Func: int tb, Param: [long d, Class: param id, Addr: 0], Class: func id, Addr: 0
 [DEBUG] Type: int
 [DEBUG] Func: int td, Param: [int e, Class: param id, Addr: 0], Class: func id, Addr: 0
-[DEBUG] Id: int ta, Class: global id, Addr: 12
-[DEBUG] Id: int tc, Class: global id, Addr: 16
+[DEBUG] Id: int ta, Class: global id, Addr: 16
+[DEBUG] Id: int tc, Class: global id, Addr: 20
 ```
 
 ## 调试信息
@@ -136,6 +137,7 @@ am id, Addr: 0], Class: func id, Addr: 0
 - [x] 设计语言
     - [x] 使用[C语言文法](https://github.com/antlr/grammars-v4/blob/master/c/C.g4)
     - [x] 实现回溯，解决移进/归约冲突问题，解决回溯的诸多BUG
+    - [x] 调整优先级
 - [ ] 语义分析
     - [x] 识别重名
     - [x] 输出错误单词的位置
@@ -163,6 +165,7 @@ am id, Addr: 0], Class: func id, Addr: 0
 - [ ] 优化回溯时产生的数据结构，减少拷贝
 - [ ] 解析成功时释放结点内存
 - [x] 将集合结点的标记修改成枚举
+- [x] 可配置归约与纯左递归的优先级
 
 ## 参考
 

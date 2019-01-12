@@ -34,9 +34,17 @@ namespace clib {
         return s_sym;
     }
 
+    symbol_t sym_t::get_base_type() const {
+        return s_sym;
+    }
+
     type_t::type_t(int ptr) : ptr(ptr) {}
 
     symbol_t type_t::get_type() const {
+        return s_type;
+    }
+
+    symbol_t type_t::get_base_type() const {
         return s_type;
     }
 
@@ -90,7 +98,7 @@ namespace clib {
     }
 
     sym_id_t::sym_id_t(const type_t::ref &base, const string_t &id)
-            : base(base), id(id) {}
+        : base(base), id(id) {}
 
     string_t sym_id_t::to_string() const {
         std::stringstream ss;
@@ -104,9 +112,17 @@ namespace clib {
         return s_sym_id;
     }
 
+    symbol_t sym_id_t::get_base_type() const {
+        return s_sym_id;
+    }
+
     sym_func_t::sym_func_t(const type_t::ref &base, const string_t &id) : sym_id_t(base, id) {}
 
     symbol_t sym_func_t::get_type() const {
+        return s_function;
+    }
+
+    symbol_t sym_func_t::get_base_type() const {
         return s_function;
     }
 
@@ -532,14 +548,13 @@ namespace clib {
                     clazz = z_local_var;
                 }
                 auto type = std::dynamic_pointer_cast<type_base_t>((tmp.rbegin() + 1)->front());
-                add_id(type, clazz, asts[0]);
                 auto ptr = 0;
-                for (int i = 1; i < asts.size(); ++i) {
-                    if (AST_IS_OP_N(asts[i], op_times)) {
+                for (auto &ast : asts) {
+                    if (AST_IS_OP_N(ast, op_times)) {
                         ptr++;
                     } else {
                         auto new_type = std::make_shared<type_base_t>(type->type, ptr);
-                        add_id(new_type, clazz, asts[i]);
+                        add_id(new_type, clazz, ast);
                         ptr = 0;
                     }
                 }
@@ -579,8 +594,25 @@ namespace clib {
                 break;
             case c_directDeclarator: {
                 if (nodes.size() >= 2 && AST_IS_ID(nodes[0]) && AST_IS_COLL_N(nodes[1], c_parameterTypeList)) {
-                    auto func = std::make_shared<sym_func_t>(
-                            std::dynamic_pointer_cast<type_t>((tmp.rbegin() + 4)->front()), nodes[0]->data._string);
+                    type_t::ref type;
+                    for (auto t = tmp.rbegin() + 1; t != tmp.rend(); t++) {
+                        if (!t->empty()) {
+                            auto tt = t->front();
+                            if (tt->get_base_type() == s_type) {
+                                type = std::dynamic_pointer_cast<type_t>(t->front());
+                                break;
+                            }
+                        }
+                    }
+                    assert(type);
+                    if (AST_IS_COLL_N(node->parent->child, c_pointer)) {
+                        auto children = gen_get_children(node->parent->child->child);
+                        for (auto &child : children) {
+                            assert(AST_IS_OP_N(child, op_times));
+                        }
+                        type->ptr = children.size();
+                    }
+                    auto func = std::make_shared<sym_func_t>(type, nodes[0]->data._string);
                     func->clazz = z_function;
                     symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
                     auto &tmps = tmp.back();
@@ -757,11 +789,11 @@ namespace clib {
     }
 
     std::tuple<sym_class_t, string_t> sym_class_string_list[] = {
-            std::make_tuple(z_undefined, "undefined"),
-            std::make_tuple(z_global_var, "global id"),
-            std::make_tuple(z_local_var, "local id"),
-            std::make_tuple(z_param_var, "param id"),
-            std::make_tuple(z_function, "func id"),
+        std::make_tuple(z_undefined, "undefined"),
+        std::make_tuple(z_global_var, "global id"),
+        std::make_tuple(z_local_var, "local id"),
+        std::make_tuple(z_param_var, "param id"),
+        std::make_tuple(z_function, "func id"),
     };
 
     const string_t &sym_class_string(sym_class_t t) {
