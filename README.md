@@ -129,6 +129,7 @@ am id, Addr: 0], Class: func id, Addr: 0
 - [x] 生成抽象语法树
     - [x] 自动生成AST结构
     - [x] 美化AST结构
+    - [x] 美化表达式树（减少深度）
 - [x] 设计语言
     - [x] 使用[C语言文法](https://github.com/antlr/grammars-v4/blob/master/c/C.g4)
     - [x] 实现回溯，解决移进/归约冲突问题，解决回溯的诸多BUG
@@ -164,6 +165,7 @@ am id, Addr: 0], Class: func id, Addr: 0
 - [x] 将集合结点的标记修改成枚举
 - [x] 可配置归约与纯左递归的优先级
 - [x] LR分析阶段提供语义分析接口
+- [x] 美化表达式树（减少深度）
 
 ## 参考
 

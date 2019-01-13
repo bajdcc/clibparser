@@ -99,6 +99,7 @@ namespace clib {
         e_left_recursion,
         e_left_recursion_not_greed,
         e_reduce,
+        e_reduce_exp,
         e_finish,
     };
 

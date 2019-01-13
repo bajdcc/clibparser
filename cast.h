@@ -40,10 +40,16 @@ namespace clib {
         to_child,
     };
 
+    enum ast_attr_t {
+        a_none,
+        a_exp,
+    };
+
     // 结点
     struct ast_node {
         // 类型
-        uint32_t flag;
+        uint16 flag;
+        uint16 attr;
         int line, column;
 
         union {

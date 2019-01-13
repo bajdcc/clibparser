@@ -1008,13 +1008,13 @@ namespace clib {
                                 [o](auto it) { return it.nga == o->end; })->pda,
                             true);
                         edge.data = o->data;
-                        auto r = rules_list[std::find_if(
+                        auto _rule = rules_list[std::find_if(
                             status_list.begin(),
                             status_list.end(),
                             [o](auto it) { return it.nga == o->begin; })->pda->rule]->u;
-                        if (is_left_resursive_edge(o, r)) {
+                        if (is_left_resursive_edge(o, _rule)) {
                             // LEFT RECURSION
-                            edge.type = r->attr & r_not_greed ? e_left_recursion_not_greed : e_left_recursion;
+                            edge.type = _rule->attr & r_not_greed ? e_left_recursion_not_greed : e_left_recursion;
                             decltype(token_set) res;
                             auto _outs = get_filter_out_edges(edge.end, [](auto it) { return true; });
                             for (auto &_o : _outs) {
@@ -1033,7 +1033,8 @@ namespace clib {
                             LA.insert(std::make_pair(&edge, res));
                         } else {
                             // REDUCE
-                            edge.type = e_reduce;
+                            printf("");
+                            edge.type = _rule->attr & r_exp ? e_reduce_exp : e_reduce;
                             prev.insert(std::make_pair(&edge, std::find_if(
                                 status_list.begin(),
                                 status_list.end(),
@@ -1145,6 +1146,7 @@ namespace clib {
         std::make_tuple(e_left_recursion, "recursion", 3),
         std::make_tuple(e_left_recursion_not_greed, "recursion", 5),
         std::make_tuple(e_reduce, "reduce", 4),
+        std::make_tuple(e_reduce_exp, "reduce", 4),
         std::make_tuple(e_finish, "finish", 0),
     };
 

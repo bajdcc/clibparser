@@ -169,37 +169,39 @@ namespace clib {
 #undef DEF_LEX
 #define DEF_RULE(name) auto &name = unit.rule(#name, c_##name)
 #define DEF_RULE_ATTR(name, attr) auto &name = unit.rule(#name, c_##name, attr)
+#define DEF_RULE_NOT_GREED(name) DEF_RULE_ATTR(name, r_not_greed)
+#define DEF_RULE_EXP(name) DEF_RULE_ATTR(name, r_exp)
         DEF_RULE(program);
         DEF_RULE(primaryExpression);
         DEF_RULE(constant);
-        DEF_RULE(postfixExpression);
-        DEF_RULE(argumentExpressionList);
-        DEF_RULE(unaryExpression);
-        DEF_RULE(unaryOperator);
-        DEF_RULE(castExpression);
-        DEF_RULE(multiplicativeExpression);
-        DEF_RULE(additiveExpression);
-        DEF_RULE(shiftExpression);
-        DEF_RULE(relationalExpression);
-        DEF_RULE(equalityExpression);
-        DEF_RULE(andExpression);
-        DEF_RULE(exclusiveOrExpression);
-        DEF_RULE(inclusiveOrExpression);
-        DEF_RULE(logicalAndExpression);
-        DEF_RULE(logicalOrExpression);
-        DEF_RULE(conditionalExpression);
-        DEF_RULE(assignmentExpression);
+        DEF_RULE_EXP(postfixExpression);
+        DEF_RULE_EXP(argumentExpressionList);
+        DEF_RULE_EXP(unaryExpression);
+        DEF_RULE_EXP(unaryOperator);
+        DEF_RULE_EXP(castExpression);
+        DEF_RULE_EXP(multiplicativeExpression);
+        DEF_RULE_EXP(additiveExpression);
+        DEF_RULE_EXP(shiftExpression);
+        DEF_RULE_EXP(relationalExpression);
+        DEF_RULE_EXP(equalityExpression);
+        DEF_RULE_EXP(andExpression);
+        DEF_RULE_EXP(exclusiveOrExpression);
+        DEF_RULE_EXP(inclusiveOrExpression);
+        DEF_RULE_EXP(logicalAndExpression);
+        DEF_RULE_EXP(logicalOrExpression);
+        DEF_RULE_EXP(conditionalExpression);
+        DEF_RULE_EXP(assignmentExpression);
         DEF_RULE(assignmentOperator);
-        DEF_RULE_ATTR(expression, r_exp);
+        DEF_RULE_EXP(expression);
         DEF_RULE(constantExpression);
         DEF_RULE(declaration);
-        DEF_RULE_ATTR(declarationSpecifiers, r_not_greed);
-        DEF_RULE_ATTR(declarationSpecifiers2, r_not_greed);
+        DEF_RULE_NOT_GREED(declarationSpecifiers);
+        DEF_RULE_NOT_GREED(declarationSpecifiers2);
         DEF_RULE(declarationSpecifier);
         DEF_RULE(initDeclaratorList);
         DEF_RULE(initDeclarator);
         DEF_RULE(storageClassSpecifier);
-        DEF_RULE_ATTR(typeSpecifier, r_not_greed);
+        DEF_RULE_NOT_GREED(typeSpecifier);
         DEF_RULE(structOrUnionSpecifier);
         DEF_RULE(structOrUnion);
         DEF_RULE(structDeclarationList);
@@ -248,6 +250,7 @@ namespace clib {
         DEF_RULE(declarationList);
 #undef DEF_RULE
 #undef DEF_RULE_NOT_GREED
+#undef DEF_RULE_EXP
         program = compilationUnit;
         primaryExpression = Identifier
                             | constant
@@ -709,24 +712,13 @@ namespace clib {
                 return false;
         }
         switch (trans.type) {
-            case e_shift:
-                break;
-            case e_pass:
-                break;
-            case e_move:
-                break;
-            case e_left_recursion:
-                break;
-            case e_left_recursion_not_greed:
-                break;
-            case e_reduce: {
+            case e_reduce:
+            case e_reduce_exp:{
                 if (state_stack.empty())
                     return false;
                 if (trans.status != state_stack.back())
                     return false;
             }
-                break;
-            case e_finish:
                 break;
             default:
                 break;
@@ -779,7 +771,8 @@ namespace clib {
                 break;
             case e_left_recursion_not_greed:
                 break;
-            case e_reduce: {
+            case e_reduce:
+            case e_reduce_exp:{
                 auto new_ast = ast_stack.back();
                 check_ast(new_ast);
                 if (new_ast->flag != ast_collection) {
@@ -793,6 +786,7 @@ namespace clib {
                        ast_stack.back(), new_ast, cast::children_size(ast_stack.back()),
                        ast_stack.size(), ast_reduce_cache.size());
 #endif
+                ast_stack.back()->attr |= a_exp;
                 cast::set_child(ast_stack.back(), new_ast);
                 check_ast(ast_stack.back());
             }

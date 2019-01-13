@@ -192,14 +192,20 @@ namespace clib {
             return;
         auto rec = [&](auto n, auto l, auto &os) { cast::print(n, l, os); };
         auto type = (ast_t) node->flag;
-        os << std::setfill(' ') << std::setw(level) << "";
+        if (type != ast_collection)
+            os << std::setfill(' ') << std::setw(level) << "";
         switch (type) {
             case ast_root: // 根结点，全局声明
                 ast_recursion(node->child, level, os, rec);
                 break;
             case ast_collection:
-                os << COLL_STRING(node->data._coll) << std::endl;
-                ast_recursion(node->child, level + 1, os, rec);
+                if ((node->attr & a_exp) && node->child == node->child->next) {
+                    ast_recursion(node->child, level, os, rec);
+                } else {
+                    os << std::setfill(' ') << std::setw(level) << "";
+                    os << COLL_STRING(node->data._coll) << std::endl;
+                    ast_recursion(node->child, level + 1, os, rec);
+                }
                 break;
             case ast_keyword:
                 os << "keyword: " << KEYWORD_STRING(node->data._keyword) << std::endl;
