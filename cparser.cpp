@@ -547,8 +547,12 @@ namespace clib {
                     if (semantic) {
                         // DETERMINE LR JUMP BEFORE PARSING AST
                         bk->direction = semantic->check(trans[trans_id].type, ast_stack.back());
-                        if (bk->direction == b_error)
+                        if (bk->direction == b_error) {
+#if TRACE_PARSING
+                            std::cout << "parsing semantic error: " << current_state.label << std::endl;
+#endif
                             break;
+                        }
                     }
                 }
             if (bk->direction == b_error) {
@@ -786,7 +790,8 @@ namespace clib {
                        ast_stack.back(), new_ast, cast::children_size(ast_stack.back()),
                        ast_stack.size(), ast_reduce_cache.size());
 #endif
-                ast_stack.back()->attr |= a_exp;
+                if (trans.type == e_reduce_exp)
+                    ast_stack.back()->attr |= a_exp;
                 cast::set_child(ast_stack.back(), new_ast);
                 check_ast(ast_stack.back());
             }

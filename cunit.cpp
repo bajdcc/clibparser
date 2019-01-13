@@ -1033,7 +1033,6 @@ namespace clib {
                             LA.insert(std::make_pair(&edge, res));
                         } else {
                             // REDUCE
-                            printf("");
                             edge.type = _rule->attr & r_exp ? e_reduce_exp : e_reduce;
                             prev.insert(std::make_pair(&edge, std::find_if(
                                 status_list.begin(),

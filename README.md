@@ -14,6 +14,7 @@ C++实现的LR Parser Generator。
 - [【Parser系列】实现LR分析——支持C语言文法](https://zhuanlan.zhihu.com/p/52812144)
 - [【Parser系列】实现LR分析——完成编译器前端！](https://zhuanlan.zhihu.com/p/53070412)
 - [【Parser系列】实现LR分析——识别变量声明](https://zhuanlan.zhihu.com/p/54716082)
+- [【Parser系列】实现LR分析——解决二义性问题](https://zhuanlan.zhihu.com/p/54766453)
 
 ## 功能
 
@@ -25,7 +26,7 @@ C++实现的LR Parser Generator。
 
 文法支持顺序、分支、可选、跳过终结符。目前可以根据LR文法**自动**生成AST。后续会对AST进行标记。
 
-## 顶层调用
+## 示例代码
 
 ```cpp
 struct sx {
@@ -36,8 +37,8 @@ double *b;
 int *main(int c, float *d) {
     unsigned int *a, *b;
     float d, *e, f;
-    sx *s1, s2;
-    sy *s3;
+    sx *s1;
+    sy *s2;
 }
 int *c;
 int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
@@ -64,7 +65,6 @@ ddr: 0
 [DEBUG] Id: float f, Class: local id, Addr: 0
 [DEBUG] Type: sx
 [DEBUG] Id: sx* s1, Class: local id, Addr: 0
-[DEBUG] Id: sx s2, Class: local id, Addr: 0
 [DEBUG] Type: int
 [DEBUG] Id: int* c, Class: global id, Addr: 12
 [DEBUG] Type: int

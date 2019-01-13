@@ -17,8 +17,8 @@ double *b;
 int *main(int c, float *d) {
     unsigned int *a, *b;
     float d, *e, f;
-    sx *s1, s2;
-    sy *s3;
+    sx *s1;
+    sy *s2;
 }
 int *c;
 int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
