@@ -67,10 +67,10 @@ namespace clib {
 
     struct unit_rule : public unit_collection {
         const char *s;
-        bool not_greed{false};
+        uint32 attr{0};
 
         unit_rule &set_s(const char *str);
-        unit_rule &set_not_greed(bool not_greed);
+        unit_rule &set_attr(uint32 attr);
     };
 
     struct nga_edge;
@@ -158,6 +158,12 @@ namespace clib {
         std::vector<pda_trans> trans;
     };
 
+    enum pda_rule_attr {
+        r_normal = 0,
+        r_not_greed = 1,
+        r_exp = 2,
+    };
+
     // 文法表达式
     class cunit : public unit_builder {
     public:
@@ -170,7 +176,7 @@ namespace clib {
         unit &token(const lexer_t &type);
         unit &token(const operator_t &op);
         unit &token(const keyword_t &keyword);
-        unit &rule(const string_t &s, coll_t t, bool not_greed = false);
+        unit &rule(const string_t &s, coll_t t, uint32 attr = 0);
 
         unit_collection &append(unit *collection, unit *child) override;
         unit_collection &merge(unit *a, unit *b) override;

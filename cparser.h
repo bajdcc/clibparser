@@ -5,6 +5,7 @@
 #ifndef CMINILANG_PARSER_H
 #define CMINILANG_PARSER_H
 
+#include <memory>
 #include "types.h"
 #include "clexer.h"
 #include "cast.h"
@@ -32,15 +33,20 @@ namespace clib {
         backtrace_direction direction;
     };
 
+    class csemantic {
+    public:
+        virtual backtrace_direction check(pda_edge_t, ast_node *) = 0;
+    };
+
     class cparser {
     public:
-        explicit cparser(const string_t &str);
+        cparser() = default;
         ~cparser() = default;
 
         cparser(const cparser &) = delete;
         cparser &operator=(const cparser &) = delete;
 
-        ast_node *parse();
+        ast_node *parse(const string_t &str, csemantic *s = nullptr);
         ast_node *root() const;
 
     private:
@@ -75,7 +81,8 @@ namespace clib {
 
     private:
         cunit unit;
-        clexer lexer;
+        std::unique_ptr<clexer> lexer;
+        csemantic *semantic{nullptr};
         cast ast;
     };
 }

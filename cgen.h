@@ -9,6 +9,7 @@
 #include <vector>
 #include <memory>
 #include "cast.h"
+#include "cparser.h"
 
 namespace clib {
 
@@ -17,7 +18,8 @@ namespace clib {
         s_type,
         s_type_base,
         s_type_typedef,
-        s_sym_id,
+        s_id,
+        s_struct,
         s_function,
         s_expression,
         s_statement,
@@ -25,9 +27,11 @@ namespace clib {
 
     class sym_t {
     public:
+        using ref = std::shared_ptr<sym_t>;
         virtual symbol_t get_type() const;
         virtual symbol_t get_base_type() const;
         virtual int size() const;
+        virtual string_t get_name() const;
         virtual string_t to_string() const;
         int line{0}, column{0};
     };
@@ -38,6 +42,7 @@ namespace clib {
         explicit type_t(int ptr = 0);
         symbol_t get_type() const override;
         symbol_t get_base_type() const override;
+        virtual ref clone() const;
         int ptr;
     };
 
@@ -46,14 +51,20 @@ namespace clib {
         explicit type_base_t(lexer_t type, int ptr = 0);
         symbol_t get_type() const override;
         int size() const override;
+        string_t get_name() const override;
         string_t to_string() const override;
+        type_t::ref clone() const override;
         lexer_t type;
     };
 
     class type_typedef_t : public type_t {
     public:
+        explicit type_typedef_t(const sym_t::ref &refer, int ptr = 0);
         symbol_t get_type() const override;
-        std::weak_ptr<sym_t> sym;
+        int size() const override;
+        string_t to_string() const override;
+        ref clone() const override;
+        std::weak_ptr<sym_t> refer;
     };
 
     enum sym_class_t {
@@ -61,6 +72,7 @@ namespace clib {
         z_global_var,
         z_local_var,
         z_param_var,
+        z_struct_var,
         z_function,
         z_end,
     };
@@ -73,6 +85,8 @@ namespace clib {
         explicit sym_id_t(const type_t::ref& base, const string_t &id);
         symbol_t get_type() const override;
         symbol_t get_base_type() const override;
+        int size() const override;
+        string_t get_name() const override;
         string_t to_string() const override;
         type_t::ref base;
         string_t id;
@@ -80,25 +94,43 @@ namespace clib {
         uint addr{0};
     };
 
+    class sym_struct_t : public sym_t {
+    public:
+        using ref = std::shared_ptr<sym_id_t>;
+        explicit sym_struct_t(const string_t &id);
+        symbol_t get_type() const override;
+        symbol_t get_base_type() const override;
+        int size() const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        string_t id;
+        int _size{0};
+        std::vector<sym_id_t::ref> decls;
+    };
+
     class sym_func_t : public sym_id_t {
     public:
         explicit sym_func_t(const type_t::ref& base, const string_t &id);
         symbol_t get_type() const override;
         symbol_t get_base_type() const override;
+        int size() const override;
         string_t to_string() const override;
         std::vector<sym_id_t::ref> params;
     };
 
     // 生成虚拟机指令
-    class cgen {
+    class cgen : public csemantic {
     public:
-        cgen() = default;
+        cgen();
         ~cgen() = default;
 
         cgen(const cgen &) = delete;
         cgen &operator=(const cgen &) = delete;
 
+        backtrace_direction check(pda_edge_t, ast_node *) override;
+
         void gen(ast_node *node);
+        void reset();
     private:
         void gen_rec(ast_node *node, int level);
         void gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node);

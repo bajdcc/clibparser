@@ -3,6 +3,7 @@
 C++实现的LR Parser Generator。
 
 - 文法书写方式：以C++重载为基础的Parser Generator。
+- 语义分析：在LR解析的过程中，状态机向符号表提供分析接口，使得状态转换可手动干涉，解决“`A*b`”问题
 - 识别方式：**以下推自动机为基础，向看查看一个字符、带回溯的LR分析**。
 - 内存管理：自制内存池。
 
@@ -12,6 +13,7 @@ C++实现的LR Parser Generator。
 - [【Parser系列】实现LR分析——生成AST](https://zhuanlan.zhihu.com/p/52528516)
 - [【Parser系列】实现LR分析——支持C语言文法](https://zhuanlan.zhihu.com/p/52812144)
 - [【Parser系列】实现LR分析——完成编译器前端！](https://zhuanlan.zhihu.com/p/53070412)
+- [【Parser系列】实现LR分析——识别变量声明](https://zhuanlan.zhihu.com/p/54716082)
 
 ## 功能
 
@@ -26,28 +28,19 @@ C++实现的LR Parser Generator。
 ## 顶层调用
 
 ```cpp
-int main() {
-    using namespace clib;
-    try {
-        cparser p(R"(
-int a;
+struct sx {
+    int a;
+};
+int *a, *_a;
 double *b;
-int main(int c, float *d) {
+int *main(int c, float *d) {
     unsigned int *a, *b;
     float d, *e, f;
+    sx *s1, s2;
+    sy *s3;
 }
 int *c;
 int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
-)");
-        auto root = p.parse();
-        cast::print(root, 0, std::cout);
-        cgen gen;
-        gen.gen(root);
-    } catch (const cexception &e) {
-        std::cout << "RUNTIME ERROR: " << e.msg << std::endl;
-    }
-    return 0;
-}
 ```
 
 结果（每个单词都保存了在源文件中的位置，这里省略）：
@@ -59,7 +52,7 @@ int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 [DEBUG] Id: double* b, Class: global id, Addr: 8
 [DEBUG] Type: int
 [DEBUG] Type: int
-[DEBUG] Type: float*
+[DEBUG] Type: float
 [DEBUG] Func: int* main, Param: [int c, Class: param id, Addr: 0; float* d, Class: param id, Addr: 0], Class: func id, A
 ddr: 0
 [DEBUG] Type: uint
@@ -69,6 +62,9 @@ ddr: 0
 [DEBUG] Id: float d, Class: local id, Addr: 0
 [DEBUG] Id: float* e, Class: local id, Addr: 0
 [DEBUG] Id: float f, Class: local id, Addr: 0
+[DEBUG] Type: sx
+[DEBUG] Id: sx* s1, Class: local id, Addr: 0
+[DEBUG] Id: sx s2, Class: local id, Addr: 0
 [DEBUG] Type: int
 [DEBUG] Id: int* c, Class: global id, Addr: 12
 [DEBUG] Type: int
@@ -133,17 +129,18 @@ am id, Addr: 0], Class: func id, Addr: 0
 - [x] 生成抽象语法树
     - [x] 自动生成AST结构
     - [x] 美化AST结构
-    - [ ] 语义动作
 - [x] 设计语言
     - [x] 使用[C语言文法](https://github.com/antlr/grammars-v4/blob/master/c/C.g4)
     - [x] 实现回溯，解决移进/归约冲突问题，解决回溯的诸多BUG
     - [x] 调整优先级
+    - [x] 【关键】解决“`A*b`”问题，部分语义分析嵌入到LR分析之中
 - [ ] 语义分析
     - [x] 识别重名
     - [x] 输出错误单词的位置
     - [x] 基本类型（单一类型及其指针，不支持枚举、函数指针和结构体）
-    - [x] 识别变量声明
+    - [x] 识别变量声明（类型可为结构体）
     - [x] 识别函数声明（识别返回类型、参数）
+    - [x] 识别结构体声明和类型
     - [ ] 识别语句
     - [ ] 识别表达式
 - [ ] 虚拟机
@@ -166,6 +163,7 @@ am id, Addr: 0], Class: func id, Addr: 0
 - [ ] 解析成功时释放结点内存
 - [x] 将集合结点的标记修改成枚举
 - [x] 可配置归约与纯左递归的优先级
+- [x] LR分析阶段提供语义分析接口
 
 ## 参考
 

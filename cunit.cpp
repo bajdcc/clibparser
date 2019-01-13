@@ -127,8 +127,8 @@ namespace clib {
         return *this;
     }
 
-    unit_rule &unit_rule::set_not_greed(bool not_greed) {
-        this->not_greed = not_greed;
+    unit_rule &unit_rule::set_attr(uint32 attr) {
+        this->attr = attr;
         return *this;
     }
 
@@ -201,10 +201,15 @@ namespace clib {
         return (unit_collection &) (*nodes.alloc<unit_collection>()).set_child(a).set_t(u_optional).init(this);
     }
 
-    unit &cunit::rule(const string_t &s, coll_t t, bool not_greed) {
+    unit &cunit::rule(const string_t &s, coll_t t, uint32 attr) {
         auto f = rules.find(s);
         if (f == rules.end()) {
-            auto &rule = (*nodes.alloc<unit_rule>()).set_s(str(s)).set_not_greed(not_greed).set_child(nullptr).set_t(u_rule).init(this);
+            auto &rule = (*nodes.alloc<unit_rule>())
+                .set_s(str(s))
+                .set_attr(attr)
+                .set_child(nullptr)
+                .set_t(u_rule)
+                .init(this);
             nga_rule r;
             r.id = rules.size();
             r.status = nullptr;
@@ -1003,13 +1008,13 @@ namespace clib {
                                 [o](auto it) { return it.nga == o->end; })->pda,
                             true);
                         edge.data = o->data;
-                        auto jj = rules_list[std::find_if(
+                        auto r = rules_list[std::find_if(
                             status_list.begin(),
                             status_list.end(),
                             [o](auto it) { return it.nga == o->begin; })->pda->rule]->u;
-                        if (is_left_resursive_edge(o, jj)) {
+                        if (is_left_resursive_edge(o, r)) {
                             // LEFT RECURSION
-                            edge.type = jj->not_greed ? e_left_recursion_not_greed : e_left_recursion;
+                            edge.type = r->attr & r_not_greed ? e_left_recursion_not_greed : e_left_recursion;
                             decltype(token_set) res;
                             auto _outs = get_filter_out_edges(edge.end, [](auto it) { return true; });
                             for (auto &_o : _outs) {

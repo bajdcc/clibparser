@@ -16,17 +16,28 @@
 #define AST_IS_OP_N(node, k) (AST_IS_OP(node) && (node)->data._op == (k))
 #define AST_IS_ID(node) ((node)->flag == ast_literal)
 #define AST_IS_COLL(node) ((node)->flag == ast_collection)
-#define AST_IS_COLL_N(node, k) (AST_IS_COLL(node) && (node)->data._coll == (k))
+#define AST_IS_COLL_K(node, k) ((node)->data._coll == (k))
+#define AST_IS_COLL_N(node, k) (AST_IS_COLL(node) && AST_IS_COLL_K(node, k))
 
 #define LOG_TYPE 1
 
 namespace clib {
 
-    string_t sym_t::to_string() const {
-        return "[Symbol]";
+    template<class T>
+    std::string string_join(const std::vector<T> &v, const string_t &sep) {
+        if (v.empty())
+            return "";
+        std::stringstream ss;
+        ss << v[0]->to_string();
+        for (size_t i = 1; i < v.size(); ++i) {
+            ss << sep;
+            ss << v[i]->to_string();
+        }
+        return std::move(ss.str());
     }
 
     int sym_t::size() const {
+        assert(!"invalid size");
         return 0;
     }
 
@@ -36,6 +47,14 @@ namespace clib {
 
     symbol_t sym_t::get_base_type() const {
         return s_sym;
+    }
+
+    string_t sym_t::get_name() const {
+        return "[Unknown]";
+    }
+
+    string_t sym_t::to_string() const {
+        return "[Symbol]";
     }
 
     type_t::type_t(int ptr) : ptr(ptr) {}
@@ -48,16 +67,12 @@ namespace clib {
         return s_type;
     }
 
-    type_base_t::type_base_t(lexer_t type, int ptr) : type_t(ptr), type(type) {}
-
-    string_t type_base_t::to_string() const {
-        std::stringstream ss;
-        ss << LEX_STRING(type);
-        for (int i = 0; i < ptr; ++i) {
-            ss << '*';
-        }
-        return ss.str();
+    type_t::ref type_t::clone() const {
+        assert(!"invalid clone");
+        return nullptr;
     }
+
+    type_base_t::type_base_t(lexer_t type, int ptr) : type_t(ptr), type(type) {}
 
     int type_base_t::size() const {
         if (ptr > 0)
@@ -93,12 +108,66 @@ namespace clib {
         return s_type_base;
     }
 
+    string_t type_base_t::get_name() const {
+        return LEX_STRING(type);
+    }
+
+    string_t type_base_t::to_string() const {
+        std::stringstream ss;
+        ss << LEX_STRING(type);
+        for (int i = 0; i < ptr; ++i) {
+            ss << '*';
+        }
+        return ss.str();
+    }
+
+    type_t::ref type_base_t::clone() const {
+        return std::make_shared<type_base_t>(type, ptr);
+    }
+
+    type_typedef_t::type_typedef_t(const sym_t::ref &refer, int ptr) : type_t(ptr), refer(refer) {}
+
     symbol_t type_typedef_t::get_type() const {
         return s_type_typedef;
     }
 
+    int type_typedef_t::size() const {
+        if (ptr > 0)
+            return sizeof(void *);
+        return refer.lock()->size();
+    }
+
+    string_t type_typedef_t::to_string() const {
+        std::stringstream ss;
+        ss << refer.lock()->get_name();
+        for (int i = 0; i < ptr; ++i) {
+            ss << '*';
+        }
+        return ss.str();
+    }
+
+    type_t::ref type_typedef_t::clone() const {
+        return std::make_shared<type_typedef_t>(refer.lock(), ptr);
+    }
+
     sym_id_t::sym_id_t(const type_t::ref &base, const string_t &id)
         : base(base), id(id) {}
+
+    symbol_t sym_id_t::get_type() const {
+        return s_id;
+    }
+
+    int sym_id_t::size() const {
+        return base->size();
+    }
+
+    symbol_t sym_id_t::get_base_type() const {
+        return s_id;
+    }
+
+    string_t sym_id_t::get_name() const {
+        return id;
+    }
 
     string_t sym_id_t::to_string() const {
         std::stringstream ss;
@@ -108,12 +177,34 @@ namespace clib {
         return ss.str();
     }
 
-    symbol_t sym_id_t::get_type() const {
-        return s_sym_id;
+    sym_struct_t::sym_struct_t(const string_t &id) : id(id) {}
+
+    symbol_t sym_struct_t::get_type() const {
+        return s_struct;
     }
 
-    symbol_t sym_id_t::get_base_type() const {
-        return s_sym_id;
+    symbol_t sym_struct_t::get_base_type() const {
+        return s_struct;
+    }
+
+    int sym_struct_t::size() const {
+        if (_size == 0) {
+            for (auto &decl : decls) {
+                *const_cast<int*>(&_size) += decl->size();
+            }
+        }
+        return _size;
+    }
+
+    string_t sym_struct_t::get_name() const {
+        return id;
+    }
+
+    string_t sym_struct_t::to_string() const {
+        std::stringstream ss;
+        ss << "struct " << id << ", ";
+        ss << "decls: [" << string_join(decls, "; ") << "], ";
+        return ss.str();
     }
 
     sym_func_t::sym_func_t(const type_t::ref &base, const string_t &id) : sym_id_t(base, id) {}
@@ -126,17 +217,8 @@ namespace clib {
         return s_function;
     }
 
-    template<class T>
-    std::string string_join(const std::vector<T> &v, const string_t &sep) {
-        if (v.empty())
-            return "";
-        std::stringstream ss;
-        ss << v[0]->to_string();
-        for (size_t i = 1; i < v.size(); ++i) {
-            ss << sep;
-            ss << v[i]->to_string();
-        }
-        return std::move(ss.str());
+    int sym_func_t::size() const {
+        return sizeof(void*);
     }
 
     string_t sym_func_t::to_string() const {
@@ -148,14 +230,21 @@ namespace clib {
         return ss.str();
     }
 
+    cgen::cgen() {
+        reset();
+    }
+
     void cgen::gen(ast_node *node) {
+        gen_rec(node, 0);
+    }
+
+    void cgen::reset() {
         symbols.clear();
         symbols.emplace_back();
         tmp.clear();
         tmp.emplace_back();
         ast.clear();
         ast.emplace_back();
-        gen_rec(node, 0);
     }
 
     template<class T>
@@ -456,8 +545,12 @@ namespace clib {
                 break;
             case c_declarationSpecifiers: {
                 type_t::ref base_type;
+                if (AST_IS_KEYWORD_N(asts[0], k_struct)) {
+                    asts.clear();
+                    break;
+                }
                 if (AST_IS_KEYWORD_N(asts[0], k_unsigned)) { // unsigned ...
-                    if (asts.size() == 1) {
+                    if (asts.size() == 1 || (asts.size() > 1 && !AST_IS_KEYWORD(asts[1]))) {
                         base_type = std::make_shared<type_base_t>(l_int);
                         base_type->line = asts[0]->line;
                         base_type->column = asts[0]->column;
@@ -489,7 +582,7 @@ namespace clib {
                         asts.erase(asts.begin());
                     }
                 } else {
-                    lexer_t type;
+                    auto type = l_none;
                     switch (asts[0]->data._keyword) {
                         case k_char:
                             type = l_char;
@@ -510,13 +603,35 @@ namespace clib {
                             type = l_short;
                             break;
                         default:
-                            error(asts[0], "invalid * get_type");
                             break;
                     }
-                    base_type = std::make_shared<type_base_t>(type);
-                    base_type->line = asts[0]->line;
-                    base_type->column = asts[0]->column;
-                    asts.erase(asts.begin());
+                    if (type != l_none) {
+                        base_type = std::make_shared<type_base_t>(type);
+                        base_type->line = asts[0]->line;
+                        base_type->column = asts[0]->column;
+                        asts.erase(asts.begin());
+                    } else {
+                        if (AST_IS_ID(asts[0])) {
+                            auto &sym = symbols[0];
+                            auto f = sym.find(asts[0]->data._string);
+                            if (f != sym.end()) {
+                                auto &typedef_name = f->second;
+                                auto t = typedef_name->get_base_type();
+                                if (t == s_type || t == s_struct || t == s_function) {
+                                    base_type = std::make_shared<type_typedef_t>(typedef_name);
+                                    base_type->line = asts[0]->line;
+                                    base_type->column = asts[0]->column;
+                                    asts.erase(asts.begin());
+                                } else {
+                                    error(asts[0], "invalid typedef name");
+                                }
+                            } else {
+                                error(asts[0], "unknown typedef name");
+                            }
+                        } else {
+                            error(asts[0], "invalid * get_type");
+                        }
+                    }
                 }
                 if (!asts.empty()) {
                     auto ptr = 0;
@@ -547,13 +662,14 @@ namespace clib {
                 } else {
                     clazz = z_local_var;
                 }
-                auto type = std::dynamic_pointer_cast<type_base_t>((tmp.rbegin() + 1)->front());
+                auto type = std::dynamic_pointer_cast<type_t>((tmp.rbegin() + 1)->front());
                 auto ptr = 0;
                 for (auto &ast : asts) {
                     if (AST_IS_OP_N(ast, op_times)) {
                         ptr++;
                     } else {
-                        auto new_type = std::make_shared<type_base_t>(type->type, ptr);
+                        auto new_type = type->clone();
+                        new_type->ptr = ptr;
                         add_id(new_type, clazz, ast);
                         ptr = 0;
                     }
@@ -617,31 +733,34 @@ namespace clib {
                     symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
                     auto &tmps = tmp.back();
                     std::unordered_set<string_t> ids;
-                    for (auto i = 0; i < asts.size() - 1; ++i) {
-                        auto &pa = asts[i + 1];
-                        if (i >= tmps.size()) {
-                            error(pa, "invalid param: ", true);
-                        }
-                        if (!AST_IS_ID(pa)) {
-                            error(pa, "invalid param: ", true);
-                        }
-                        const auto &pt = std::dynamic_pointer_cast<type_t>(tmps[i]);
-                        auto &name = pa->data._string;
-                        auto id = std::make_shared<sym_id_t>(pt, name);
-                        id->line = pa->line;
-                        id->column = pa->column;
-                        func->params.push_back(id);
-                        func->params.back()->clazz = z_param_var;
-                        if (!ids.insert(name).second) {
-                            error(id.get(), "conflict id: " + id->to_string());
-                        }
-                        {
-                            auto f = symbols[0].find(pa->data._string);
-                            if (f != symbols[0].end()) {
-                                if (f->second->get_type() == s_function) {
-                                    error(id.get(), "conflict id with function: " + id->to_string());
+                    auto ptr = 0;
+                    for (auto i = 1, j = 0; i < asts.size() && j < tmp.size(); ++i) {
+                        auto &pa = asts[i];
+                        if (AST_IS_ID(pa)) {
+                            const auto &pt = std::dynamic_pointer_cast<type_t>(tmps[j]);
+                            pt->ptr = ptr;
+                            auto &name = pa->data._string;
+                            auto id = std::make_shared<sym_id_t>(pt, name);
+                            id->line = pa->line;
+                            id->column = pa->column;
+                            func->params.push_back(id);
+                            func->params.back()->clazz = z_param_var;
+                            if (!ids.insert(name).second) {
+                                error(id.get(), "conflict id: " + id->to_string());
+                            }
+                            {
+                                auto f = symbols[0].find(pa->data._string);
+                                if (f != symbols[0].end()) {
+                                    if (f->second->get_type() == s_function) {
+                                        error(id.get(), "conflict id with function: " + id->to_string());
+                                    }
                                 }
                             }
+                            j++;
+                        } else if (AST_IS_OP_N(pa, op_times)) {
+                            ptr++;
+                        } else {
+                            error(pa, "invalid param: ", true);
                         }
                     }
                     current_func = func;
@@ -662,9 +781,7 @@ namespace clib {
                 break;
             case c_parameterList:
                 break;
-            case c_parameterDeclaration: {
-
-            }
+            case c_parameterDeclaration:
                 break;
             case c_identifierList:
                 break;
@@ -758,10 +875,10 @@ namespace clib {
             } else if (id.clazz == z_local_var) {
 
             } else {
-                assert(!"not supported");
+                //assert(!"not supported");
             }
         } else {
-            assert(!"not supported");
+            //assert(!"not supported");
         }
     }
 
@@ -793,11 +910,50 @@ namespace clib {
         std::make_tuple(z_global_var, "global id"),
         std::make_tuple(z_local_var, "local id"),
         std::make_tuple(z_param_var, "param id"),
+        std::make_tuple(z_struct_var, "struct id"),
         std::make_tuple(z_function, "func id"),
     };
 
     const string_t &sym_class_string(sym_class_t t) {
         assert(t >= z_undefined && t < z_end);
         return std::get<1>(sym_class_string_list[t]);
+    }
+
+    backtrace_direction cgen::check(pda_edge_t edge, ast_node *node) {
+        if (edge != e_shift) { // CONTAINS reduce, recursion, move
+            if (AST_IS_COLL(node)) {
+                switch (node->data._coll) {
+                    case c_structOrUnionSpecifier: { // MODIFY, CANNOT RECOVERY
+                        if (AST_IS_ID(node->child->next)) {
+                            auto id = node->child->next->data._string;
+                            auto &sym = symbols[0];
+                            if (sym.find(id) != sym.end()) {
+                                // CONFLICT STRUCT DECLARATION
+                                return b_fail;
+                            }
+                            sym.insert(std::make_pair(id, std::make_shared<sym_struct_t>(id)));
+                        }
+                    }
+                        break;
+                    case c_typedefName: { // READONLY
+                        if (AST_IS_ID(node->child)) {
+                            auto id = node->child->next->data._string;
+                            auto &sym = symbols[0];
+                            auto f = sym.find(id);
+                            if (f != sym.end()) {
+                                auto t = f->second->get_base_type();
+                                if (t == s_type || t == s_struct || t == s_function)
+                                    return b_next;
+                            }
+                            return b_error;
+                        }
+                    }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        return b_next;
     }
 }

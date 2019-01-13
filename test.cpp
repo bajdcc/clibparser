@@ -6,9 +6,9 @@ int i = 0;
 
 void test(const string_t &s) {
     using namespace clib;
+    cparser p;
     try {
-        cparser p(s);
-        auto root = p.parse();
+        auto root = p.parse(s);
         std::cout << "======== CODE ========" << std::endl;
         std::cout << s << std::endl;
         cast::print(root, 0, std::cout);
