@@ -106,6 +106,7 @@ namespace clib {
         void to(ast_to_t type);
 
         static void print(ast_node *node, int level, std::ostream &os);
+        static string_t to_string(ast_node *node);
         static const string_t &ast_str(ast_t type);
         static bool ast_equal(ast_t type, lexer_t lex);
         static int ast_prior(ast_t type);

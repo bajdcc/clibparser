@@ -236,6 +236,30 @@ namespace clib {
         return ss.str();
     }
 
+    sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : base(base), node(node) {}
+
+    symbol_t sym_var_t::get_type() const {
+        return s_var;
+    }
+
+    symbol_t sym_var_t::get_base_type() const {
+        return s_expression;
+    }
+
+    int sym_var_t::size() const {
+        return base->size();
+    }
+
+    string_t sym_var_t::get_name() const {
+        return to_string();
+    }
+
+    string_t sym_var_t::to_string() const {
+        std::stringstream ss;
+        ss << "(type: " << base->to_string() << ", " << cast::to_string(node) << ')';
+        return ss.str();
+    }
+
     cgen::cgen() {
         reset();
     }
@@ -517,7 +541,43 @@ namespace clib {
         switch (node->data._coll) {
             case c_program:
                 break;
-            case c_primaryExpression:
+            case c_primaryExpression: {
+                type_t::ref t;
+                switch (asts[0]->flag) {
+                    case ast_literal: {
+                        auto sym = find_symbol(asts[0]->data._string);
+                        if (!sym)
+                            error("undefined id: " + string_t(asts[0]->data._string));
+                        if (sym->get_type() != s_id)
+                            error("required id but got: " + sym->to_string());
+                        t = std::dynamic_pointer_cast<sym_id_t>(sym)->base->clone();
+                    }
+                        break;
+                    case ast_string:
+                        t = std::make_shared<type_base_t>(l_char, 1);
+                        break;
+#define DEF_LEX(name) \
+                    case ast_##name: \
+                        t = std::make_shared<type_base_t>(l_##name, 0); \
+                        break;
+                        DEF_LEX(char);
+                        DEF_LEX(uchar);
+                        DEF_LEX(short);
+                        DEF_LEX(ushort);
+                        DEF_LEX(int);
+                        DEF_LEX(uint);
+                        DEF_LEX(long);
+                        DEF_LEX(ulong);
+                        DEF_LEX(float);
+                        DEF_LEX(double);
+#undef DEF_LEX
+                    default:
+                        assert(!"invalid var type");
+                        break;
+                }
+                tmp.back().push_back(std::make_shared<sym_var_t>(t, asts[0]));
+                asts.clear();
+            }
                 break;
             case c_constant:
                 break;
@@ -729,7 +789,7 @@ namespace clib {
             case c_declarator:
                 break;
             case c_directDeclarator: {
-                if (nodes.size() >= 2 && AST_IS_ID(nodes[0]) && AST_IS_COLL_N(nodes[1], c_parameterTypeList)) {
+                if (node->parent->parent->data._coll == c_functionDefinition) {
                     type_t::ref type;
                     for (auto t = tmp.rbegin() + 1; t != tmp.rend(); t++) {
                         if (!t->empty()) {
@@ -837,7 +897,11 @@ namespace clib {
                 break;
             case c_blockItem:
                 break;
-            case c_expressionStatement:
+            case c_expressionStatement: {
+#if LOG_TYPE
+                std::cout << "[DEBUG] Exp: " << string_join(tmp.back(), ", ") << std::endl;
+#endif
+            }
                 break;
             case c_selectionStatement:
                 break;
@@ -937,6 +1001,16 @@ namespace clib {
                 }
             }
         }
+    }
+
+    sym_t::ref cgen::find_symbol(const string_t &name) {
+        for (auto s = symbols.rbegin(); s != symbols.rend(); s++) {
+            auto f = s->find(name);
+            if (f != s->end()) {
+                return f->second;
+            }
+        }
+        return nullptr;
     }
 
     std::tuple<sym_class_t, string_t> sym_class_string_list[] = {

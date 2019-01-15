@@ -21,6 +21,7 @@ namespace clib {
         s_id,
         s_struct,
         s_function,
+        s_var,
         s_expression,
         s_statement,
     };
@@ -119,6 +120,23 @@ namespace clib {
         uint ebp{0}, ebp_local{0};
     };
 
+    class type_exp_t : public sym_t {
+    public:
+    };
+
+    class sym_var_t : public type_exp_t {
+    public:
+        using ref = std::shared_ptr<sym_var_t>;
+        explicit sym_var_t(const type_t::ref& base, ast_node *node);
+        symbol_t get_type() const override;
+        symbol_t get_base_type() const override;
+        int size() const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        type_t::ref base;
+        ast_node *node{nullptr};
+    };
+
     // 生成虚拟机指令
     class cgen : public csemantic {
     public:
@@ -138,6 +156,8 @@ namespace clib {
 
         void allocate(sym_id_t::ref id);
         void add_id(const type_base_t::ref &, sym_class_t, ast_node *);
+
+        sym_t::ref find_symbol(const string_t &name);
 
         void error(const string_t &);
         void error(ast_node *, const string_t &, bool info = false);

@@ -261,6 +261,67 @@ namespace clib {
         }
     }
 
+    string_t cast::to_string(ast_node *node) {
+        if (node == nullptr)
+            return "";
+        std::stringstream ss;
+        switch (node->flag) {
+            case ast_keyword:
+                ss << "keyword: " << KEYWORD_STRING(node->data._keyword);
+                break;
+            case ast_operator:
+                ss << "operator: " << OP_STRING(node->data._op);
+                break;
+            case ast_literal:
+                ss << "id: " << node->data._string;
+                break;
+            case ast_string:
+                ss << "string: " << '"' << display_str(node->data._string) << '"';
+                break;
+            case ast_char:
+                ss << "char: ";
+                if (isprint(node->data._char))
+                    ss << '\'' << node->data._char << '\'';
+                else if (node->data._char == '\n')
+                    ss << "'\\n'";
+                else
+                    ss << "'\\x" << std::setiosflags(std::ios::uppercase) << std::hex
+                       << std::setfill('0') << std::setw(2)
+                       << (unsigned int) node->data._char << '\'';
+                break;
+            case ast_uchar:
+                ss << "uchar: " << (unsigned int) node->data._uchar;
+                break;
+            case ast_short:
+                ss << "short: " << node->data._short;
+                break;
+            case ast_ushort:
+                ss << "ushort: " << node->data._ushort;
+                break;
+            case ast_int:
+                ss << "int: " << node->data._int;
+                break;
+            case ast_uint:
+                ss << "uint: " << node->data._uint;
+                break;
+            case ast_long:
+                ss << "long: " << node->data._long;
+                break;
+            case ast_ulong:
+                ss << "ulong: " << node->data._ulong;
+                break;
+            case ast_float:
+                ss << "float: " << node->data._float;
+                break;
+            case ast_double:
+                ss << "double: " << node->data._double;
+                break;
+            default:
+                break;
+        }
+        return ss.str();
+    }
+
     ast_node *cast::index(ast_node *node, int index) {
         auto child = node->child;
         if (child) {

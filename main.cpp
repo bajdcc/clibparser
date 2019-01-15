@@ -19,10 +19,13 @@ int *main(int c, float *d, sx x, char y) {
     unsigned int *a, *b;
     float d, *e, f;
     sx *s1;
-    sy *s2;
+    //sy *s2;
 }
-int *c;
-int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
+int main2() {
+    int a, b, c;
+    a + b + 1 + 2;
+    a = b = c;
+}
 )", &gen);
         cast::print(root, 0, std::cout);
         gen.gen(root);

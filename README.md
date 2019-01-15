@@ -39,10 +39,13 @@ int *main(int c, float *d, sx x, char y) {
     unsigned int *a, *b;
     float d, *e, f;
     sx *s1;
-    sy *s2;
+    //sy *s2;
 }
-int *c;
-int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
+int main2() {
+    int a, b, c;
+    a + b + 1 + 2;
+    a = b = c;
+}
 ```
 
 结果（每个单词都保存了在源文件中的位置，这里省略）：
@@ -73,19 +76,13 @@ int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 [DEBUG] Type: sx
 [DEBUG] Id: sx* s1, Class: local id, Addr: 52
 [DEBUG] Type: int
-[DEBUG] Id: int* c, Class: global id, Addr: 12
+[DEBUG] Func: int main2, Param: [], Class: func id, Addr: 0
 [DEBUG] Type: int
-[DEBUG] Type: uint
-[DEBUG] Type: double
-[DEBUG] Type: char
-[DEBUG] Func: int test, Param: [uint a, Class: param id, Addr: 0; double b, Class: param id, Addr: 4; char c, Class: par
-am id, Addr: 12], Class: func id, Addr: 0
-[DEBUG] Type: long
-[DEBUG] Func: int tb, Param: [long d, Class: param id, Addr: 0], Class: func id, Addr: 0
-[DEBUG] Type: int
-[DEBUG] Func: int td, Param: [int e, Class: param id, Addr: 0], Class: func id, Addr: 0
-[DEBUG] Id: int ta, Class: global id, Addr: 16
-[DEBUG] Id: int tc, Class: global id, Addr: 20
+[DEBUG] Id: int a, Class: local id, Addr: 8
+[DEBUG] Id: int b, Class: local id, Addr: 12
+[DEBUG] Id: int c, Class: local id, Addr: 16
+[DEBUG] Exp: (type: int, id: a), (type: int, id: b), (type: int, int: 1), (type: int, int: 2)
+[DEBUG] Exp: (type: int, id: c)
 ```
 
 ## 调试信息
