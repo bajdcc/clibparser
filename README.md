@@ -30,11 +30,12 @@ C++实现的LR Parser Generator。
 
 ```cpp
 struct sx {
-    int a;
+    int *a;
+    double b;
 };
 int *a, *_a;
 double *b;
-int *main(int c, float *d) {
+int *main(int c, float *d, sx x, char y) {
     unsigned int *a, *b;
     float d, *e, f;
     sx *s1;
@@ -47,6 +48,10 @@ int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 结果（每个单词都保存了在源文件中的位置，这里省略）：
 ```txt
 [DEBUG] Type: int
+[DEBUG] Id: int* a, Class: struct id, Addr: 0
+[DEBUG] Type: double
+[DEBUG] Id: double b, Class: struct id, Addr: 0
+[DEBUG] Type: int
 [DEBUG] Id: int* a, Class: global id, Addr: 0
 [DEBUG] Id: int* _a, Class: global id, Addr: 4
 [DEBUG] Type: double
@@ -54,25 +59,27 @@ int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 [DEBUG] Type: int
 [DEBUG] Type: int
 [DEBUG] Type: float
-[DEBUG] Func: int* main, Param: [int c, Class: param id, Addr: 0; float* d, Class: param id, Addr: 0], Class: func id, A
-ddr: 0
-[DEBUG] Type: uint
-[DEBUG] Id: uint* a, Class: local id, Addr: 0
-[DEBUG] Id: uint* b, Class: local id, Addr: 0
-[DEBUG] Type: float
-[DEBUG] Id: float d, Class: local id, Addr: 0
-[DEBUG] Id: float* e, Class: local id, Addr: 0
-[DEBUG] Id: float f, Class: local id, Addr: 0
 [DEBUG] Type: sx
-[DEBUG] Id: sx* s1, Class: local id, Addr: 0
+[DEBUG] Type: char
+[DEBUG] Func: int* main, Param: [int c, Class: param id, Addr: 0; float* d, Class: param id, Addr: 4; sx x, Class: param
+ id, Addr: 8; char y, Class: param id, Addr: 20], Class: func id, Addr: 0
+[DEBUG] Type: uint
+[DEBUG] Id: uint* a, Class: local id, Addr: 32
+[DEBUG] Id: uint* b, Class: local id, Addr: 36
+[DEBUG] Type: float
+[DEBUG] Id: float d, Class: local id, Addr: 40
+[DEBUG] Id: float* e, Class: local id, Addr: 44
+[DEBUG] Id: float f, Class: local id, Addr: 48
+[DEBUG] Type: sx
+[DEBUG] Id: sx* s1, Class: local id, Addr: 52
 [DEBUG] Type: int
 [DEBUG] Id: int* c, Class: global id, Addr: 12
 [DEBUG] Type: int
 [DEBUG] Type: uint
 [DEBUG] Type: double
 [DEBUG] Type: char
-[DEBUG] Func: int test, Param: [uint a, Class: param id, Addr: 0; double b, Class: param id, Addr: 0; char c, Class: par
-am id, Addr: 0], Class: func id, Addr: 0
+[DEBUG] Func: int test, Param: [uint a, Class: param id, Addr: 0; double b, Class: param id, Addr: 4; char c, Class: par
+am id, Addr: 12], Class: func id, Addr: 0
 [DEBUG] Type: long
 [DEBUG] Func: int tb, Param: [long d, Class: param id, Addr: 0], Class: func id, Addr: 0
 [DEBUG] Type: int
@@ -142,6 +149,7 @@ am id, Addr: 0], Class: func id, Addr: 0
     - [x] 识别变量声明（类型可为结构体）
     - [x] 识别函数声明（识别返回类型、参数）
     - [x] 识别结构体声明和类型
+    - [x] 计算变量声明地址
     - [ ] 识别语句
     - [ ] 识别表达式
 - [ ] 虚拟机

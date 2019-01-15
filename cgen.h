@@ -116,6 +116,7 @@ namespace clib {
         int size() const override;
         string_t to_string() const override;
         std::vector<sym_id_t::ref> params;
+        uint ebp{0}, ebp_local{0};
     };
 
     // 生成虚拟机指令
@@ -135,7 +136,7 @@ namespace clib {
         void gen_rec(ast_node *node, int level);
         void gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node);
 
-        void allocate(sym_id_t &id);
+        void allocate(sym_id_t::ref id);
         void add_id(const type_base_t::ref &, sym_class_t, ast_node *);
 
         void error(const string_t &);
@@ -148,7 +149,7 @@ namespace clib {
         std::vector<std::unordered_map<LEX_T(string), std::shared_ptr<sym_t>>> symbols; // 符号表
         std::vector<std::vector<ast_node *>> ast;
         std::vector<std::vector<std::shared_ptr<sym_t>>> tmp;
-        std::weak_ptr<sym_func_t> current_func;
+        std::weak_ptr<sym_t> ctx;
     };
 }
 

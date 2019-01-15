@@ -36,6 +36,12 @@ namespace clib {
         return std::move(ss.str());
     }
 
+    static int align4(int n) {
+        if (n % 4 == 0)
+            return n;
+        return (n | 3) + 1;
+    }
+
     int sym_t::size() const {
         assert(!"invalid size");
         return 0;
@@ -151,7 +157,7 @@ namespace clib {
     }
 
     sym_id_t::sym_id_t(const type_t::ref &base, const string_t &id)
-        : base(base), id(id) {}
+            : base(base), id(id) {}
 
     symbol_t sym_id_t::get_type() const {
         return s_id;
@@ -190,7 +196,7 @@ namespace clib {
     int sym_struct_t::size() const {
         if (_size == 0) {
             for (auto &decl : decls) {
-                *const_cast<int*>(&_size) += decl->size();
+                *const_cast<int *>(&_size) += decl->size();
             }
         }
         return _size;
@@ -218,7 +224,7 @@ namespace clib {
     }
 
     int sym_func_t::size() const {
-        return sizeof(void*);
+        return sizeof(void *);
     }
 
     string_t sym_func_t::to_string() const {
@@ -288,6 +294,12 @@ namespace clib {
             return;
         auto rec = [this](auto n, auto l) { this->gen_rec(n, l); };
         auto type = (ast_t) node->flag;
+        if (type == ast_collection) {
+            if ((node->attr & a_exp) && node->child == node->child->next) {
+                gen_recursion(node->child, level, rec);
+                return;
+            }
+        }
         tmp.emplace_back();
         ast.emplace_back();
         switch (type) {
@@ -396,11 +408,18 @@ namespace clib {
                 break;
             case c_typeSpecifier:
                 break;
-            case c_structOrUnionSpecifier:
-                break;
             case c_structOrUnion:
                 break;
-            case c_structDeclarationList:
+            case c_structDeclarationList: {
+                auto name = (ast.rbegin() + 1)->back();
+                auto &sym = symbols[0];
+                auto f = sym.find(name->data._string);
+                if (f != sym.end()) {
+                    ctx = f->second;
+                } else {
+                    error("invalid struct name");
+                }
+            }
                 break;
             case c_structDeclaration:
                 break;
@@ -485,13 +504,14 @@ namespace clib {
             case c_externalDeclaration:
                 break;
             case c_functionDefinition:
+            case c_structOrUnionSpecifier:
                 symbols.emplace_back();
                 break;
             case c_declarationList:
                 break;
         }
-        for (auto &node : nodes) {
-            gen_rec(node, level);
+        for (auto &n : nodes) {
+            gen_rec(n, level);
         }
         auto &asts = ast.back();
         switch (node->data._coll) {
@@ -543,7 +563,8 @@ namespace clib {
                 break;
             case c_declaration:
                 break;
-            case c_declarationSpecifiers: {
+            case c_declarationSpecifiers:
+            case c_specifierQualifierList: {
                 type_t::ref base_type;
                 if (AST_IS_KEYWORD_N(asts[0], k_struct)) {
                     asts.clear();
@@ -655,12 +676,17 @@ namespace clib {
                 break;
             case c_declarationSpecifier:
                 break;
-            case c_initDeclaratorList: {
+            case c_initDeclaratorList:
+            case c_structDeclaratorList: {
                 auto clazz = z_undefined;
-                if (node->parent->parent->data._coll == c_externalDeclaration) {
-                    clazz = z_global_var;
+                if (node->data._coll == c_initDeclaratorList) {
+                    if (node->parent->parent->data._coll == c_externalDeclaration) {
+                        clazz = z_global_var;
+                    } else {
+                        clazz = z_local_var;
+                    }
                 } else {
-                    clazz = z_local_var;
+                    clazz = z_struct_var;
                 }
                 auto type = std::dynamic_pointer_cast<type_t>((tmp.rbegin() + 1)->front());
                 auto ptr = 0;
@@ -682,17 +708,11 @@ namespace clib {
                 break;
             case c_typeSpecifier:
                 break;
-            case c_structOrUnionSpecifier:
-                break;
             case c_structOrUnion:
                 break;
             case c_structDeclarationList:
                 break;
             case c_structDeclaration:
-                break;
-            case c_specifierQualifierList:
-                break;
-            case c_structDeclaratorList:
                 break;
             case c_structDeclarator:
                 break;
@@ -729,6 +749,7 @@ namespace clib {
                         type->ptr = children.size();
                     }
                     auto func = std::make_shared<sym_func_t>(type, nodes[0]->data._string);
+                    ctx = func;
                     func->clazz = z_function;
                     symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
                     auto &tmps = tmp.back();
@@ -743,8 +764,9 @@ namespace clib {
                             auto id = std::make_shared<sym_id_t>(pt, name);
                             id->line = pa->line;
                             id->column = pa->column;
+                            id->clazz = z_param_var;
+                            allocate(id);
                             func->params.push_back(id);
-                            func->params.back()->clazz = z_param_var;
                             if (!ids.insert(name).second) {
                                 error(id.get(), "conflict id: " + id->to_string());
                             }
@@ -756,6 +778,7 @@ namespace clib {
                                     }
                                 }
                             }
+                            ptr = 0;
                             j++;
                         } else if (AST_IS_OP_N(pa, op_times)) {
                             ptr++;
@@ -763,12 +786,13 @@ namespace clib {
                             error(pa, "invalid param: ", true);
                         }
                     }
-                    current_func = func;
+                    func->ebp += sizeof(void *);
+                    func->ebp_local = func->ebp;
                     tmps.clear();
-                    tmps.push_back(current_func.lock());
+                    tmps.push_back(ctx.lock());
                     asts.clear();
 #if LOG_TYPE
-                    std::cout << "[DEBUG] Func: " << current_func.lock()->to_string() << std::endl;
+                    std::cout << "[DEBUG] Func: " << ctx.lock()->to_string() << std::endl;
 #endif
                 }
             }
@@ -833,8 +857,9 @@ namespace clib {
                 break;
             case c_externalDeclaration:
                 break;
-            case c_functionDefinition: {
-                current_func.reset();
+            case c_functionDefinition:
+            case c_structOrUnionSpecifier: {
+                ctx.reset();
                 symbols.pop_back();
             }
                 break;
@@ -864,21 +889,30 @@ namespace clib {
         throw cexception(ss.str());
     }
 
-    void cgen::allocate(sym_id_t &id) {
-        if (id.base->get_type() == s_type_base) {
-            const auto &type = std::dynamic_pointer_cast<type_base_t>(id.base);
-            if (id.clazz == z_global_var) {
-                id.addr = data.size();
-                for (auto i = 0; i < type->size(); ++i) {
-                    data.push_back(0);
-                }
-            } else if (id.clazz == z_local_var) {
-
-            } else {
-                //assert(!"not supported");
+    void cgen::allocate(sym_id_t::ref id) {
+        assert(id->base->get_base_type() == s_type);
+        auto type = id->base;
+        if (id->clazz == z_global_var) {
+            id->addr = data.size();
+            auto size = align4(type->size());
+            for (auto i = 0; i < size; ++i) {
+                data.push_back(0);
             }
+        } else if (id->clazz == z_local_var) {
+            auto size = align4(type->size());
+            auto func = std::dynamic_pointer_cast<sym_func_t>(ctx.lock());
+            func->ebp_local += size;
+            id->addr = func->ebp_local;
+        } else if (id->clazz == z_param_var) {
+            auto size = align4(type->size());
+            auto func = std::dynamic_pointer_cast<sym_func_t>(ctx.lock());
+            id->addr = func->ebp;
+            func->ebp += size;
+        } else if (id->clazz == z_struct_var) {
+            auto _struct = std::dynamic_pointer_cast<sym_struct_t>(ctx.lock());
+            _struct->decls.push_back(id);
         } else {
-            //assert(!"not supported");
+            assert(!"not supported");
         }
     }
 
@@ -888,7 +922,7 @@ namespace clib {
         new_id->line = node->line;
         new_id->column = node->column;
         new_id->clazz = clazz;
-        allocate(*new_id);
+        allocate(new_id);
 #if LOG_TYPE
         std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
 #endif
@@ -906,12 +940,12 @@ namespace clib {
     }
 
     std::tuple<sym_class_t, string_t> sym_class_string_list[] = {
-        std::make_tuple(z_undefined, "undefined"),
-        std::make_tuple(z_global_var, "global id"),
-        std::make_tuple(z_local_var, "local id"),
-        std::make_tuple(z_param_var, "param id"),
-        std::make_tuple(z_struct_var, "struct id"),
-        std::make_tuple(z_function, "func id"),
+            std::make_tuple(z_undefined, "undefined"),
+            std::make_tuple(z_global_var, "global id"),
+            std::make_tuple(z_local_var, "local id"),
+            std::make_tuple(z_param_var, "param id"),
+            std::make_tuple(z_struct_var, "struct id"),
+            std::make_tuple(z_function, "func id"),
     };
 
     const string_t &sym_class_string(sym_class_t t) {

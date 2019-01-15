@@ -10,11 +10,12 @@ int main() {
         cgen gen;
         auto root = p.parse(R"(
 struct sx {
-    int a;
+    int *a;
+    double b;
 };
 int *a, *_a;
 double *b;
-int *main(int c, float *d) {
+int *main(int c, float *d, sx x, char y) {
     unsigned int *a, *b;
     float d, *e, f;
     sx *s1;
