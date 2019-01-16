@@ -538,8 +538,8 @@ namespace clib {
                     }
                     auto jump = trans[trans_id].jump;
 #if TRACE_PARSING
-                    printf("[%d]%s State: %3d => To: %3d   -- Action: %-10s -- Rule: %s\n",
-                           ast_cache_index, is_end ? "*" : "", state, jump,
+                    printf("[%d:%d:%d]%s State: %3d => To: %3d   -- Action: %-10s -- Rule: %s\n",
+                           ast_cache_index, ast_stack.size(), bks.size(), is_end ? "*" : "", state, jump,
                            pda_edge_str(t.type).c_str(), current_state.label.c_str());
 #endif
                     do_trans(state, *bk, trans[trans_id]);
@@ -718,6 +718,8 @@ namespace clib {
         switch (trans.type) {
             case e_reduce:
             case e_reduce_exp:{
+                if (ast_stack.size() <= 1)
+                    return false;
                 if (state_stack.empty())
                     return false;
                 if (trans.status != state_stack.back())
@@ -784,6 +786,7 @@ namespace clib {
                 }
                 state_stack.pop_back();
                 ast_stack.pop_back();
+                assert(!ast_stack.empty());
                 ast_reduce_cache.push_back(new_ast);
 #if DEBUG_AST
                 printf("[DEBUG] Reduce: parent=%p, child=%p, CS=%d, AS=%d, RI=%d\n",

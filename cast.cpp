@@ -153,7 +153,10 @@ namespace clib {
             if (*c < 0) {
                 ss << *c;
             } else if (isprint(*c)) {
-                ss << *c;
+                if (*c == '"')
+                    ss << "\\\"";
+                else
+                    ss << *c;
             } else {
                 if (*c == '\n')
                     ss << "\\n";
