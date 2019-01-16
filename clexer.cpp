@@ -92,8 +92,8 @@ LEX_T(t) clexer::get_store_##t(int index) const \
         type = l_error;
         if (isalpha(c) || c == '_') { // 变量名或关键字
             type = next_alpha();
-        } else if (isdigit(c) || (c == '-' && isdigit(local(1)))) { // 数字
-            if (c == '-') {
+        } else if (isdigit(c) /*|| (c == '-' && isdigit(local(1)))*/) { // 数字
+            /*if (c == '-') {
                 move(1);
                 type = next_digit();
                 if (type == l_error)
@@ -121,9 +121,9 @@ LEX_T(t) clexer::get_store_##t(int index) const \
                         break;
                 }
                 return type;
-            } else {
+            } else {*/
                 type = next_digit();
-            }
+            //}
         } else if (isspace(c)) { // 空白字符
             type = next_space();
         } else if (c == '\'') { // 字符

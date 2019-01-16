@@ -45,6 +45,7 @@ int main2() {
     int a, b, c;
     a + b + 1 + 2;
     a = b = c;
+    --1+++---1++;
 }
 ```
 
@@ -83,6 +84,7 @@ int main2() {
 [DEBUG] Id: int c, Class: local id, Addr: 16
 [DEBUG] Exp: (type: int, id: a), (type: int, id: b), (type: int, int: 1), (type: int, int: 2)
 [DEBUG] Exp: (type: int, id: c)
+[DEBUG] Exp: (type: int, int: 1), (type: int, int: 1)
 ```
 
 ## 调试信息

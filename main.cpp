@@ -23,8 +23,9 @@ int *main(int c, float *d, sx x, char y) {
 }
 int main2() {
     int a, b, c;
-    a + b + 1 + 2;
+    a + b + 1 - 2;
     a = b = c;
+    --1+++---1++;
 }
 )", &gen);
         cast::print(root, 0, std::cout);
