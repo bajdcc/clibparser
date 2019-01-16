@@ -13,7 +13,8 @@
 #define AST_IS_KEYWORD(node) ((node)->flag == ast_keyword)
 #define AST_IS_KEYWORD_N(node, k) (AST_IS_KEYWORD(node) && (node)->data._keyword == (k))
 #define AST_IS_OP(node) ((node)->flag == ast_operator)
-#define AST_IS_OP_N(node, k) (AST_IS_OP(node) && (node)->data._op == (k))
+#define AST_IS_OP_K(node, k) ((node)->data._op == (k))
+#define AST_IS_OP_N(node, k) (AST_IS_OP(node) && AST_IS_OP_K(node, k))
 #define AST_IS_ID(node) ((node)->flag == ast_literal)
 #define AST_IS_COLL(node) ((node)->flag == ast_collection)
 #define AST_IS_COLL_K(node, k) ((node)->data._coll == (k))
@@ -236,14 +237,20 @@ namespace clib {
         return ss.str();
     }
 
-    sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : base(base), node(node) {}
+    symbol_t type_exp_t::get_type() const {
+        return s_expression;
+    }
+
+    symbol_t type_exp_t::get_base_type() const {
+        return s_expression;
+    }
+
+    sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : node(node) {
+        this->base = base;
+    }
 
     symbol_t sym_var_t::get_type() const {
         return s_var;
-    }
-
-    symbol_t sym_var_t::get_base_type() const {
-        return s_expression;
     }
 
     int sym_var_t::size() const {
@@ -259,6 +266,115 @@ namespace clib {
         ss << "(type: " << base->to_string() << ", " << cast::to_string(node) << ')';
         return ss.str();
     }
+
+    sym_unop_t::sym_unop_t(const type_exp_t::ref &exp, ast_node *op) : exp(exp), op(op) {}
+
+    symbol_t sym_unop_t::get_type() const {
+        return s_unop;
+    }
+
+    int sym_unop_t::size() const {
+        return exp->size();
+    }
+
+    string_t sym_unop_t::get_name() const {
+        return to_string();
+    }
+
+    string_t sym_unop_t::to_string() const {
+        std::stringstream ss;
+        ss << "(unop, " << cast::to_string(op) << ", exp: " << exp->to_string() << ')';
+        return ss.str();
+    }
+
+    sym_sinop_t::sym_sinop_t(const type_exp_t::ref &exp, ast_node *op) : exp(exp), op(op) {}
+
+    symbol_t sym_sinop_t::get_type() const {
+        return s_sinop;
+    }
+
+    int sym_sinop_t::size() const {
+        return exp->size();
+    }
+
+    string_t sym_sinop_t::get_name() const {
+        return to_string();
+    }
+
+    string_t sym_sinop_t::to_string() const {
+        std::stringstream ss;
+        ss << "(sinop, " << cast::to_string(op) << ", exp: " << exp->to_string() << ')';
+        return ss.str();
+    }
+
+    sym_binop_t::sym_binop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2, ast_node *op)
+        : exp1(exp1), exp2(exp2), op(op) {}
+
+    symbol_t sym_binop_t::get_type() const {
+        return s_binop;
+    }
+
+    int sym_binop_t::size() const {
+        return std::max(exp1->size(), exp2->size());
+    }
+
+    string_t sym_binop_t::get_name() const {
+        return to_string();
+    }
+
+    string_t sym_binop_t::to_string() const {
+        std::stringstream ss;
+        ss << "(binop, " << cast::to_string(op)
+           << ", exp1: " << exp1->to_string()
+           << ", exp2: " << exp2->to_string() << ')';
+        return ss.str();
+    }
+
+    sym_triop_t::sym_triop_t(const type_exp_t::ref& exp1, const type_exp_t::ref& exp2,
+                             const type_exp_t::ref& exp3, ast_node *op1, ast_node *op2)
+                             : exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {}
+
+    symbol_t sym_triop_t::get_type() const {
+        return s_triop;
+    }
+
+    int sym_triop_t::size() const {
+        return std::max(std::max(exp1->size(), exp2->size()), exp3->size());
+    }
+
+    string_t sym_triop_t::get_name() const {
+        return to_string();
+    }
+
+    string_t sym_triop_t::to_string() const {
+        std::stringstream ss;
+        ss << "(triop, " << cast::to_string(op1)
+           << ", " << cast::to_string(op2)
+           << ", exp1: " << exp1->to_string()
+           << ", exp2: " << exp2->to_string()
+           << ", exp3: " << exp3->to_string() << ')';
+        return ss.str();
+    }
+
+    symbol_t sym_list_t::get_type() const {
+        return s_list;
+    }
+
+    int sym_list_t::size() const {
+        return exps.size();
+    }
+
+    string_t sym_list_t::get_name() const {
+        return to_string();
+    }
+
+    string_t sym_list_t::to_string() const {
+        std::stringstream ss;
+        ss << "(list, " << string_join(exps, ", ") << ')';
+        return ss.str();
+    }
+
+    // --------------------------------------------------------------
 
     cgen::cgen() {
         reset();
@@ -542,50 +658,68 @@ namespace clib {
             case c_program:
                 break;
             case c_primaryExpression: {
-                type_t::ref t;
-                switch (asts[0]->flag) {
-                    case ast_literal: {
-                        auto sym = find_symbol(asts[0]->data._string);
-                        if (!sym)
-                            error("undefined id: " + string_t(asts[0]->data._string));
-                        if (sym->get_type() != s_id)
-                            error("required id but got: " + sym->to_string());
-                        t = std::dynamic_pointer_cast<sym_id_t>(sym)->base->clone();
-                    }
-                        break;
-                    case ast_string:
-                        t = std::make_shared<type_base_t>(l_char, 1);
-                        break;
-#define DEF_LEX(name) \
-                    case ast_##name: \
-                        t = std::make_shared<type_base_t>(l_##name, 0); \
-                        break;
-                        DEF_LEX(char);
-                        DEF_LEX(uchar);
-                        DEF_LEX(short);
-                        DEF_LEX(ushort);
-                        DEF_LEX(int);
-                        DEF_LEX(uint);
-                        DEF_LEX(long);
-                        DEF_LEX(ulong);
-                        DEF_LEX(float);
-                        DEF_LEX(double);
-#undef DEF_LEX
-                    default:
-                        assert(!"invalid var type");
-                        break;
-                }
-                tmp.back().push_back(std::make_shared<sym_var_t>(t, asts[0]));
+                auto pri = primary_node(asts[0]);
+                tmp.back().push_back(pri);
                 asts.clear();
             }
                 break;
             case c_constant:
                 break;
-            case c_postfixExpression:
+            case c_postfixExpression: {
+                if (nodes[0]->data._coll == c_primaryExpression) {
+                    auto &_tmp = tmp.back();
+                    auto tmp_i = 0;
+                    auto exp = to_exp(_tmp[tmp_i++]);
+                    for (int i = 1; i < nodes.size(); ++i) {
+                        auto &a = nodes[i];
+                        if (AST_IS_OP(a)) {
+                            if (AST_IS_OP_K(a, op_plus_plus) || AST_IS_OP_K(a, op_minus_minus)) {
+                                exp = std::make_shared<sym_sinop_t>(exp, a);
+                            } else if (AST_IS_OP_K(a, op_dot) ||AST_IS_OP_K(a, op_pointer)) {
+                                ++i;
+                                auto exp2 = primary_node(nodes[i]);
+                                exp = std::make_shared<sym_binop_t>(exp, exp2, a);
+                            } else if (AST_IS_OP_K(a, op_lsquare)) {
+                                ++i;
+                                auto exp2 = to_exp(_tmp[tmp_i++]);
+                                exp = std::make_shared<sym_binop_t>(exp, exp2, a);
+                            } else if (AST_IS_OP_K(a, op_lparan)) {
+                                ++i;
+                                auto exp2 = std::make_shared<sym_list_t>();
+                                while (true) {
+                                    if (AST_IS_OP_K(nodes[i], op_rparan))
+                                        break;
+                                    exp2->exps.push_back(to_exp(_tmp[tmp_i++]));
+                                    ++i;
+                                }
+                                exp = std::make_shared<sym_binop_t>(exp, exp2, a);
+                            } else {
+                                error("invalid postfix exp: op");
+                            }
+                        } else {
+                            error("invalid postfix exp: coll");
+                        }
+                    }
+                    _tmp.clear();
+                    _tmp.push_back(exp);
+                }
+            }
                 break;
             case c_argumentExpressionList:
                 break;
-            case c_unaryExpression:
+            case c_unaryExpression: {
+                auto &op = asts[0];
+                if (AST_IS_OP(op)) {
+                    if (AST_IS_OP_K(op, op_plus) || AST_IS_OP_K(op, op_minus)) {
+                        auto &_exp = tmp.back().back();
+                        auto exp = to_exp(_exp);
+                        tmp.back().pop_back();
+                        auto unop = std::make_shared<sym_unop_t>(exp, op);
+                        tmp.back().push_back(unop);
+                        asts.clear();
+                    }
+                }
+            }
                 break;
             case c_unaryOperator:
                 break;
@@ -953,6 +1087,11 @@ namespace clib {
         throw cexception(ss.str());
     }
 
+    type_exp_t::ref cgen::to_exp(sym_t::ref s) {
+        assert(s->get_base_type() == s_expression);
+        return std::dynamic_pointer_cast<type_exp_t>(s);
+    }
+
     void cgen::allocate(sym_id_t::ref id) {
         assert(id->base->get_base_type() == s_type);
         auto type = id->base;
@@ -1011,6 +1150,43 @@ namespace clib {
             }
         }
         return nullptr;
+    }
+
+    sym_var_t::ref cgen::primary_node(ast_node *node) {
+        type_t::ref t;
+        switch (node->flag) {
+            case ast_literal: {
+                auto sym = find_symbol(node->data._string);
+                if (!sym)
+                    error("undefined id: " + string_t(node->data._string));
+                if (sym->get_type() != s_id)
+                    error("required id but got: " + sym->to_string());
+                t = std::dynamic_pointer_cast<sym_id_t>(sym)->base->clone();
+            }
+                break;
+            case ast_string:
+                t = std::make_shared<type_base_t>(l_char, 1);
+                break;
+#define DEF_LEX(name) \
+                    case ast_##name: \
+                        t = std::make_shared<type_base_t>(l_##name, 0); \
+                        break;
+            DEF_LEX(char);
+            DEF_LEX(uchar);
+            DEF_LEX(short);
+            DEF_LEX(ushort);
+            DEF_LEX(int);
+            DEF_LEX(uint);
+            DEF_LEX(long);
+            DEF_LEX(ulong);
+            DEF_LEX(float);
+            DEF_LEX(double);
+#undef DEF_LEX
+            default:
+                assert(!"invalid var type");
+                break;
+        }
+        return std::make_shared<sym_var_t>(t, node);
     }
 
     std::tuple<sym_class_t, string_t> sym_class_string_list[] = {

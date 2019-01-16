@@ -26,6 +26,7 @@ int main2() {
     a + b + 1 - 2;
     a = b = c;
     --1+++---1++;
+    a.b----[1](1,2);
 }
 )", &gen);
         cast::print(root, 0, std::cout);

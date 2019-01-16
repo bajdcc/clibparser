@@ -259,12 +259,12 @@ namespace clib {
         constant = Char | UnsignedChar | Short | UnsignedShort | Integer | UnsignedInteger |
                    Long | UnsignedLong | Float | Double;
         postfixExpression = primaryExpression
-                            | postfixExpression + (~_lsquare_ + expression + ~_rsquare_
-                                                   | ~_lparan_ + *argumentExpressionList + ~_rparan_
+                            | ~_lparan_ + typeName + ~_rparan_ + ~_lbrace_ + initializerList + *~_comma_ + ~_rbrace_
+                            | postfixExpression + (_lsquare_ + expression + ~_rsquare_
+                                                   | _lparan_ + *argumentExpressionList + _rparan_
                                                    | (_dot_ | _pointer_) + Identifier
                                                    | _plus_plus_
-                                                   | _minus_minus_)
-                            | ~_lparan_ + typeName + ~_rparan_ + ~_lbrace_ + initializerList + *~_comma_ + ~_rbrace_;
+                                                   | _minus_minus_);
         argumentExpressionList = *(argumentExpressionList + ~_comma_) + assignmentExpression;
         unaryExpression
             = postfixExpression

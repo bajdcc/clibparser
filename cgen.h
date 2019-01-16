@@ -23,6 +23,11 @@ namespace clib {
         s_function,
         s_var,
         s_expression,
+        s_unop,
+        s_sinop,
+        s_binop,
+        s_triop,
+        s_list,
         s_statement,
     };
 
@@ -122,6 +127,10 @@ namespace clib {
 
     class type_exp_t : public sym_t {
     public:
+        using ref = std::shared_ptr<type_exp_t>;
+        symbol_t get_type() const override;
+        symbol_t get_base_type() const override;
+        type_t::ref base;
     };
 
     class sym_var_t : public type_exp_t {
@@ -129,12 +138,69 @@ namespace clib {
         using ref = std::shared_ptr<sym_var_t>;
         explicit sym_var_t(const type_t::ref& base, ast_node *node);
         symbol_t get_type() const override;
-        symbol_t get_base_type() const override;
         int size() const override;
         string_t get_name() const override;
         string_t to_string() const override;
-        type_t::ref base;
         ast_node *node{nullptr};
+    };
+
+    class sym_unop_t : public type_exp_t {
+    public:
+        using ref = std::shared_ptr<sym_unop_t>;
+        explicit sym_unop_t(const type_exp_t::ref& exp, ast_node *op);
+        symbol_t get_type() const override;
+        int size() const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        type_exp_t::ref exp;
+        ast_node *op{nullptr};
+    };
+
+    class sym_sinop_t : public type_exp_t {
+    public:
+        using ref = std::shared_ptr<sym_sinop_t>;
+        explicit sym_sinop_t(const type_exp_t::ref& exp, ast_node *op);
+        symbol_t get_type() const override;
+        int size() const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        type_exp_t::ref exp;
+        ast_node *op{nullptr};
+    };
+
+    class sym_binop_t : public type_exp_t {
+    public:
+        using ref = std::shared_ptr<sym_binop_t>;
+        explicit sym_binop_t(const type_exp_t::ref& exp1, const type_exp_t::ref& exp2, ast_node *op);
+        symbol_t get_type() const override;
+        int size() const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        type_exp_t::ref exp1, exp2;
+        ast_node *op{nullptr};
+    };
+
+    class sym_triop_t : public type_exp_t {
+    public:
+        using ref = std::shared_ptr<sym_triop_t>;
+        explicit sym_triop_t(const type_exp_t::ref& exp1, const type_exp_t::ref& exp2,
+                const type_exp_t::ref& exp3, ast_node *op1, ast_node *op2);
+        symbol_t get_type() const override;
+        int size() const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        type_exp_t::ref exp1, exp2, exp3;
+        ast_node *op1{nullptr}, *op2{nullptr};
+    };
+
+    class sym_list_t : public type_exp_t {
+    public:
+        using ref = std::shared_ptr<sym_list_t>;
+        symbol_t get_type() const override;
+        int size() const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        std::vector<type_exp_t::ref> exps;
     };
 
     // 生成虚拟机指令
@@ -158,10 +224,13 @@ namespace clib {
         void add_id(const type_base_t::ref &, sym_class_t, ast_node *);
 
         sym_t::ref find_symbol(const string_t &name);
+        sym_var_t::ref primary_node(ast_node *node);
 
         void error(const string_t &);
         void error(ast_node *, const string_t &, bool info = false);
         void error(sym_t *, const string_t &);
+
+        static type_exp_t::ref to_exp(sym_t::ref s);
 
     private:
         std::vector<LEX_T(int)> text; // 代码
