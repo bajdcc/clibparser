@@ -702,6 +702,7 @@ namespace clib {
                     }
                     _tmp.clear();
                     _tmp.push_back(exp);
+                    asts.clear();
                 }
             }
                 break;
@@ -710,14 +711,28 @@ namespace clib {
             case c_unaryExpression: {
                 auto &op = asts[0];
                 if (AST_IS_OP(op)) {
-                    if (AST_IS_OP_K(op, op_plus) || AST_IS_OP_K(op, op_minus)) {
-                        auto &_exp = tmp.back().back();
-                        auto exp = to_exp(_exp);
-                        tmp.back().pop_back();
-                        auto unop = std::make_shared<sym_unop_t>(exp, op);
-                        tmp.back().push_back(unop);
-                        asts.clear();
+                    switch (op->data._op) {
+                        case op_plus:
+                        case op_plus_plus:
+                        case op_minus:
+                        case op_minus_minus:
+                        case op_logical_and:
+                        case op_logical_not:
+                        case op_bit_and: {
+                            auto &_exp = tmp.back().back();
+                            auto exp = to_exp(_exp);
+                            tmp.back().clear();
+                            auto unop = std::make_shared<sym_unop_t>(exp, op);
+                            tmp.back().push_back(unop);
+                            asts.clear();
+                        }
+                            break;
+                        default:
+                            error("invalid unary exp: op");
+                            break;
                     }
+                } else {
+                    error("invalid unary exp: coll");
                 }
             }
                 break;
@@ -727,7 +742,28 @@ namespace clib {
                 break;
             case c_multiplicativeExpression:
                 break;
-            case c_additiveExpression:
+            case c_additiveExpression: {
+                auto &_tmp = tmp.back();
+                auto tmp_i = 0;
+                auto exp1 = to_exp(_tmp[tmp_i++]);
+                auto exp2 = to_exp(_tmp[tmp_i++]);
+                for (auto &a : asts) {
+                    if (AST_IS_OP(a)) {
+                        if (AST_IS_OP_K(a, op_plus) || AST_IS_OP_K(a, op_minus)) {
+                            exp1 = std::make_shared<sym_binop_t>(exp1, exp2, a);
+                            if (tmp_i < _tmp.size())
+                                exp2 = to_exp(_tmp[tmp_i++]);
+                        } else {
+                            error("invalid plus/minus exp: op");
+                        }
+                    } else {
+                        error("invalid plus/minus exp: coll");
+                    }
+                }
+                _tmp.clear();
+                _tmp.push_back(exp1);
+                asts.clear();
+            }
                 break;
             case c_shiftExpression:
                 break;

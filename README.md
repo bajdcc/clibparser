@@ -43,9 +43,10 @@ int *main(int c, float *d, sx x, char y) {
 }
 int main2() {
     int a, b, c;
-    a + b + 1 + 2;
+    a + b + 1 - 2;
     a = b = c;
     --1+++---1++;
+    a.b----[1](1,2);
 }
 ```
 
@@ -82,9 +83,14 @@ int main2() {
 [DEBUG] Id: int a, Class: local id, Addr: 8
 [DEBUG] Id: int b, Class: local id, Addr: 12
 [DEBUG] Id: int c, Class: local id, Addr: 16
-[DEBUG] Exp: (type: int, id: a), (type: int, id: b), (type: int, int: 1), (type: int, int: 2)
+[DEBUG] Exp: (binop, operator: -, exp1: (binop, operator: +, exp1: (binop, operator: +, exp1: (type: int, id: a), exp2:
+(type: int, id: b)), exp2: (type: int, int: 1)), exp2: (type: int, int: 2))
 [DEBUG] Exp: (type: int, id: c)
-[DEBUG] Exp: (type: int, int: 1), (type: int, int: 1)
+[DEBUG] Exp: (binop, operator: +, exp1: (unop, operator: --, exp: (sinop, operator: ++, exp: (type: int, int: 1))), exp2
+: (unop, operator: --, exp: (unop, operator: -, exp: (sinop, operator: ++, exp: (type: int, int: 1)))))
+[DEBUG] Exp: (binop, operator: (, exp1: (binop, operator: [, exp1: (sinop, operator: --, exp: (sinop, operator: --, exp:
+ (binop, operator: ., exp1: (type: int, id: a), exp2: (type: int, id: b)))), exp2: (type: int, int: 1)), exp2: (list, (t
+ype: int, int: 1)))
 ```
 
 ## 调试信息
