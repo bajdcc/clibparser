@@ -43,6 +43,16 @@ namespace clib {
         return (n | 3) + 1;
     }
 
+    static ast_node *ast_get_parent(ast_node *node, int level) {
+        for (int i = 0; i < level; ++i) {
+            if (AST_IS_COLL_N(node, c_program)) {
+                break;
+            }
+            node = node->parent;
+        }
+        return node;
+    }
+
     int sym_t::size() const {
         assert(!"invalid size");
         return 0;
@@ -62,6 +72,14 @@ namespace clib {
 
     string_t sym_t::to_string() const {
         return "[Symbol]";
+    }
+
+    gen_t sym_t::gen_lvalue(igen &gen) {
+        return g_ok;
+    }
+
+    gen_t sym_t::gen_rvalue(igen &gen) {
+        return g_ok;
     }
 
     type_t::type_t(int ptr) : ptr(ptr) {}
@@ -180,8 +198,18 @@ namespace clib {
         std::stringstream ss;
         ss << base->to_string() << " " << id << ", ";
         ss << "Class: " << sym_class_string(clazz) << ", ";
+        if (init)
+            ss << "Init: " << init->to_string() << ", ";
         ss << "Addr: " << addr;
         return ss.str();
+    }
+
+    gen_t sym_id_t::gen_lvalue(igen &gen) {
+        return g_ok;
+    }
+
+    gen_t sym_id_t::gen_rvalue(igen &gen) {
+        return g_ok;
     }
 
     sym_struct_t::sym_struct_t(const string_t &id) : id(id) {}
@@ -308,7 +336,7 @@ namespace clib {
     }
 
     sym_binop_t::sym_binop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2, ast_node *op)
-        : exp1(exp1), exp2(exp2), op(op) {}
+            : exp1(exp1), exp2(exp2), op(op) {}
 
     symbol_t sym_binop_t::get_type() const {
         return s_binop;
@@ -330,9 +358,9 @@ namespace clib {
         return ss.str();
     }
 
-    sym_triop_t::sym_triop_t(const type_exp_t::ref& exp1, const type_exp_t::ref& exp2,
-                             const type_exp_t::ref& exp3, ast_node *op1, ast_node *op2)
-                             : exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {}
+    sym_triop_t::sym_triop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2,
+                             const type_exp_t::ref &exp3, ast_node *op1, ast_node *op2)
+            : exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {}
 
     symbol_t sym_triop_t::get_type() const {
         return s_triop;
@@ -391,6 +419,21 @@ namespace clib {
         tmp.emplace_back();
         ast.clear();
         ast.emplace_back();
+    }
+
+    void cgen::emit(ins_t i) {
+        text.push_back(i);
+#if LOG_TYPE
+        std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) << std::endl;
+#endif
+    }
+
+    void cgen::emit(ins_t i, uint d) {
+        text.push_back(i);
+        text.push_back(d);
+#if LOG_TYPE
+        std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) << " " << d << std::endl;
+#endif
     }
 
     template<class T>
@@ -666,7 +709,7 @@ namespace clib {
             case c_constant:
                 break;
             case c_postfixExpression: {
-                if (nodes[0]->data._coll == c_primaryExpression) {
+                if (AST_IS_COLL_N(nodes[0], c_primaryExpression)) {
                     auto &_tmp = tmp.back();
                     auto tmp_i = 0;
                     auto exp = to_exp(_tmp[tmp_i++]);
@@ -675,7 +718,7 @@ namespace clib {
                         if (AST_IS_OP(a)) {
                             if (AST_IS_OP_K(a, op_plus_plus) || AST_IS_OP_K(a, op_minus_minus)) {
                                 exp = std::make_shared<sym_sinop_t>(exp, a);
-                            } else if (AST_IS_OP_K(a, op_dot) ||AST_IS_OP_K(a, op_pointer)) {
+                            } else if (AST_IS_OP_K(a, op_dot) || AST_IS_OP_K(a, op_pointer)) {
                                 ++i;
                                 auto exp2 = primary_node(nodes[i]);
                                 exp = std::make_shared<sym_binop_t>(exp, exp2, a);
@@ -908,31 +951,44 @@ namespace clib {
                 break;
             case c_initDeclaratorList:
             case c_structDeclaratorList: {
-                auto clazz = z_undefined;
-                if (node->data._coll == c_initDeclaratorList) {
-                    if (node->parent->parent->data._coll == c_externalDeclaration) {
-                        clazz = z_global_var;
-                    } else {
+                decltype(z_undefined) clazz;
+                if (AST_IS_COLL_N(node, c_initDeclaratorList)) {
+                    if (ctx.lock()) {
                         clazz = z_local_var;
+                    } else {
+                        clazz = z_global_var;
                     }
                 } else {
                     clazz = z_struct_var;
                 }
                 auto type = std::dynamic_pointer_cast<type_t>((tmp.rbegin() + 1)->front());
                 auto ptr = 0;
+                auto tmp_i = 0;
+                auto &_tmp = tmp.back();
                 for (auto &ast : asts) {
                     if (AST_IS_OP_N(ast, op_times)) {
                         ptr++;
                     } else {
                         auto new_type = type->clone();
                         new_type->ptr = ptr;
-                        add_id(new_type, clazz, ast);
+                        type_exp_t::ref init;
+                        if (clazz != z_struct_var) {
+                            auto t = _tmp[tmp_i++];
+                            if (t) {
+                                init = to_exp(t);
+                            }
+                        }
+                        auto new_id = add_id(new_type, clazz, ast, init);
                         ptr = 0;
                     }
                 }
+                _tmp.clear();
             }
                 break;
-            case c_initDeclarator:
+            case c_initDeclarator: {
+                if (tmp.back().empty())
+                    tmp.back().push_back(nullptr);
+            }
                 break;
             case c_storageClassSpecifier:
                 break;
@@ -959,12 +1015,13 @@ namespace clib {
             case c_declarator:
                 break;
             case c_directDeclarator: {
-                if (node->parent->parent->data._coll == c_functionDefinition) {
+                if (AST_IS_OP_N(node->child->next, op_lparan)) {
+                    auto has_impl = AST_IS_COLL_N(node->parent->parent, c_functionDefinition);
                     type_t::ref type;
                     for (auto t = tmp.rbegin() + 1; t != tmp.rend(); t++) {
                         if (!t->empty()) {
                             auto tt = t->front();
-                            if (tt->get_base_type() == s_type) {
+                            if (tt && tt->get_base_type() == s_type) {
                                 type = std::dynamic_pointer_cast<type_t>(t->front());
                                 break;
                             }
@@ -981,11 +1038,12 @@ namespace clib {
                     auto func = std::make_shared<sym_func_t>(type, nodes[0]->data._string);
                     ctx = func;
                     func->clazz = z_function;
+                    func->addr = text.size();
                     symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
                     auto &tmps = tmp.back();
                     std::unordered_set<string_t> ids;
                     auto ptr = 0;
-                    for (auto i = 1, j = 0; i < asts.size() && j < tmp.size(); ++i) {
+                    for (auto i = 2, j = 0; i < asts.size() && j < tmp.size(); ++i) {
                         auto &pa = asts[i];
                         if (AST_IS_ID(pa)) {
                             const auto &pt = std::dynamic_pointer_cast<type_t>(tmps[j]);
@@ -995,7 +1053,7 @@ namespace clib {
                             id->line = pa->line;
                             id->column = pa->column;
                             id->clazz = z_param_var;
-                            allocate(id);
+                            allocate(id, nullptr);
                             func->params.push_back(id);
                             if (!ids.insert(name).second) {
                                 error(id.get(), "conflict id: " + id->to_string());
@@ -1019,11 +1077,15 @@ namespace clib {
                     func->ebp += sizeof(void *);
                     func->ebp_local = func->ebp;
                     tmps.clear();
-                    tmps.push_back(ctx.lock());
                     asts.clear();
 #if LOG_TYPE
                     std::cout << "[DEBUG] Func: " << ctx.lock()->to_string() << std::endl;
 #endif
+                    if (has_impl) {
+                        tmps.push_back(func);
+                    } else {
+                        ctx.reset();
+                    }
                 }
             }
                 break;
@@ -1071,6 +1133,7 @@ namespace clib {
 #if LOG_TYPE
                 std::cout << "[DEBUG] Exp: " << string_join(tmp.back(), ", ") << std::endl;
 #endif
+                tmp.back().front()->gen_rvalue(*this);
             }
                 break;
             case c_selectionStatement:
@@ -1092,6 +1155,7 @@ namespace clib {
             case c_externalDeclaration:
                 break;
             case c_functionDefinition:
+                emit(LEV);
             case c_structOrUnionSpecifier: {
                 ctx.reset();
                 symbols.pop_back();
@@ -1124,18 +1188,39 @@ namespace clib {
     }
 
     type_exp_t::ref cgen::to_exp(sym_t::ref s) {
+        if(s->get_base_type() != s_expression){
+            auto a=1;
+        }
         assert(s->get_base_type() == s_expression);
         return std::dynamic_pointer_cast<type_exp_t>(s);
     }
 
-    void cgen::allocate(sym_id_t::ref id) {
+    void cgen::allocate(sym_id_t::ref id, const type_exp_t::ref &init) {
         assert(id->base->get_base_type() == s_type);
+        assert(!init || init->get_type() == s_var);
         auto type = id->base;
         if (id->clazz == z_global_var) {
             id->addr = data.size();
             auto size = align4(type->size());
-            for (auto i = 0; i < size; ++i) {
-                data.push_back(0);
+            if (init) {
+                auto var = std::dynamic_pointer_cast<sym_var_t>(init);
+                auto &node = var->node;
+                if (node->flag != ast_string) {
+                    std::copy((char *) &node->data._ins,
+                              ((char *) &node->data._ins) + size,
+                              std::back_inserter(data));
+                } else {
+                    auto s = string_t(node->data._string);
+                    std::copy(s.begin(), s.end(), std::back_inserter(data));
+                    data.push_back(0);
+                    while (data.size() % 4 != 0) {
+                        data.push_back(0);
+                    }
+                }
+            } else {
+                for (auto i = 0; i < size; ++i) {
+                    data.push_back(0);
+                }
             }
         } else if (id->clazz == z_local_var) {
             auto size = align4(type->size());
@@ -1155,13 +1240,14 @@ namespace clib {
         }
     }
 
-    void cgen::add_id(const type_base_t::ref &type, sym_class_t clazz, ast_node *node) {
+    sym_id_t::ref cgen::add_id(const type_base_t::ref &type, sym_class_t clazz, ast_node *node, const type_exp_t::ref &init) {
         assert(AST_IS_ID(node));
         auto new_id = std::make_shared<sym_id_t>(type, node->data._string);
         new_id->line = node->line;
         new_id->column = node->column;
         new_id->clazz = clazz;
-        allocate(new_id);
+        new_id->init = init;
+        allocate(new_id, init);
 #if LOG_TYPE
         std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
 #endif
@@ -1176,6 +1262,7 @@ namespace clib {
                 }
             }
         }
+        return new_id;
     }
 
     sym_t::ref cgen::find_symbol(const string_t &name) {

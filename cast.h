@@ -70,6 +70,9 @@ namespace clib {
             keyword_t _keyword;
             operator_t _op;
             coll_t _coll;
+            struct {
+                uint32 _1, _2;
+            } _ins;
         } data; // 数据
 
         // 树型数据结构，广义表

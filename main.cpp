@@ -13,7 +13,7 @@ struct sx {
     int *a;
     double b;
 };
-int *a, *_a;
+int *a, *_a, _b = 1, _c = "Hello world!";
 double *b;
 int *main(int c, float *d, sx x, char y) {
     unsigned int *a, *b;
@@ -28,6 +28,7 @@ int main2() {
     --1+++---1++;
     a.b----[1](1,2);
 }
+int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 )", &gen);
         cast::print(root, 0, std::cout);
         gen.gen(root);

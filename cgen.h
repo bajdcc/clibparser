@@ -11,6 +11,19 @@
 #include "cast.h"
 #include "cparser.h"
 
+/* 用户代码段基址 */
+#define USER_BASE 0xc0000000
+/* 用户数据段基址 */
+#define DATA_BASE 0xd0000000
+/* 用户栈基址 */
+#define STACK_BASE 0xe0000000
+/* 用户堆基址 */
+#define HEAP_BASE 0xf0000000
+/* 用户堆大小 */
+#define HEAP_SIZE 1000
+/* 段掩码 */
+#define SEGMENT_MASK 0x0fffffff
+
 namespace clib {
 
     enum symbol_t {
@@ -31,6 +44,16 @@ namespace clib {
         s_statement,
     };
 
+    enum gen_t {
+        g_ok,
+    };
+
+    class igen {
+    public:
+        virtual void emit(ins_t) = 0;
+        virtual void emit(ins_t, uint) = 0;
+    };
+
     class sym_t {
     public:
         using ref = std::shared_ptr<sym_t>;
@@ -39,6 +62,8 @@ namespace clib {
         virtual int size() const;
         virtual string_t get_name() const;
         virtual string_t to_string() const;
+        virtual gen_t gen_lvalue(igen &gen);
+        virtual gen_t gen_rvalue(igen &gen);
         int line{0}, column{0};
     };
 
@@ -85,16 +110,27 @@ namespace clib {
 
     const string_t &sym_class_string(sym_class_t);
 
+    class type_exp_t : public sym_t {
+    public:
+        using ref = std::shared_ptr<type_exp_t>;
+        symbol_t get_type() const override;
+        symbol_t get_base_type() const override;
+        type_t::ref base;
+    };
+
     class sym_id_t : public sym_t {
     public:
         using ref = std::shared_ptr<sym_id_t>;
-        explicit sym_id_t(const type_t::ref& base, const string_t &id);
+        explicit sym_id_t(const type_t::ref &base, const string_t &id);
         symbol_t get_type() const override;
         symbol_t get_base_type() const override;
         int size() const override;
         string_t get_name() const override;
         string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
         type_t::ref base;
+        type_exp_t::ref init;
         string_t id;
         sym_class_t clazz{z_undefined};
         uint addr{0};
@@ -116,7 +152,7 @@ namespace clib {
 
     class sym_func_t : public sym_id_t {
     public:
-        explicit sym_func_t(const type_t::ref& base, const string_t &id);
+        explicit sym_func_t(const type_t::ref &base, const string_t &id);
         symbol_t get_type() const override;
         symbol_t get_base_type() const override;
         int size() const override;
@@ -125,18 +161,10 @@ namespace clib {
         uint ebp{0}, ebp_local{0};
     };
 
-    class type_exp_t : public sym_t {
-    public:
-        using ref = std::shared_ptr<type_exp_t>;
-        symbol_t get_type() const override;
-        symbol_t get_base_type() const override;
-        type_t::ref base;
-    };
-
     class sym_var_t : public type_exp_t {
     public:
         using ref = std::shared_ptr<sym_var_t>;
-        explicit sym_var_t(const type_t::ref& base, ast_node *node);
+        explicit sym_var_t(const type_t::ref &base, ast_node *node);
         symbol_t get_type() const override;
         int size() const override;
         string_t get_name() const override;
@@ -147,7 +175,7 @@ namespace clib {
     class sym_unop_t : public type_exp_t {
     public:
         using ref = std::shared_ptr<sym_unop_t>;
-        explicit sym_unop_t(const type_exp_t::ref& exp, ast_node *op);
+        explicit sym_unop_t(const type_exp_t::ref &exp, ast_node *op);
         symbol_t get_type() const override;
         int size() const override;
         string_t get_name() const override;
@@ -159,7 +187,7 @@ namespace clib {
     class sym_sinop_t : public type_exp_t {
     public:
         using ref = std::shared_ptr<sym_sinop_t>;
-        explicit sym_sinop_t(const type_exp_t::ref& exp, ast_node *op);
+        explicit sym_sinop_t(const type_exp_t::ref &exp, ast_node *op);
         symbol_t get_type() const override;
         int size() const override;
         string_t get_name() const override;
@@ -171,7 +199,7 @@ namespace clib {
     class sym_binop_t : public type_exp_t {
     public:
         using ref = std::shared_ptr<sym_binop_t>;
-        explicit sym_binop_t(const type_exp_t::ref& exp1, const type_exp_t::ref& exp2, ast_node *op);
+        explicit sym_binop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2, ast_node *op);
         symbol_t get_type() const override;
         int size() const override;
         string_t get_name() const override;
@@ -183,8 +211,8 @@ namespace clib {
     class sym_triop_t : public type_exp_t {
     public:
         using ref = std::shared_ptr<sym_triop_t>;
-        explicit sym_triop_t(const type_exp_t::ref& exp1, const type_exp_t::ref& exp2,
-                const type_exp_t::ref& exp3, ast_node *op1, ast_node *op2);
+        explicit sym_triop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2,
+                             const type_exp_t::ref &exp3, ast_node *op1, ast_node *op2);
         symbol_t get_type() const override;
         int size() const override;
         string_t get_name() const override;
@@ -204,7 +232,7 @@ namespace clib {
     };
 
     // 生成虚拟机指令
-    class cgen : public csemantic {
+    class cgen : public csemantic, public igen {
     public:
         cgen();
         ~cgen() = default;
@@ -216,12 +244,15 @@ namespace clib {
 
         void gen(ast_node *node);
         void reset();
+
+        void emit(ins_t) override;
+        void emit(ins_t, uint) override;
     private:
         void gen_rec(ast_node *node, int level);
         void gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node);
 
-        void allocate(sym_id_t::ref id);
-        void add_id(const type_base_t::ref &, sym_class_t, ast_node *);
+        void allocate(sym_id_t::ref id, const type_exp_t::ref &init);
+        sym_id_t::ref add_id(const type_base_t::ref &, sym_class_t, ast_node *, const type_exp_t::ref &);
 
         sym_t::ref find_symbol(const string_t &name);
         sym_var_t::ref primary_node(ast_node *node);
@@ -233,7 +264,7 @@ namespace clib {
         static type_exp_t::ref to_exp(sym_t::ref s);
 
     private:
-        std::vector<LEX_T(int)> text; // 代码
+        std::vector<LEX_T(uint)> text; // 代码
         std::vector<LEX_T(char)> data; // 数据
         std::vector<std::unordered_map<LEX_T(string), std::shared_ptr<sym_t>>> symbols; // 符号表
         std::vector<std::vector<ast_node *>> ast;

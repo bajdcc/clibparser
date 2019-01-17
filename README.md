@@ -33,7 +33,7 @@ struct sx {
     int *a;
     double b;
 };
-int *a, *_a;
+int *a, *_a, _b = 1, _c = "Hello world!";
 double *b;
 int *main(int c, float *d, sx x, char y) {
     unsigned int *a, *b;
@@ -48,6 +48,7 @@ int main2() {
     --1+++---1++;
     a.b----[1](1,2);
 }
+int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 ```
 
 结果（每个单词都保存了在源文件中的位置，这里省略）：
@@ -59,8 +60,10 @@ int main2() {
 [DEBUG] Type: int
 [DEBUG] Id: int* a, Class: global id, Addr: 0
 [DEBUG] Id: int* _a, Class: global id, Addr: 4
+[DEBUG] Id: int _b, Class: global id, Init: (type: int, int: 1), Addr: 8
+[DEBUG] Id: int _c, Class: global id, Init: (type: char*, string: "Hello world!"), Addr: 12
 [DEBUG] Type: double
-[DEBUG] Id: double* b, Class: global id, Addr: 8
+[DEBUG] Id: double* b, Class: global id, Addr: 28
 [DEBUG] Type: int
 [DEBUG] Type: int
 [DEBUG] Type: float
@@ -77,8 +80,9 @@ int main2() {
 [DEBUG] Id: float f, Class: local id, Addr: 48
 [DEBUG] Type: sx
 [DEBUG] Id: sx* s1, Class: local id, Addr: 52
+[DEBUG] *GEN* ==> LEV
 [DEBUG] Type: int
-[DEBUG] Func: int main2, Param: [], Class: func id, Addr: 0
+[DEBUG] Func: int main2, Param: [], Class: func id, Addr: 1
 [DEBUG] Type: int
 [DEBUG] Id: int a, Class: local id, Addr: 8
 [DEBUG] Id: int b, Class: local id, Addr: 12
@@ -91,6 +95,19 @@ int main2() {
 [DEBUG] Exp: (binop, operator: (, exp1: (binop, operator: [, exp1: (sinop, operator: --, exp: (sinop, operator: --, exp:
  (binop, operator: ., exp1: (type: int, id: a), exp2: (type: int, id: b)))), exp2: (type: int, int: 1)), exp2: (list, (t
 ype: int, int: 1)))
+[DEBUG] *GEN* ==> LEV
+[DEBUG] Type: int
+[DEBUG] Type: uint
+[DEBUG] Type: double
+[DEBUG] Type: char
+[DEBUG] Func: int test, Param: [uint a, Class: param id, Addr: 0; double b, Class: param id, Addr: 4; char c, Class: par
+am id, Addr: 12], Class: func id, Addr: 2
+[DEBUG] Type: long
+[DEBUG] Func: int tb, Param: [long d, Class: param id, Addr: 0], Class: func id, Addr: 2
+[DEBUG] Type: int
+[DEBUG] Func: int td, Param: [int e, Class: param id, Addr: 0], Class: func id, Addr: 2
+[DEBUG] Id: int ta, Class: global id, Addr: 32
+[DEBUG] Id: int tc, Class: global id, Addr: 36
 ```
 
 ## 调试信息

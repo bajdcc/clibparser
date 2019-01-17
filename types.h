@@ -251,6 +251,9 @@ struct base_lexer_t<obj> \
 #define OPERATOR_PRED(t) lexer_operatorpred(t)
 #define OP_INS(t) lexer_op2ins(t)
 
+    const string_t& ins_str(ins_t);
+#define INS_STRING(t) ins_str(t)
+
     enum coll_t {
         c_program,
         c_primaryExpression,
