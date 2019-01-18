@@ -453,13 +453,28 @@ namespace clib {
 
     gen_t sym_binop_t::gen_rvalue(igen &gen) {
         switch (op->data._op) {
+            case op_equal:
             case op_plus:
-            case op_minus: {
+            case op_minus:
+            case op_times:
+            case op_divide:
+            case op_bit_and:
+            case op_bit_or:
+            case op_bit_xor:
+            case op_mod:
+            case op_less_than:
+            case op_less_than_or_equal:
+            case op_greater_than:
+            case op_greater_than_or_equal:
+            case op_not_equal:
+            case op_left_shift:
+            case op_right_shift: {
                 exp1->gen_rvalue(gen); // exp1
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen); // exp2
                 base = exp1->base->clone();
-                if (exp1->base->ptr > 0 && exp2->base->to_string() == "int") { // 指针+常量
+                if ((op->data._op == op_plus || op->data._op == op_minus) &&
+                    exp1->base->ptr > 0 && exp2->base->to_string() == "int") { // 指针+常量
                     gen.emit(PUSH);
                     exp2->gen_rvalue(gen);
                     gen.emit(MUL);
@@ -964,21 +979,25 @@ namespace clib {
             case c_castExpression:
                 break;
             case c_multiplicativeExpression:
-                break;
-            case c_additiveExpression: {
+            case c_additiveExpression:
+            case c_shiftExpression:
+            case c_relationalExpression:
+            case c_equalityExpression:
+            case c_andExpression:
+            case c_exclusiveOrExpression:
+            case c_inclusiveOrExpression:
+            case c_logicalAndExpression:
+            case c_logicalOrExpression:
+            case c_conditionalExpression: {
                 auto &_tmp = tmp.back();
                 auto tmp_i = 0;
                 auto exp1 = to_exp(_tmp[tmp_i++]);
                 auto exp2 = to_exp(_tmp[tmp_i++]);
                 for (auto &a : asts) {
                     if (AST_IS_OP(a)) {
-                        if (AST_IS_OP_K(a, op_plus) || AST_IS_OP_K(a, op_minus)) {
-                            exp1 = std::make_shared<sym_binop_t>(exp1, exp2, a);
-                            if (tmp_i < _tmp.size())
-                                exp2 = to_exp(_tmp[tmp_i++]);
-                        } else {
-                            error("invalid plus/minus exp: op");
-                        }
+                        exp1 = std::make_shared<sym_binop_t>(exp1, exp2, a);
+                        if (tmp_i < _tmp.size())
+                            exp2 = to_exp(_tmp[tmp_i++]);
                     } else {
                         error("invalid plus/minus exp: coll");
                     }
@@ -987,24 +1006,6 @@ namespace clib {
                 _tmp.push_back(exp1);
                 asts.clear();
             }
-                break;
-            case c_shiftExpression:
-                break;
-            case c_relationalExpression:
-                break;
-            case c_equalityExpression:
-                break;
-            case c_andExpression:
-                break;
-            case c_exclusiveOrExpression:
-                break;
-            case c_inclusiveOrExpression:
-                break;
-            case c_logicalAndExpression:
-                break;
-            case c_logicalOrExpression:
-                break;
-            case c_conditionalExpression:
                 break;
             case c_assignmentExpression: {
                 auto &_tmp = tmp.back();
