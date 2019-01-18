@@ -413,7 +413,6 @@ namespace clib {
                 if (base->to_string().back() != '*')
                     gen.error("invalid deref: " + to_string());
                 base->ptr--;
-                gen.emit(LOAD, std::max(exp->size(x_inc), 1));
                 break;
             default:
                 gen.error("unsupported unop");
@@ -585,8 +584,30 @@ namespace clib {
     }
 
     gen_t sym_binop_t::gen_lvalue(igen &gen) {
-        gen.error("not supported lvalue: " + to_string());
-        return g_error;
+        switch (op->data._op) {
+            case op_lsquare: {
+                exp1->gen_rvalue(gen);
+                base = exp1->base->clone();
+                if (exp1->base->to_string().back() != '*')
+                    gen.error("invalid address by []");
+                base->ptr--;
+                gen.emit(PUSH); // 压入数组地址
+                exp2->gen_rvalue(gen); // index
+                auto n = exp1->size(x_inc);
+                if (n > 1) {
+                    gen.emit(PUSH);
+                    gen.emit(IMM, n);
+                    gen.emit(MUL);
+                    gen.emit(ADD);
+                } else {
+                    gen.emit(ADD);
+                }
+            }
+                break;
+            default:
+                gen.error("not supported lvalue: " + to_string());
+                return g_error;
+        }
     }
 
     gen_t sym_binop_t::gen_rvalue(igen &gen) {
