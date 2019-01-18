@@ -10,7 +10,9 @@ add_executable(clibparser main.cpp
         cparser.h cparser.cpp
         memory.h memory_gc.h
         types.h types.cpp
-        cunit.h cunit.cpp cgen.cpp cgen.h)
+        cunit.h cunit.cpp
+        cgen.h cgen.cpp
+        cvm.h cvm.cpp)
 
 add_executable(clibparser-test test.cpp
         cast.h cast.cpp
@@ -19,4 +21,6 @@ add_executable(clibparser-test test.cpp
         cparser.h cparser.cpp
         memory.h memory_gc.h
         types.h types.cpp
-        cunit.h cunit.cpp cgen.cpp cgen.h)
+        cunit.h cunit.cpp
+        cgen.h cgen.cpp
+        cvm.h cvm.cpp)

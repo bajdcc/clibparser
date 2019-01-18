@@ -167,7 +167,7 @@ namespace clib {
         return std::get<4>(operator_string_list[type]);
     }
 
-    int lexer_op2ins(operator_t type) {
+    ins_t lexer_op2ins(operator_t type) {
         assert(type > op__start && type < op__end);
         return std::get<3>(operator_string_list[type]);
     }
@@ -267,10 +267,10 @@ namespace clib {
             std::make_tuple(JZ, "JZ"),
             std::make_tuple(JNZ, "JNZ"),
             std::make_tuple(ENT, "ENT"),
-            std::make_tuple(ADJ, "ADJ"),
-            std::make_tuple(LEV, "LEV"),
             std::make_tuple(LOAD, "LOAD"),
             std::make_tuple(SAVE, "SAVE"),
+            std::make_tuple(ADJ, "ADJ"),
+            std::make_tuple(LEV, "LEV"),
             std::make_tuple(PUSH, "PUSH"),
             std::make_tuple(OR, "OR"),
             std::make_tuple(XOR, "XOR"),

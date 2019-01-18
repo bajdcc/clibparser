@@ -71,7 +71,7 @@ namespace clib {
             operator_t _op;
             coll_t _coll;
             struct {
-                uint32 _1, _2;
+                uint _1, _2;
             } _ins;
         } data; // 数据
 

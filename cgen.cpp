@@ -9,6 +9,7 @@
 #include <iomanip>
 #include "cgen.h"
 #include "cast.h"
+#include "cvm.h"
 #include "cexception.h"
 
 #define AST_IS_KEYWORD(node) ((node)->flag == ast_keyword)
@@ -213,7 +214,10 @@ namespace clib {
         if (clazz == z_global_var) {
             gen.emit(IMM, DATA_BASE | addr);
             if (base->ptr == 0)
-                gen.emit(LOAD, (uint) base->size());
+                gen.emit(LOAD, base->size());
+        } else if (clazz == z_local_var) {
+            gen.emit(LEA, addr);
+            gen.emit(LOAD, base->size());
         }
         return g_ok;
     }
@@ -281,7 +285,10 @@ namespace clib {
         return s_expression;
     }
 
-    sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : type_exp_t(base), node(node) {}
+    sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : type_exp_t(base), node(node) {
+        line = node->line;
+        column = node->column;
+    }
 
     symbol_t sym_var_t::get_type() const {
         return s_var;
@@ -306,11 +313,38 @@ namespace clib {
     }
 
     gen_t sym_var_t::gen_rvalue(igen &gen) {
+        switch ((ast_t) node->flag) {
+#define DEFINE_VAR(t) \
+            case ast_##t: \
+                gen.emit(IMM, (LEX_T(int))(node->data._##t)); \
+                break;
+            DEFINE_VAR(char)
+            DEFINE_VAR(uchar)
+            DEFINE_VAR(short)
+            DEFINE_VAR(ushort)
+            DEFINE_VAR(int)
+            DEFINE_VAR(uint)
+            DEFINE_VAR(float)
+#undef DEFINE_VAR
+            case ast_long:
+            case ast_ulong:
+            case ast_double:
+                gen.emit(IMX, node->data._ins._1, node->data._ins._2); // 载入8字节
+                break;
+            case ast_string: {
+                gen.emit(IMM, gen.load_string(node->data._string));
+                gen.emit(LOAD); // 载入data段指令
+            }
+                break;
+            default:
+                gen.error("sym_var_t::gen_rvalue unsupported type");
+                break;
+        }
         return g_ok;
     }
 
     sym_var_id_t::sym_var_id_t(const type_t::ref &base, ast_node *node, const sym_t::ref &symbol)
-        : sym_var_t(base, node), id(symbol) {}
+            : sym_var_t(base, node), id(symbol) {}
 
     symbol_t sym_var_id_t::get_type() const {
         return s_var_id;
@@ -337,7 +371,10 @@ namespace clib {
     }
 
     sym_unop_t::sym_unop_t(const type_exp_t::ref &exp, ast_node *op)
-        : type_exp_t(nullptr), exp(exp), op(op) {}
+            : type_exp_t(nullptr), exp(exp), op(op) {
+        line = exp->line;
+        column = exp->column;
+    }
 
     symbol_t sym_unop_t::get_type() const {
         return s_unop;
@@ -358,7 +395,10 @@ namespace clib {
     }
 
     sym_sinop_t::sym_sinop_t(const type_exp_t::ref &exp, ast_node *op)
-        : type_exp_t(nullptr), exp(exp), op(op) {}
+            : type_exp_t(nullptr), exp(exp), op(op) {
+        line = exp->line;
+        column = exp->column;
+    }
 
     symbol_t sym_sinop_t::get_type() const {
         return s_sinop;
@@ -379,7 +419,10 @@ namespace clib {
     }
 
     sym_binop_t::sym_binop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2, ast_node *op)
-            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), op(op) {}
+            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), op(op) {
+        line = exp1->line;
+        column = exp1->column;
+    }
 
     symbol_t sym_binop_t::get_type() const {
         return s_binop;
@@ -401,9 +444,38 @@ namespace clib {
         return ss.str();
     }
 
+    gen_t sym_binop_t::gen_lvalue(igen &gen) {
+        return g_ok;
+    }
+
+    gen_t sym_binop_t::gen_rvalue(igen &gen) {
+        switch (op->data._op) {
+            case op_plus:
+            case op_minus: {
+                exp1->gen_rvalue(gen); // exp1
+                gen.emit(PUSH);
+                exp2->gen_rvalue(gen); // exp2
+                base = exp1->base->clone();
+                if (exp1->base->ptr > 0 && exp2->base->to_string() == "int") { // 指针+常量
+                    gen.emit(PUSH);
+                    exp2->gen_rvalue(gen);
+                    gen.emit(MUL);
+                }
+                gen.emit(OP_INS(op->data._op));
+            }
+                break;
+            default:
+                break;
+        }
+        return g_ok;
+    }
+
     sym_triop_t::sym_triop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2,
                              const type_exp_t::ref &exp3, ast_node *op1, ast_node *op2)
-            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {}
+            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {
+        line = exp1->line;
+        column = exp1->column;
+    }
 
     symbol_t sym_triop_t::get_type() const {
         return s_triop;
@@ -466,6 +538,15 @@ namespace clib {
         ast.emplace_back();
     }
 
+    void cgen::eval() {
+        auto entry = symbols[0].find("main");
+        if (entry == symbols[0].end()) {
+            error("main() not defined");
+        }
+        cvm vm(text, data);
+        vm.exec(std::dynamic_pointer_cast<sym_func_t>(entry->second)->addr);
+    }
+
     void cgen::emit(ins_t i) {
         text.push_back(i);
 #if LOG_TYPE
@@ -473,13 +554,37 @@ namespace clib {
 #endif
     }
 
-    void cgen::emit(ins_t i, uint d) {
+    void cgen::emit(ins_t i, int d) {
         text.push_back(i);
         text.push_back(d);
 #if LOG_TYPE
         std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) << " " <<
-        std::setiosflags(std::ios::uppercase) << std::hex << d << std::endl;
+                  std::setiosflags(std::ios::uppercase) << std::hex << d << std::endl;
 #endif
+    }
+
+    void cgen::emit(ins_t i, int d, int e) {
+        text.push_back(i);
+        text.push_back(d);
+#if LOG_TYPE
+        std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) <<
+                  " " << std::setiosflags(std::ios::uppercase) << std::hex <<
+                  d << " " << e << std::endl;
+#endif
+    }
+
+    int cgen::load_string(const string_t &s) {
+        auto addr = data.size();
+        std::copy(s.begin(), s.end(), std::back_inserter(data));
+        data.push_back(0);
+        while (data.size() % 4 != 0) {
+            data.push_back(0);
+        }
+#if LOG_TYPE
+        std::cout << "[DEBUG] *GEN* <== STRING: \"" << cast::display_str(s.c_str())
+                  << "\", addr: " << addr << ", size: " << s.length() << std::endl;
+#endif
+        return addr;
     }
 
     template<class T>
@@ -1129,6 +1234,7 @@ namespace clib {
 #endif
                     if (has_impl) {
                         tmps.push_back(func);
+                        emit(ENT, func->ebp_local - func->ebp);
                     } else {
                         ctx.reset();
                     }
@@ -1234,8 +1340,8 @@ namespace clib {
     }
 
     type_exp_t::ref cgen::to_exp(sym_t::ref s) {
-        if(s->get_base_type() != s_expression){
-            auto a=1;
+        if (s->get_base_type() != s_expression) {
+            auto a = 1;
         }
         assert(s->get_base_type() == s_expression);
         return std::dynamic_pointer_cast<type_exp_t>(s);
@@ -1256,12 +1362,7 @@ namespace clib {
                               ((char *) &node->data._ins) + size,
                               std::back_inserter(data));
                 } else {
-                    auto s = string_t(node->data._string);
-                    std::copy(s.begin(), s.end(), std::back_inserter(data));
-                    data.push_back(0);
-                    while (data.size() % 4 != 0) {
-                        data.push_back(0);
-                    }
+                    load_string(node->data._string);
                 }
             } else {
                 for (auto i = 0; i < size; ++i) {
@@ -1272,7 +1373,7 @@ namespace clib {
             auto size = align4(type->size());
             auto func = std::dynamic_pointer_cast<sym_func_t>(ctx.lock());
             func->ebp_local += size;
-            id->addr = func->ebp_local;
+            id->addr = func->ebp - func->ebp_local;
         } else if (id->clazz == z_param_var) {
             auto size = align4(type->size());
             auto func = std::dynamic_pointer_cast<sym_func_t>(ctx.lock());

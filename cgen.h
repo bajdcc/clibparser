@@ -52,12 +52,16 @@ namespace clib {
     class igen {
     public:
         virtual void emit(ins_t) = 0;
-        virtual void emit(ins_t, uint) = 0;
+        virtual void emit(ins_t, int) = 0;
+        virtual void emit(ins_t, int, int) = 0;
+        virtual int load_string(const string_t &) = 0;
+        virtual void error(const string_t &) = 0;
     };
 
     class sym_t {
     public:
         using ref = std::shared_ptr<sym_t>;
+        using weak_ref = std::weak_ptr<sym_t>;
         virtual symbol_t get_type() const;
         virtual symbol_t get_base_type() const;
         virtual int size() const;
@@ -96,7 +100,7 @@ namespace clib {
         int size() const override;
         string_t to_string() const override;
         ref clone() const override;
-        std::weak_ptr<sym_t> refer;
+        sym_t::weak_ref refer;
     };
 
     enum sym_class_t {
@@ -135,7 +139,7 @@ namespace clib {
         type_exp_t::ref init;
         string_t id;
         sym_class_t clazz{z_undefined};
-        uint addr{0};
+        int addr{0};
     };
 
     class sym_struct_t : public sym_t {
@@ -160,7 +164,7 @@ namespace clib {
         int size() const override;
         string_t to_string() const override;
         std::vector<sym_id_t::ref> params;
-        uint ebp{0}, ebp_local{0};
+        int ebp{0}, ebp_local{0};
     };
 
     class sym_var_t : public type_exp_t {
@@ -186,7 +190,7 @@ namespace clib {
         string_t to_string() const override;
         gen_t gen_lvalue(igen &gen) override;
         gen_t gen_rvalue(igen &gen) override;
-        std::weak_ptr<sym_t> id;
+        sym_t::weak_ref id;
     };
 
     class sym_unop_t : public type_exp_t {
@@ -221,6 +225,8 @@ namespace clib {
         int size() const override;
         string_t get_name() const override;
         string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
         type_exp_t::ref exp1, exp2;
         ast_node *op{nullptr};
     };
@@ -262,9 +268,13 @@ namespace clib {
 
         void gen(ast_node *node);
         void reset();
+        void eval();
 
         void emit(ins_t) override;
-        void emit(ins_t, uint) override;
+        void emit(ins_t, int) override;
+        void emit(ins_t, int, int) override;
+        int load_string(const string_t &) override;
+        void error(const string_t &) override;
     private:
         void gen_rec(ast_node *node, int level);
         void gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node);
@@ -275,19 +285,18 @@ namespace clib {
         sym_t::ref find_symbol(const string_t &name);
         sym_var_t::ref primary_node(ast_node *node);
 
-        void error(const string_t &);
         void error(ast_node *, const string_t &, bool info = false);
         void error(sym_t *, const string_t &);
 
         static type_exp_t::ref to_exp(sym_t::ref s);
 
     private:
-        std::vector<LEX_T(uint)> text; // 代码
+        std::vector<LEX_T(int)> text; // 代码
         std::vector<LEX_T(char)> data; // 数据
         std::vector<std::unordered_map<LEX_T(string), std::shared_ptr<sym_t>>> symbols; // 符号表
         std::vector<std::vector<ast_node *>> ast;
         std::vector<std::vector<std::shared_ptr<sym_t>>> tmp;
-        std::weak_ptr<sym_t> ctx;
+        sym_t::weak_ref ctx;
     };
 }
 

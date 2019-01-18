@@ -165,7 +165,7 @@ namespace clib {
     };
 
     enum ins_t {
-        NOP, LEA, IMM, IMX, JMP, CALL, JZ, JNZ, ENT, ADJ, LEV, LOAD, SAVE, PUSH,
+        NOP, LEA, IMM, IMX, JMP, CALL, JZ, JNZ, ENT, LOAD, SAVE, ADJ, LEV, PUSH,
         OR, XOR, AND, EQ, NE, LT, GT, LE, GE, SHL, SHR, ADD, SUB, MUL, DIV, MOD,
         OPEN, READ, CLOS, PRTF, MALC, MSET, MCMP, TRAC, TRAN, EXIT
     };
@@ -235,7 +235,7 @@ struct base_lexer_t<obj> \
     const string_t &lexer_opnamestr(operator_t);
     const string_t &lexer_errstr(error_t);
     int lexer_operatorpred(operator_t);
-    int lexer_op2ins(operator_t);
+    ins_t lexer_op2ins(operator_t);
 
 #define LEX_T(t) base_t<l_##t>::type
 #define LEX_CONV_T(t) base_lexer_t<t>::type

@@ -16,7 +16,7 @@ struct sx {
 int *a, *_a, _b = 1;
 char *_c = "Hello world!";
 double *b;
-int *main(int c, float *d, sx x, char y) {
+int *main1(int c, float *d, sx x, char y) {
     unsigned int *a, *b;
     float d, *e, f;
     sx *s1;
@@ -26,13 +26,14 @@ int main2() {
     int a, b, c;
     a + b + 1 - 2;
     a = b = c;
-    --1+++---1++;
-    a.b----[1](1,2);
+    //--1+++---1++;
+    //a.b----[1](1,2);
 }
 int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 char *aa = "bajdcc";
-int bb;
-int main3(){
+int bb = 2;
+int main(){
+    int cc = 1;
     aa;
     bb;
     bb + 1;
@@ -40,6 +41,7 @@ int main3(){
 )", &gen);
         cast::print(root, 0, std::cout);
         gen.gen(root);
+        gen.eval();
     } catch (const cexception &e) {
         std::cout << "RUNTIME ERROR: " << e.msg << std::endl;
     }
