@@ -140,6 +140,7 @@ namespace clib {
         string_t id;
         sym_class_t clazz{z_undefined};
         int addr{0};
+        int addr_end{0};
     };
 
     class sym_struct_t : public sym_t {
@@ -165,6 +166,7 @@ namespace clib {
         string_t to_string() const override;
         std::vector<sym_id_t::ref> params;
         int ebp{0}, ebp_local{0};
+        int entry{0};
     };
 
     class sym_var_t : public type_exp_t {
@@ -286,7 +288,7 @@ namespace clib {
         sym_var_t::ref primary_node(ast_node *node);
 
         void error(ast_node *, const string_t &, bool info = false);
-        void error(sym_t *, const string_t &);
+        void error(sym_t::ref s, const string_t &);
 
         static type_exp_t::ref to_exp(sym_t::ref s);
 

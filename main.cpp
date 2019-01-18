@@ -32,11 +32,17 @@ int main2() {
 int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 char *aa = "bajdcc";
 int bb = 2;
+int dd = bb;
 int main(){
+    char *ee = "hello";
+    char *ff = aa;
+    char *gg = ff;
     int cc = 1;
     aa;
     bb;
     bb + 1;
+    dd;
+    cc + 1;
 }
 )", &gen);
         cast::print(root, 0, std::cout);

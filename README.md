@@ -52,219 +52,23 @@ int main2() {
 int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
 char *aa = "bajdcc";
 int bb = 2;
+int dd = bb;
 int main(){
+    char *ee = "hello";
+    char *ff = aa;
+    char *gg = ff;
     int cc = 1;
     aa;
     bb;
     bb + 1;
+    dd;
+    cc + 1;
 }
 ```
 
 结果（每个单词都保存了在源文件中的位置，这里省略）：
-```cpp
-[DEBUG] Type: int
-[DEBUG] Id: int* a, Class: struct id, Addr: 0
-[DEBUG] Type: double
-[DEBUG] Id: double b, Class: struct id, Addr: 0
-[DEBUG] Type: int
-[DEBUG] Id: int* a, Class: global id, Addr: 0
-[DEBUG] Id: int* _a, Class: global id, Addr: 4
-[DEBUG] Id: int _b, Class: global id, Init: (type: int, int: 1), Addr: 8
-[DEBUG] Type: char
-[DEBUG] *GEN* <== STRING: "Hello world!", addr: 12, size: 12
-[DEBUG] Id: char* _c, Class: global id, Init: (type: char*, string: "Hello world!"), Addr: 12
-[DEBUG] Type: double
-[DEBUG] Id: double* b, Class: global id, Addr: 28
-[DEBUG] Type: int
-[DEBUG] Type: int
-[DEBUG] Type: float
-[DEBUG] Type: sx
-[DEBUG] Type: char
-[DEBUG] Func: int* main1, Param: [int c, Class: param id, Addr: 0; float* d, Class: param id, Addr: 4; sx x, Class: para
-m id, Addr: 8; char y, Class: param id, Addr: 20], Class: func id, Addr: 0
-[DEBUG] *GEN* ==> ENT 0
-[DEBUG] Type: uint
-[DEBUG] Id: uint* a, Class: local id, Addr: -4
-[DEBUG] Id: uint* b, Class: local id, Addr: -8
-[DEBUG] Type: float
-[DEBUG] Id: float d, Class: local id, Addr: -12
-[DEBUG] Id: float* e, Class: local id, Addr: -16
-[DEBUG] Id: float f, Class: local id, Addr: -20
-[DEBUG] Type: sx
-[DEBUG] Id: sx* s1, Class: local id, Addr: -24
-[DEBUG] *GEN* ==> LEV
-[DEBUG] Type: int
-[DEBUG] Func: int main2, Param: [], Class: func id, Addr: 3
-[DEBUG] *GEN* ==> ENT 0
-[DEBUG] Type: int
-[DEBUG] Id: int a, Class: local id, Addr: -4
-[DEBUG] Id: int b, Class: local id, Addr: -8
-[DEBUG] Id: int c, Class: local id, Addr: -12
-[DEBUG] Exp: (binop, operator: -, exp1: (binop, operator: +, exp1: (binop, operator: +, exp1: int a, Class: local id, Ad
-dr: -4, exp2: int b, Class: local id, Addr: -8), exp2: (type: int, int: 1)), exp2: (type: int, int: 2))
-[DEBUG] *GEN* ==> LEA FFFFFFFC
-[DEBUG] *GEN* ==> LOAD 4
-[DEBUG] *GEN* ==> PUSH
-[DEBUG] *GEN* ==> LEA FFFFFFF8
-[DEBUG] *GEN* ==> LOAD 4
-[DEBUG] *GEN* ==> ADD
-[DEBUG] *GEN* ==> PUSH
-[DEBUG] *GEN* ==> IMM 1
-[DEBUG] *GEN* ==> ADD
-[DEBUG] *GEN* ==> PUSH
-[DEBUG] *GEN* ==> IMM 2
-[DEBUG] *GEN* ==> SUB
-[DEBUG] Exp: int c, Class: local id, Addr: -12
-[DEBUG] *GEN* ==> LEA FFFFFFF4
-[DEBUG] *GEN* ==> LOAD 4
-[DEBUG] *GEN* ==> LEV
-[DEBUG] Type: int
-[DEBUG] Type: uint
-[DEBUG] Type: double
-[DEBUG] Type: char
-[DEBUG] Func: int test, Param: [uint a, Class: param id, Addr: 0; double b, Class: param id, Addr: 4; char c, Class: par
-am id, Addr: 12], Class: func id, Addr: 28
-[DEBUG] Type: long
-[DEBUG] Func: int tb, Param: [long d, Class: param id, Addr: 0], Class: func id, Addr: 28
-[DEBUG] Type: int
-[DEBUG] Func: int td, Param: [int e, Class: param id, Addr: 0], Class: func id, Addr: 28
-[DEBUG] Id: int ta, Class: global id, Addr: 32
-[DEBUG] Id: int tc, Class: global id, Addr: 36
-[DEBUG] Type: char
-[DEBUG] *GEN* <== STRING: "bajdcc", addr: 28, size: 6
-[DEBUG] Id: char* aa, Class: global id, Init: (type: char*, string: "bajdcc"), Addr: 40
-[DEBUG] Type: int
-[DEBUG] Id: int bb, Class: global id, Init: (type: int, int: 2), Addr: 48
-[DEBUG] Type: int
-[DEBUG] Func: int main, Param: [], Class: func id, Addr: 28
-[DEBUG] *GEN* ==> ENT 0
-[DEBUG] Type: int
-[DEBUG] Id: int cc, Class: local id, Init: (type: int, int: 1), Addr: -4
-[DEBUG] Exp: char* aa, Class: global id, Init: (type: char*, string: "bajdcc"), Addr: 40
-[DEBUG] *GEN* ==> IMM D0000028
-[DEBUG] Exp: int bb, Class: global id, Init: (type: int, int: 2), Addr: 48
-[DEBUG] *GEN* ==> IMM D0000030
-[DEBUG] *GEN* ==> LOAD 4
-[DEBUG] Exp: (binop, operator: +, exp1: int bb, Class: global id, Init: (type: int, int: 2), Addr: 48, exp2: (type: int,
- int: 1))
-[DEBUG] *GEN* ==> IMM D0000030
-[DEBUG] *GEN* ==> LOAD 4
-[DEBUG] *GEN* ==> PUSH
-[DEBUG] *GEN* ==> IMM 1
-[DEBUG] *GEN* ==> ADD
-[DEBUG] *GEN* ==> LEV
-0001> [C0000074] 08 ENT 00000000(0)
 
----------------- STACK BEGIN <<<<
-AX: 00000000 BP: E0000FF0 SP: E0000FF0 PC: C0000078
-[E0000FF0]> 00000000
-[E0000FF4]> E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0002> [C000007C] 02 IMM D0000028(-805306328)
-
----------------- STACK BEGIN <<<<
-AX: D0000028 BP: E0000FF0 SP: E0000FF0 PC: C0000080
-[E0000FF0]> 00000000
-[E0000FF4]> E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0003> [C0000084] 02 IMM D0000030(-805306320)
-
----------------- STACK BEGIN <<<<
-AX: D0000030 BP: E0000FF0 SP: E0000FF0 PC: C0000088
-[E0000FF0]> 00000000
-[E0000FF4]> E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0004> [C000008C] 09 LOAD 00000004(4)
-
----------------- STACK BEGIN <<<<
-AX: 00000002 BP: E0000FF0 SP: E0000FF0 PC: C0000090
-[E0000FF0]> 00000000
-[E0000FF4]> E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0005> [C0000094] 02 IMM D0000030(-805306320)
-
----------------- STACK BEGIN <<<<
-AX: D0000030 BP: E0000FF0 SP: E0000FF0 PC: C0000098
-[E0000FF0]> 00000000
-[E0000FF4]> E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0006> [C000009C] 09 LOAD 00000004(4)
-
----------------- STACK BEGIN <<<<
-AX: 00000002 BP: E0000FF0 SP: E0000FF0 PC: C00000A0
-[E0000FF0]> 00000000
-[E0000FF4]> E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0007> [C00000A4] 13 PUSH 00000002
-
----------------- STACK BEGIN <<<<
-AX: 00000002 BP: E0000FF0 SP: E0000FEC PC: C00000A4
-[E0000FEC]> 00000002
-[E0000FF0]> 00000000
-[E0000FF4]> E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0008> [C00000A8] 02 IMM 00000001(1)
-
----------------- STACK BEGIN <<<<
-AX: 00000001 BP: E0000FF0 SP: E0000FEC PC: C00000AC
-[E0000FEC]> 00000002
-[E0000FF0]> 00000000
-[E0000FF4]> E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0009> [C00000B0] 25 ADD
-
----------------- STACK BEGIN <<<<
-AX: 00000003 BP: E0000FF0 SP: E0000FF0 PC: C00000B0
-[E0000FF0]> 00000000
-[E0000FF4]> E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0010> [C00000B4] 12 LEV
-
----------------- STACK BEGIN <<<<
-AX: 00000003 BP: 00000000 SP: E0000FF8 PC: E0000FF8
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0011> [E0000FFC] 13 PUSH 00000003
-
----------------- STACK BEGIN <<<<
-AX: 00000003 BP: 00000000 SP: E0000FF4 PC: E0000FFC
-[E0000FF4]> 00000003
-[E0000FF8]> 0000000D
-[E0000FFC]> 00000027
----------------- STACK END >>>>
-
-0012> [E0001000] 39 EXIT
-exit(3)
-```
+**因内容太多，故放置在文件[output.txt](https://raw.githubusercontent.com/bajdcc/clibparser/master/output.txt)中。**
 
 ## 调试信息
 
@@ -293,12 +97,23 @@ exit(3)
 
 测试文件在test.cpp中，编译为clibparser-test。
 
-**9个测试用例均通过，AST结果在test.txt中。Release模式下时间不超过1秒。**
+**9个测试用例均通过，AST结果在[test.txt](https://raw.githubusercontent.com/bajdcc/clibparser/master/test.txt)中。Release模式下时间不超过1秒。**
 
 ## 目标
 
 当前进展：
 
+- [x] 词法分析（LL手写识别）
+   - [x] 识别数字（科学计数+十六进制）
+   - [x] 识别变量名
+   - [x] 识别空白字符
+   - [x] 识别字符（支持所有转义）
+   - [x] 识别字符串（支持所有转义）
+   - [x] 识别数字（除去负号）
+   - [x] 识别注释
+   - [x] 识别关键字
+   - [x] 识别操作符
+   - [x] 错误处理
 - [x] 生成文法表达式
 - [x] 生成LR项目
 - [x] 生成非确定性文法自动机
@@ -330,13 +145,26 @@ exit(3)
     - [x] 计算变量声明地址
     - [ ] 识别语句
     - [ ] 识别表达式
-- [ ] 虚拟机
-    - [ ] 设计指令（寄存器式分配）
-    - [ ] 设计符号表
-    - [ ] 解析类型系统
-    - [ ] 生成指令
-    - [ ] 虚页分配（已实现）
-    - [ ] 运行指令
+- [ ] 代码生成
+    - [x] 全局变量及初始化
+    - [x] 局部变量及初始化
+    - [ ] 形参
+    - [ ] 函数调用
+    - [ ] 四则运算
+    - [ ] 赋值语句
+    - [ ] 返回语句
+    - [ ] if语句
+    - [ ] for语句
+    - [ ] while语句
+    - [ ] 解引用
+- [x] 虚拟机
+    - [x] 设计指令（寄存器式分配）
+    - [x] 设计符号表
+    - [x] 解析类型系统
+    - [x] 生成指令
+    - [x] 虚页分配（已实现）
+    - [x] 运行指令
+    - [ ] 扩展指令
 
 1. 将文法树转换表（完成）
 2. 根据PDA表生成AST（完成）

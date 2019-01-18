@@ -207,6 +207,11 @@ namespace clib {
     }
 
     gen_t sym_id_t::gen_lvalue(igen &gen) {
+        if (clazz == z_global_var) {
+            gen.emit(IMM, DATA_BASE | addr);
+        } else if (clazz == z_local_var) {
+            gen.emit(LEA, addr);
+        }
         return g_ok;
     }
 
@@ -331,10 +336,8 @@ namespace clib {
             case ast_double:
                 gen.emit(IMX, node->data._ins._1, node->data._ins._2); // 载入8字节
                 break;
-            case ast_string: {
-                gen.emit(IMM, gen.load_string(node->data._string));
-                gen.emit(LOAD); // 载入data段指令
-            }
+            case ast_string:
+                gen.emit(IMM, DATA_BASE | gen.load_string(node->data._string));
                 break;
             default:
                 gen.error("sym_var_t::gen_rvalue unsupported type");
@@ -1207,13 +1210,13 @@ namespace clib {
                             allocate(id, nullptr);
                             func->params.push_back(id);
                             if (!ids.insert(name).second) {
-                                error(id.get(), "conflict id: " + id->to_string());
+                                error(id, "conflict id: " + id->to_string());
                             }
                             {
                                 auto f = symbols[0].find(pa->data._string);
                                 if (f != symbols[0].end()) {
                                     if (f->second->get_type() == s_function) {
-                                        error(id.get(), "conflict id with function: " + id->to_string());
+                                        error(id, "conflict id with function: " + id->to_string());
                                     }
                                 }
                             }
@@ -1234,7 +1237,8 @@ namespace clib {
 #endif
                     if (has_impl) {
                         tmps.push_back(func);
-                        emit(ENT, func->ebp_local - func->ebp);
+                        emit(ENT, 0);
+                        func->entry = text.size() - 1;
                     } else {
                         ctx.reset();
                     }
@@ -1333,57 +1337,85 @@ namespace clib {
         throw cexception(ss.str());
     }
 
-    void cgen::error(sym_t *sym, const string_t &str) {
+    void cgen::error(sym_t::ref s, const string_t &str) {
         std::stringstream ss;
-        ss << "GEN ERROR: " << "[" << sym->line << ":" << sym->column << "] " << str;
+        ss << "GEN ERROR: " << "[" << s->line << ":" << s->column << "] " << str;
         throw cexception(ss.str());
     }
 
     type_exp_t::ref cgen::to_exp(sym_t::ref s) {
-        if (s->get_base_type() != s_expression) {
-            auto a = 1;
-        }
         assert(s->get_base_type() == s_expression);
         return std::dynamic_pointer_cast<type_exp_t>(s);
     }
 
     void cgen::allocate(sym_id_t::ref id, const type_exp_t::ref &init) {
         assert(id->base->get_base_type() == s_type);
-        assert(!init || init->get_type() == s_var);
         auto type = id->base;
         if (id->clazz == z_global_var) {
             id->addr = data.size();
             auto size = align4(type->size());
             if (init) {
-                auto var = std::dynamic_pointer_cast<sym_var_t>(init);
-                auto &node = var->node;
-                if (node->flag != ast_string) {
-                    std::copy((char *) &node->data._ins,
-                              ((char *) &node->data._ins) + size,
+                if (init->get_type() == s_var) {
+                    auto var = std::dynamic_pointer_cast<sym_var_t>(init);
+                    auto &node = var->node;
+                    if (node->flag != ast_string) {
+                        std::copy((char *) &node->data._ins,
+                                  ((char *) &node->data._ins) + size,
+                                  std::back_inserter(data));
+                    } else {
+                        load_string(node->data._string);
+                    }
+                } else if (init->get_type() == s_var_id) {
+                    auto var = std::dynamic_pointer_cast<sym_var_id_t>(init);
+                    auto _id = var->id.lock();
+                    if (_id->get_type() != s_id)
+                        error(id, "allocate: invalid init value");
+                    auto var2 = std::dynamic_pointer_cast<sym_id_t>(_id);
+                    std::copy(data.data() + var2->addr,
+                              data.data() + var2->addr_end,
                               std::back_inserter(data));
                 } else {
-                    load_string(node->data._string);
+                    error(id, "allocate: not supported");
                 }
             } else {
                 for (auto i = 0; i < size; ++i) {
                     data.push_back(0);
                 }
             }
+            id->addr_end = data.size();
         } else if (id->clazz == z_local_var) {
             auto size = align4(type->size());
             auto func = std::dynamic_pointer_cast<sym_func_t>(ctx.lock());
             func->ebp_local += size;
+            text[func->entry] += size;
             id->addr = func->ebp - func->ebp_local;
+            id->addr_end = id->addr - size;
+            if (init) {
+                auto var = std::dynamic_pointer_cast<sym_var_t>(init);
+                // L_VALUE
+                // PUSH
+                // R_VALUE
+                // SAVE
+                id->gen_lvalue(*this);
+                emit(PUSH);
+                var->gen_rvalue(*this);
+                emit(SAVE, size);
+            }
         } else if (id->clazz == z_param_var) {
+            if (init)
+                error(id, "allocate: invalid init value");
             auto size = align4(type->size());
             auto func = std::dynamic_pointer_cast<sym_func_t>(ctx.lock());
             id->addr = func->ebp;
             func->ebp += size;
+            id->addr_end = id->addr + size;
         } else if (id->clazz == z_struct_var) {
+            if (init)
+                error(id, "allocate: invalid init value");
             auto _struct = std::dynamic_pointer_cast<sym_struct_t>(ctx.lock());
             _struct->decls.push_back(id);
         } else {
-            assert(!"not supported");
+            error(id, "allocate: not supported");
         }
     }
 
@@ -1403,13 +1435,13 @@ namespace clib {
         std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
 #endif
         if (!symbols.back().insert(std::make_pair(node->data._string, new_id)).second) {
-            error(new_id.get(), "conflict id: " + new_id->to_string());
+            error(new_id, "conflict id: " + new_id->to_string());
         }
         if (symbols.size() > 1) {
             auto f = symbols[0].find(node->data._string);
             if (f != symbols[0].end()) {
                 if (f->second->get_type() == s_function) {
-                    error(new_id.get(), "conflict id with function: " + new_id->to_string());
+                    error(new_id, "conflict id with function: " + new_id->to_string());
                 }
             }
         }

@@ -1,0 +1,1116 @@
+compilationUnit
+ translationUnit
+  externalDeclaration
+   declaration
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       structOrUnionSpecifier
+        structOrUnion
+         keyword: struct
+        id: sx
+        structDeclarationList
+         structDeclaration
+          specifierQualifierList
+           typeSpecifier
+            keyword: int
+          structDeclaratorList
+           structDeclarator
+            declarator
+             pointer
+              operator: *
+             directDeclarator
+              id: a
+         structDeclaration
+          specifierQualifierList
+           typeSpecifier
+            keyword: double
+          structDeclaratorList
+           structDeclarator
+            declarator
+             directDeclarator
+              id: b
+  externalDeclaration
+   declaration
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: int
+    initDeclaratorList
+     initDeclarator
+      declarator
+       pointer
+        operator: *
+       directDeclarator
+        id: a
+     initDeclarator
+      declarator
+       pointer
+        operator: *
+       directDeclarator
+        id: _a
+     initDeclarator
+      declarator
+       directDeclarator
+        id: _b
+      initializer
+       primaryExpression
+        constant
+         int: 1
+  externalDeclaration
+   declaration
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: char
+    initDeclaratorList
+     initDeclarator
+      declarator
+       pointer
+        operator: *
+       directDeclarator
+        id: _c
+      initializer
+       primaryExpression
+        string: "Hello world!"
+  externalDeclaration
+   declaration
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: double
+    initDeclaratorList
+     initDeclarator
+      declarator
+       pointer
+        operator: *
+       directDeclarator
+        id: b
+  externalDeclaration
+   functionDefinition
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: int
+    declarator
+     pointer
+      operator: *
+     directDeclarator
+      id: main1
+      operator: (
+      parameterTypeList
+       parameterList
+        parameterDeclaration
+         declarationSpecifiers
+          declarationSpecifier
+           typeSpecifier
+            keyword: int
+         declarator
+          directDeclarator
+           id: c
+        parameterDeclaration
+         declarationSpecifiers
+          declarationSpecifier
+           typeSpecifier
+            keyword: float
+         declarator
+          pointer
+           operator: *
+          directDeclarator
+           id: d
+        parameterDeclaration
+         declarationSpecifiers
+          declarationSpecifier
+           typeSpecifier
+            typedefName
+             id: sx
+         declarator
+          directDeclarator
+           id: x
+        parameterDeclaration
+         declarationSpecifiers
+          declarationSpecifier
+           typeSpecifier
+            keyword: char
+         declarator
+          directDeclarator
+           id: y
+    compoundStatement
+     blockItemList
+      blockItem
+       declaration
+        declarationSpecifiers
+         declarationSpecifier
+          typeSpecifier
+           keyword: unsigned
+         declarationSpecifier
+          typeSpecifier
+           keyword: int
+        initDeclaratorList
+         initDeclarator
+          declarator
+           pointer
+            operator: *
+           directDeclarator
+            id: a
+         initDeclarator
+          declarator
+           pointer
+            operator: *
+           directDeclarator
+            id: b
+      blockItem
+       declaration
+        declarationSpecifiers
+         declarationSpecifier
+          typeSpecifier
+           keyword: float
+        initDeclaratorList
+         initDeclarator
+          declarator
+           directDeclarator
+            id: d
+         initDeclarator
+          declarator
+           pointer
+            operator: *
+           directDeclarator
+            id: e
+         initDeclarator
+          declarator
+           directDeclarator
+            id: f
+      blockItem
+       declaration
+        declarationSpecifiers
+         declarationSpecifier
+          typeSpecifier
+           typedefName
+            id: sx
+        initDeclaratorList
+         initDeclarator
+          declarator
+           pointer
+            operator: *
+           directDeclarator
+            id: s1
+  externalDeclaration
+   functionDefinition
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: int
+    declarator
+     directDeclarator
+      id: main2
+      operator: (
+    compoundStatement
+     blockItemList
+      blockItem
+       declaration
+        declarationSpecifiers
+         declarationSpecifier
+          typeSpecifier
+           keyword: int
+        initDeclaratorList
+         initDeclarator
+          declarator
+           directDeclarator
+            id: a
+         initDeclarator
+          declarator
+           directDeclarator
+            id: b
+         initDeclarator
+          declarator
+           directDeclarator
+            id: c
+      blockItem
+       statement
+        expressionStatement
+         additiveExpression
+          primaryExpression
+           id: a
+          operator: +
+          primaryExpression
+           id: b
+          operator: +
+          primaryExpression
+           constant
+            int: 1
+          operator: -
+          primaryExpression
+           constant
+            int: 2
+      blockItem
+       statement
+        labeledStatement
+         id: a
+         operator: =
+         statement
+          labeledStatement
+           id: b
+           operator: =
+           statement
+            expressionStatement
+             primaryExpression
+              id: c
+  externalDeclaration
+   declaration
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: int
+    initDeclaratorList
+     initDeclarator
+      declarator
+       directDeclarator
+        id: ta
+     initDeclarator
+      declarator
+       directDeclarator
+        id: test
+        operator: (
+        parameterTypeList
+         parameterList
+          parameterDeclaration
+           declarationSpecifiers
+            declarationSpecifier
+             typeSpecifier
+              keyword: unsigned
+            declarationSpecifier
+             typeSpecifier
+              keyword: int
+           declarator
+            directDeclarator
+             id: a
+          parameterDeclaration
+           declarationSpecifiers
+            declarationSpecifier
+             typeSpecifier
+              keyword: double
+           declarator
+            directDeclarator
+             id: b
+          parameterDeclaration
+           declarationSpecifiers
+            declarationSpecifier
+             typeSpecifier
+              keyword: char
+           declarator
+            directDeclarator
+             id: c
+     initDeclarator
+      declarator
+       directDeclarator
+        id: tb
+        operator: (
+        parameterTypeList
+         parameterList
+          parameterDeclaration
+           declarationSpecifiers
+            declarationSpecifier
+             typeSpecifier
+              keyword: long
+           declarator
+            directDeclarator
+             id: d
+     initDeclarator
+      declarator
+       directDeclarator
+        id: tc
+     initDeclarator
+      declarator
+       directDeclarator
+        id: td
+        operator: (
+        parameterTypeList
+         parameterList
+          parameterDeclaration
+           declarationSpecifiers
+            declarationSpecifier
+             typeSpecifier
+              keyword: int
+           declarator
+            directDeclarator
+             id: e
+  externalDeclaration
+   declaration
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: char
+    initDeclaratorList
+     initDeclarator
+      declarator
+       pointer
+        operator: *
+       directDeclarator
+        id: aa
+      initializer
+       primaryExpression
+        string: "bajdcc"
+  externalDeclaration
+   declaration
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: int
+    initDeclaratorList
+     initDeclarator
+      declarator
+       directDeclarator
+        id: bb
+      initializer
+       primaryExpression
+        constant
+         int: 2
+  externalDeclaration
+   declaration
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: int
+    initDeclaratorList
+     initDeclarator
+      declarator
+       directDeclarator
+        id: dd
+      initializer
+       primaryExpression
+        id: bb
+  externalDeclaration
+   functionDefinition
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: int
+    declarator
+     directDeclarator
+      id: main
+      operator: (
+    compoundStatement
+     blockItemList
+      blockItem
+       declaration
+        declarationSpecifiers
+         declarationSpecifier
+          typeSpecifier
+           keyword: char
+        initDeclaratorList
+         initDeclarator
+          declarator
+           pointer
+            operator: *
+           directDeclarator
+            id: ee
+          initializer
+           primaryExpression
+            string: "hello"
+      blockItem
+       declaration
+        declarationSpecifiers
+         declarationSpecifier
+          typeSpecifier
+           keyword: char
+        initDeclaratorList
+         initDeclarator
+          declarator
+           pointer
+            operator: *
+           directDeclarator
+            id: ff
+          initializer
+           primaryExpression
+            id: aa
+      blockItem
+       declaration
+        declarationSpecifiers
+         declarationSpecifier
+          typeSpecifier
+           keyword: char
+        initDeclaratorList
+         initDeclarator
+          declarator
+           pointer
+            operator: *
+           directDeclarator
+            id: gg
+          initializer
+           primaryExpression
+            id: ff
+      blockItem
+       declaration
+        declarationSpecifiers
+         declarationSpecifier
+          typeSpecifier
+           keyword: int
+        initDeclaratorList
+         initDeclarator
+          declarator
+           directDeclarator
+            id: cc
+          initializer
+           primaryExpression
+            constant
+             int: 1
+      blockItem
+       statement
+        expressionStatement
+         primaryExpression
+          id: aa
+      blockItem
+       statement
+        expressionStatement
+         primaryExpression
+          id: bb
+      blockItem
+       statement
+        expressionStatement
+         additiveExpression
+          primaryExpression
+           id: bb
+          operator: +
+          primaryExpression
+           constant
+            int: 1
+      blockItem
+       statement
+        expressionStatement
+         primaryExpression
+          id: dd
+      blockItem
+       statement
+        expressionStatement
+         additiveExpression
+          primaryExpression
+           id: cc
+          operator: +
+          primaryExpression
+           constant
+            int: 1
+[DEBUG] Type: int
+[DEBUG] Id: int* a, Class: struct id, Addr: 0
+[DEBUG] Type: double
+[DEBUG] Id: double b, Class: struct id, Addr: 0
+[DEBUG] Type: int
+[DEBUG] Id: int* a, Class: global id, Addr: 0
+[DEBUG] Id: int* _a, Class: global id, Addr: 4
+[DEBUG] Id: int _b, Class: global id, Init: (type: int, int: 1), Addr: 8
+[DEBUG] Type: char
+[DEBUG] *GEN* <== STRING: "Hello world!", addr: 12, size: 12
+[DEBUG] Id: char* _c, Class: global id, Init: (type: char*, string: "Hello world!"), Addr: 12
+[DEBUG] Type: double
+[DEBUG] Id: double* b, Class: global id, Addr: 28
+[DEBUG] Type: int
+[DEBUG] Type: int
+[DEBUG] Type: float
+[DEBUG] Type: sx
+[DEBUG] Type: char
+[DEBUG] Func: int* main1, Param: [int c, Class: param id, Addr: 0; float* d, Class: param id, Addr: 4; sx x, Class: para
+m id, Addr: 8; char y, Class: param id, Addr: 20], Class: func id, Addr: 0
+[DEBUG] *GEN* ==> ENT 0
+[DEBUG] Type: uint
+[DEBUG] Id: uint* a, Class: local id, Addr: -4
+[DEBUG] Id: uint* b, Class: local id, Addr: -8
+[DEBUG] Type: float
+[DEBUG] Id: float d, Class: local id, Addr: -12
+[DEBUG] Id: float* e, Class: local id, Addr: -16
+[DEBUG] Id: float f, Class: local id, Addr: -20
+[DEBUG] Type: sx
+[DEBUG] Id: sx* s1, Class: local id, Addr: -24
+[DEBUG] *GEN* ==> LEV
+[DEBUG] Type: int
+[DEBUG] Func: int main2, Param: [], Class: func id, Addr: 3
+[DEBUG] *GEN* ==> ENT 0
+[DEBUG] Type: int
+[DEBUG] Id: int a, Class: local id, Addr: -4
+[DEBUG] Id: int b, Class: local id, Addr: -8
+[DEBUG] Id: int c, Class: local id, Addr: -12
+[DEBUG] Exp: (binop, operator: -, exp1: (binop, operator: +, exp1: (binop, operator: +, exp1: int a, Class: local id, Ad
+dr: -4, exp2: int b, Class: local id, Addr: -8), exp2: (type: int, int: 1)), exp2: (type: int, int: 2))
+[DEBUG] *GEN* ==> LEA FFFFFFFC
+[DEBUG] *GEN* ==> LOAD 4
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> LEA FFFFFFF8
+[DEBUG] *GEN* ==> LOAD 4
+[DEBUG] *GEN* ==> ADD
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> IMM 1
+[DEBUG] *GEN* ==> ADD
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> IMM 2
+[DEBUG] *GEN* ==> SUB
+[DEBUG] Exp: int c, Class: local id, Addr: -12
+[DEBUG] *GEN* ==> LEA FFFFFFF4
+[DEBUG] *GEN* ==> LOAD 4
+[DEBUG] *GEN* ==> LEV
+[DEBUG] Type: int
+[DEBUG] Type: uint
+[DEBUG] Type: double
+[DEBUG] Type: char
+[DEBUG] Func: int test, Param: [uint a, Class: param id, Addr: 0; double b, Class: param id, Addr: 4; char c, Class: par
+am id, Addr: 12], Class: func id, Addr: 28
+[DEBUG] Type: long
+[DEBUG] Func: int tb, Param: [long d, Class: param id, Addr: 0], Class: func id, Addr: 28
+[DEBUG] Type: int
+[DEBUG] Func: int td, Param: [int e, Class: param id, Addr: 0], Class: func id, Addr: 28
+[DEBUG] Id: int ta, Class: global id, Addr: 32
+[DEBUG] Id: int tc, Class: global id, Addr: 36
+[DEBUG] Type: char
+[DEBUG] *GEN* <== STRING: "bajdcc", addr: 28, size: 6
+[DEBUG] Id: char* aa, Class: global id, Init: (type: char*, string: "bajdcc"), Addr: 40
+[DEBUG] Type: int
+[DEBUG] Id: int bb, Class: global id, Init: (type: int, int: 2), Addr: 48
+[DEBUG] Type: int
+[DEBUG] Id: int dd, Class: global id, Init: int bb, Class: global id, Init: (type: int, int: 2), Addr: 48, Addr: 52
+[DEBUG] Type: int
+[DEBUG] Func: int main, Param: [], Class: func id, Addr: 28
+[DEBUG] *GEN* ==> ENT 0
+[DEBUG] Type: char
+[DEBUG] *GEN* ==> LEA FFFFFFFC
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* <== STRING: "hello", addr: 38, size: 5
+[DEBUG] *GEN* ==> IMM D0000038
+[DEBUG] *GEN* ==> SAVE 4
+[DEBUG] Id: char* ee, Class: local id, Init: (type: char*, string: "hello"), Addr: -4
+[DEBUG] Type: char
+[DEBUG] *GEN* ==> LEA FFFFFFF8
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> IMM D0000028
+[DEBUG] *GEN* ==> SAVE 4
+[DEBUG] Id: char* ff, Class: local id, Init: char* aa, Class: global id, Init: (type: char*, string: "bajdcc"), Addr: 40
+, Addr: -8
+[DEBUG] Type: char
+[DEBUG] *GEN* ==> LEA FFFFFFF4
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> LEA FFFFFFF8
+[DEBUG] *GEN* ==> LOAD 4
+[DEBUG] *GEN* ==> SAVE 4
+[DEBUG] Id: char* gg, Class: local id, Init: char* ff, Class: local id, Init: char* aa, Class: global id, Init: (type: c
+har*, string: "bajdcc"), Addr: 40, Addr: -8, Addr: -12
+[DEBUG] Type: int
+[DEBUG] *GEN* ==> LEA FFFFFFF0
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> IMM 1
+[DEBUG] *GEN* ==> SAVE 4
+[DEBUG] Id: int cc, Class: local id, Init: (type: int, int: 1), Addr: -16
+[DEBUG] Exp: char* aa, Class: global id, Init: (type: char*, string: "bajdcc"), Addr: 40
+[DEBUG] *GEN* ==> IMM D0000028
+[DEBUG] Exp: int bb, Class: global id, Init: (type: int, int: 2), Addr: 48
+[DEBUG] *GEN* ==> IMM D0000030
+[DEBUG] *GEN* ==> LOAD 4
+[DEBUG] Exp: (binop, operator: +, exp1: int bb, Class: global id, Init: (type: int, int: 2), Addr: 48, exp2: (type: int,
+ int: 1))
+[DEBUG] *GEN* ==> IMM D0000030
+[DEBUG] *GEN* ==> LOAD 4
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> IMM 1
+[DEBUG] *GEN* ==> ADD
+[DEBUG] Exp: int dd, Class: global id, Init: int bb, Class: global id, Init: (type: int, int: 2), Addr: 48, Addr: 52
+[DEBUG] *GEN* ==> IMM D0000034
+[DEBUG] *GEN* ==> LOAD 4
+[DEBUG] Exp: (binop, operator: +, exp1: int cc, Class: local id, Init: (type: int, int: 1), Addr: -16, exp2: (type: int,
+ int: 1))
+[DEBUG] *GEN* ==> LEA FFFFFFF0
+[DEBUG] *GEN* ==> LOAD 4
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> IMM 1
+[DEBUG] *GEN* ==> ADD
+[DEBUG] *GEN* ==> LEV
+0001> [C0000074] 08 ENT 00000010(16)
+
+---------------- STACK BEGIN <<<<
+AX: 00000000 BP: E0000FF0 SP: E0000FE0 PC: C0000078
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> 00000000
+[E0000FEC]> 00000000
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0002> [C000007C] 01 LEA FFFFFFFC(-4)
+
+---------------- STACK BEGIN <<<<
+AX: E0000FEC BP: E0000FF0 SP: E0000FE0 PC: C0000080
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> 00000000
+[E0000FEC]> 00000000
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0003> [C0000084] 13 PUSH E0000FEC
+
+---------------- STACK BEGIN <<<<
+AX: E0000FEC BP: E0000FF0 SP: E0000FDC PC: C0000084
+[E0000FDC]> E0000FEC
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> 00000000
+[E0000FEC]> 00000000
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0004> [C0000088] 02 IMM D0000038(-805306312)
+
+---------------- STACK BEGIN <<<<
+AX: D0000038 BP: E0000FF0 SP: E0000FDC PC: C000008C
+[E0000FDC]> E0000FEC
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> 00000000
+[E0000FEC]> 00000000
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0005> [C0000090] 10 SAVE 00000004(4)
+
+---------------- STACK BEGIN <<<<
+AX: D0000038 BP: E0000FF0 SP: E0000FE0 PC: C0000094
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> 00000000
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0006> [C0000098] 01 LEA FFFFFFF8(-8)
+
+---------------- STACK BEGIN <<<<
+AX: E0000FE8 BP: E0000FF0 SP: E0000FE0 PC: C000009C
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> 00000000
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0007> [C00000A0] 13 PUSH E0000FE8
+
+---------------- STACK BEGIN <<<<
+AX: E0000FE8 BP: E0000FF0 SP: E0000FDC PC: C00000A0
+[E0000FDC]> E0000FE8
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> 00000000
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0008> [C00000A4] 02 IMM D0000028(-805306328)
+
+---------------- STACK BEGIN <<<<
+AX: D0000028 BP: E0000FF0 SP: E0000FDC PC: C00000A8
+[E0000FDC]> E0000FE8
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> 00000000
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0009> [C00000AC] 10 SAVE 00000004(4)
+
+---------------- STACK BEGIN <<<<
+AX: D0000028 BP: E0000FF0 SP: E0000FE0 PC: C00000B0
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0010> [C00000B4] 01 LEA FFFFFFF4(-12)
+
+---------------- STACK BEGIN <<<<
+AX: E0000FE4 BP: E0000FF0 SP: E0000FE0 PC: C00000B8
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0011> [C00000BC] 13 PUSH E0000FE4
+
+---------------- STACK BEGIN <<<<
+AX: E0000FE4 BP: E0000FF0 SP: E0000FDC PC: C00000BC
+[E0000FDC]> E0000FE4
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0012> [C00000C0] 01 LEA FFFFFFF8(-8)
+
+---------------- STACK BEGIN <<<<
+AX: E0000FE8 BP: E0000FF0 SP: E0000FDC PC: C00000C4
+[E0000FDC]> E0000FE4
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0013> [C00000C8] 09 LOAD 00000004(4)
+
+---------------- STACK BEGIN <<<<
+AX: D0000028 BP: E0000FF0 SP: E0000FDC PC: C00000CC
+[E0000FDC]> E0000FE4
+[E0000FE0]> 00000000
+[E0000FE4]> 00000000
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0014> [C00000D0] 10 SAVE 00000004(4)
+
+---------------- STACK BEGIN <<<<
+AX: D0000028 BP: E0000FF0 SP: E0000FE0 PC: C00000D4
+[E0000FE0]> 00000000
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0015> [C00000D8] 01 LEA FFFFFFF0(-16)
+
+---------------- STACK BEGIN <<<<
+AX: E0000FE0 BP: E0000FF0 SP: E0000FE0 PC: C00000DC
+[E0000FE0]> 00000000
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0016> [C00000E0] 13 PUSH E0000FE0
+
+---------------- STACK BEGIN <<<<
+AX: E0000FE0 BP: E0000FF0 SP: E0000FDC PC: C00000E0
+[E0000FDC]> E0000FE0
+[E0000FE0]> 00000000
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0017> [C00000E4] 02 IMM 00000001(1)
+
+---------------- STACK BEGIN <<<<
+AX: 00000001 BP: E0000FF0 SP: E0000FDC PC: C00000E8
+[E0000FDC]> E0000FE0
+[E0000FE0]> 00000000
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0018> [C00000EC] 10 SAVE 00000004(4)
+
+---------------- STACK BEGIN <<<<
+AX: 00000001 BP: E0000FF0 SP: E0000FE0 PC: C00000F0
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0019> [C00000F4] 02 IMM D0000028(-805306328)
+
+---------------- STACK BEGIN <<<<
+AX: D0000028 BP: E0000FF0 SP: E0000FE0 PC: C00000F8
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0020> [C00000FC] 02 IMM D0000030(-805306320)
+
+---------------- STACK BEGIN <<<<
+AX: D0000030 BP: E0000FF0 SP: E0000FE0 PC: C0000100
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0021> [C0000104] 09 LOAD 00000004(4)
+
+---------------- STACK BEGIN <<<<
+AX: 00000002 BP: E0000FF0 SP: E0000FE0 PC: C0000108
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0022> [C000010C] 02 IMM D0000030(-805306320)
+
+---------------- STACK BEGIN <<<<
+AX: D0000030 BP: E0000FF0 SP: E0000FE0 PC: C0000110
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0023> [C0000114] 09 LOAD 00000004(4)
+
+---------------- STACK BEGIN <<<<
+AX: 00000002 BP: E0000FF0 SP: E0000FE0 PC: C0000118
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0024> [C000011C] 13 PUSH 00000002
+
+---------------- STACK BEGIN <<<<
+AX: 00000002 BP: E0000FF0 SP: E0000FDC PC: C000011C
+[E0000FDC]> 00000002
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0025> [C0000120] 02 IMM 00000001(1)
+
+---------------- STACK BEGIN <<<<
+AX: 00000001 BP: E0000FF0 SP: E0000FDC PC: C0000124
+[E0000FDC]> 00000002
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0026> [C0000128] 25 ADD
+
+---------------- STACK BEGIN <<<<
+AX: 00000003 BP: E0000FF0 SP: E0000FE0 PC: C0000128
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0027> [C000012C] 02 IMM D0000034(-805306316)
+
+---------------- STACK BEGIN <<<<
+AX: D0000034 BP: E0000FF0 SP: E0000FE0 PC: C0000130
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0028> [C0000134] 09 LOAD 00000004(4)
+
+---------------- STACK BEGIN <<<<
+AX: 00000002 BP: E0000FF0 SP: E0000FE0 PC: C0000138
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0029> [C000013C] 01 LEA FFFFFFF0(-16)
+
+---------------- STACK BEGIN <<<<
+AX: E0000FE0 BP: E0000FF0 SP: E0000FE0 PC: C0000140
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0030> [C0000144] 09 LOAD 00000004(4)
+
+---------------- STACK BEGIN <<<<
+AX: 00000001 BP: E0000FF0 SP: E0000FE0 PC: C0000148
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0031> [C000014C] 13 PUSH 00000001
+
+---------------- STACK BEGIN <<<<
+AX: 00000001 BP: E0000FF0 SP: E0000FDC PC: C000014C
+[E0000FDC]> 00000001
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0032> [C0000150] 02 IMM 00000001(1)
+
+---------------- STACK BEGIN <<<<
+AX: 00000001 BP: E0000FF0 SP: E0000FDC PC: C0000154
+[E0000FDC]> 00000001
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0033> [C0000158] 25 ADD
+
+---------------- STACK BEGIN <<<<
+AX: 00000002 BP: E0000FF0 SP: E0000FE0 PC: C0000158
+[E0000FE0]> 00000001
+[E0000FE4]> D0000028
+[E0000FE8]> D0000028
+[E0000FEC]> D0000038
+[E0000FF0]> 00000000
+[E0000FF4]> E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0034> [C000015C] 12 LEV
+
+---------------- STACK BEGIN <<<<
+AX: 00000002 BP: 00000000 SP: E0000FF8 PC: E0000FF8
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0035> [E0000FFC] 13 PUSH 00000002
+
+---------------- STACK BEGIN <<<<
+AX: 00000002 BP: 00000000 SP: E0000FF4 PC: E0000FFC
+[E0000FF4]> 00000002
+[E0000FF8]> 0000000D
+[E0000FFC]> 00000027
+---------------- STACK END >>>>
+
+0036> [E0001000] 39 EXIT
+exit(2)
+
+Process finished with exit code 0
