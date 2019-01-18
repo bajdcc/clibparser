@@ -584,6 +584,25 @@ namespace clib {
                 gen.emit(SAVE, exp1->size(x_size));
             }
                 break;
+            case op_lsquare: {
+                exp1->gen_rvalue(gen);
+                if (exp1->base->to_string().back() != '*')
+                    gen.error("invalid address by []");
+                gen.emit(PUSH); // 压入数组地址
+                exp2->gen_rvalue(gen); // index
+                auto n = exp1->size(x_inc);
+                if (n > 1) {
+                    gen.emit(PUSH);
+                    gen.emit(IMM, n);
+                    gen.emit(MUL);
+                    gen.emit(ADD);
+                    gen.emit(LOAD, n);
+                } else {
+                    gen.emit(ADD);
+                    gen.emit(LOAD, n);
+                }
+            }
+                break;
             default:
                 break;
         }

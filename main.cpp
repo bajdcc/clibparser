@@ -52,6 +52,7 @@ int main(){
     &z;
     *ee;
     *(ee + 2);
+    ee[2];
 }
 )", &gen);
         cast::print(root, 0, std::cout);
