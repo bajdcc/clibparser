@@ -277,6 +277,7 @@ namespace clib {
             std::make_tuple(ADJ, "ADJ"),
             std::make_tuple(LEV, "LEV"),
             std::make_tuple(PUSH, "PUSH"),
+            std::make_tuple(POP, "POP"),
             std::make_tuple(OR, "OR"),
             std::make_tuple(XOR, "XOR"),
             std::make_tuple(AND, "AND"),

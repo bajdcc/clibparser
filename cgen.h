@@ -222,6 +222,8 @@ namespace clib {
         int size(sym_size_t t) const override;
         string_t get_name() const override;
         string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
         type_exp_t::ref exp;
         ast_node *op{nullptr};
     };

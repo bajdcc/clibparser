@@ -387,16 +387,55 @@ namespace clib {
     }
 
     gen_t sym_unop_t::gen_rvalue(igen &gen) {
-        exp->gen_lvalue(gen);
-        gen.emit(PUSH);
-        exp->gen_rvalue(gen);
-        gen.emit(PUSH);
-        auto inc = exp->size(x_inc);
-        gen.emit(IMM, std::max(inc, 1));
-        gen.emit(OP_INS(op->data._op));
-        gen.emit(SAVE, exp->size(x_size));
-        base = exp->base->clone();
-        return g_ok;
+        switch (op->data._op) {
+            case op_plus:
+                exp->gen_rvalue(gen);
+                break;
+            case op_minus:
+                exp->gen_rvalue(gen);
+                gen.emit(IMM, -1);
+                gen.emit(PUSH);
+                exp->gen_rvalue(gen);
+                gen.emit(MUL);
+                break;
+            case op_plus_plus:
+            case op_minus_minus: {
+                exp->gen_lvalue(gen);
+                gen.emit(PUSH);
+                exp->gen_rvalue(gen);
+                gen.emit(PUSH);
+                auto inc = exp->size(x_inc);
+                gen.emit(IMM, std::max(inc, 1));
+                gen.emit(OP_INS(op->data._op));
+                gen.emit(SAVE, exp->size(x_size));
+                base = exp->base->clone();
+                return g_ok;
+            }
+            case op_logical_not:
+                exp->gen_rvalue(gen);
+                gen.emit(PUSH);
+                gen.emit(IMM, 0);
+                gen.emit(EQ);
+                break;
+            case op_bit_not:
+                exp->gen_rvalue(gen);
+                gen.emit(PUSH);
+                gen.emit(IMM, -1);
+                gen.emit(XOR);
+                break;
+            case op_bit_and: // 取地址
+                exp->gen_lvalue(gen);
+                break;
+            case op_times: // 解引用
+                exp->gen_rvalue(gen);
+                if (exp->base->to_string().back() != '*')
+                    gen.error("invalid deref");
+                gen.emit(LOAD, std::max(exp->size(x_inc), 1));
+                break;
+            default:
+                gen.error("unsupported unop");
+                break;
+        }
     }
 
     sym_sinop_t::sym_sinop_t(const type_exp_t::ref &exp, ast_node *op)
@@ -423,6 +462,35 @@ namespace clib {
         std::stringstream ss;
         ss << "(sinop, " << cast::to_string(op) << ", exp: " << exp->to_string() << ')';
         return ss.str();
+    }
+
+    gen_t sym_sinop_t::gen_lvalue(igen &gen) {
+        return g_ok;
+    }
+
+    gen_t sym_sinop_t::gen_rvalue(igen &gen) {
+        switch (op->data._op) {
+            case op_plus_plus:
+            case op_minus_minus: {
+                exp->gen_rvalue(gen);
+                gen.emit(PUSH);
+                exp->gen_lvalue(gen);
+                gen.emit(PUSH);
+                exp->gen_rvalue(gen);
+                gen.emit(PUSH);
+                auto inc = exp->size(x_inc);
+                gen.emit(IMM, std::max(inc, 1));
+                gen.emit(OP_INS(op->data._op));
+                gen.emit(SAVE, exp->size(x_size));
+                base = exp->base->clone();
+                gen.emit(POP);
+            }
+                break;
+            default:
+                gen.error("unsupported sinop");
+                break;
+        }
+        return g_ok;
     }
 
     sym_binop_t::sym_binop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2, ast_node *op)
@@ -908,9 +976,11 @@ namespace clib {
             case c_program:
                 break;
             case c_primaryExpression: {
-                auto pri = primary_node(asts[0]);
-                tmp.back().push_back(pri);
-                asts.clear();
+                if (tmp.back().empty()) {
+                    auto pri = primary_node(asts[0]);
+                    tmp.back().push_back(pri);
+                    asts.clear();
+                }
             }
                 break;
             case c_constant:
@@ -968,7 +1038,8 @@ namespace clib {
                         case op_minus_minus:
                         case op_logical_and:
                         case op_logical_not:
-                        case op_bit_and: {
+                        case op_bit_and:
+                        case op_times: {
                             auto &_exp = tmp.back().back();
                             auto exp = to_exp(_exp);
                             tmp.back().clear();

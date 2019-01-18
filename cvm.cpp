@@ -402,6 +402,10 @@ namespace clib {
                     vmm_pushstack(sp, ax);
                 } /* push the value of ax onto the stack */
                     break;
+                case POP: {
+                    ax = vmm_popstack(sp);
+                } /* pop the value of ax from the stack */
+                    break;
                 case JMP: {
                     pc = base + vmm_get(pc) * INC_PTR;
                 } /* jump to the address */

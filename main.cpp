@@ -48,6 +48,10 @@ int main(){
     z = x < y;
     z = 1 * 2 / 3 + 4;
     ++z + z;
+    z++ + z;
+    &z;
+    *ee;
+    *(ee + 2);
 }
 )", &gen);
         cast::print(root, 0, std::cout);
