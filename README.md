@@ -106,7 +106,7 @@ int main(){
 
 测试文件在test.cpp中，编译为clibparser-test。
 
-**9个测试用例均通过，AST结果在[test.txt](https://raw.githubusercontent.com/bajdcc/clibparser/master/test.txt)中。Release模式下时间不超过1秒。**
+**9个测试用例均通过。**
 
 ## 目标
 
