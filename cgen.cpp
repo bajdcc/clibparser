@@ -6,6 +6,7 @@
 #include <iostream>
 #include <iterator>
 #include <unordered_set>
+#include <iomanip>
 #include "cgen.h"
 #include "cast.h"
 #include "cexception.h"
@@ -209,6 +210,11 @@ namespace clib {
     }
 
     gen_t sym_id_t::gen_rvalue(igen &gen) {
+        if (clazz == z_global_var) {
+            gen.emit(IMM, DATA_BASE | addr);
+            if (base->ptr == 0)
+                gen.emit(LOAD, (uint) base->size());
+        }
         return g_ok;
     }
 
@@ -265,6 +271,8 @@ namespace clib {
         return ss.str();
     }
 
+    type_exp_t::type_exp_t(const type_t::ref &base) : base(base) {}
+
     symbol_t type_exp_t::get_type() const {
         return s_expression;
     }
@@ -273,9 +281,7 @@ namespace clib {
         return s_expression;
     }
 
-    sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : node(node) {
-        this->base = base;
-    }
+    sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : type_exp_t(base), node(node) {}
 
     symbol_t sym_var_t::get_type() const {
         return s_var;
@@ -295,7 +301,43 @@ namespace clib {
         return ss.str();
     }
 
-    sym_unop_t::sym_unop_t(const type_exp_t::ref &exp, ast_node *op) : exp(exp), op(op) {}
+    gen_t sym_var_t::gen_lvalue(igen &gen) {
+        return g_ok;
+    }
+
+    gen_t sym_var_t::gen_rvalue(igen &gen) {
+        return g_ok;
+    }
+
+    sym_var_id_t::sym_var_id_t(const type_t::ref &base, ast_node *node, const sym_t::ref &symbol)
+        : sym_var_t(base, node), id(symbol) {}
+
+    symbol_t sym_var_id_t::get_type() const {
+        return s_var_id;
+    }
+
+    int sym_var_id_t::size() const {
+        return id.lock()->size();
+    }
+
+    string_t sym_var_id_t::get_name() const {
+        return id.lock()->get_name();
+    }
+
+    string_t sym_var_id_t::to_string() const {
+        return id.lock()->to_string();
+    }
+
+    gen_t sym_var_id_t::gen_lvalue(igen &gen) {
+        return id.lock()->gen_lvalue(gen);
+    }
+
+    gen_t sym_var_id_t::gen_rvalue(igen &gen) {
+        return id.lock()->gen_rvalue(gen);
+    }
+
+    sym_unop_t::sym_unop_t(const type_exp_t::ref &exp, ast_node *op)
+        : type_exp_t(nullptr), exp(exp), op(op) {}
 
     symbol_t sym_unop_t::get_type() const {
         return s_unop;
@@ -315,7 +357,8 @@ namespace clib {
         return ss.str();
     }
 
-    sym_sinop_t::sym_sinop_t(const type_exp_t::ref &exp, ast_node *op) : exp(exp), op(op) {}
+    sym_sinop_t::sym_sinop_t(const type_exp_t::ref &exp, ast_node *op)
+        : type_exp_t(nullptr), exp(exp), op(op) {}
 
     symbol_t sym_sinop_t::get_type() const {
         return s_sinop;
@@ -336,7 +379,7 @@ namespace clib {
     }
 
     sym_binop_t::sym_binop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2, ast_node *op)
-            : exp1(exp1), exp2(exp2), op(op) {}
+            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), op(op) {}
 
     symbol_t sym_binop_t::get_type() const {
         return s_binop;
@@ -360,7 +403,7 @@ namespace clib {
 
     sym_triop_t::sym_triop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2,
                              const type_exp_t::ref &exp3, ast_node *op1, ast_node *op2)
-            : exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {}
+            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {}
 
     symbol_t sym_triop_t::get_type() const {
         return s_triop;
@@ -402,6 +445,8 @@ namespace clib {
         return ss.str();
     }
 
+    sym_list_t::sym_list_t() : type_exp_t(nullptr) {}
+
     // --------------------------------------------------------------
 
     cgen::cgen() {
@@ -432,7 +477,8 @@ namespace clib {
         text.push_back(i);
         text.push_back(d);
 #if LOG_TYPE
-        std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) << " " << d << std::endl;
+        std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) << " " <<
+        std::setiosflags(std::ios::uppercase) << std::hex << d << std::endl;
 #endif
     }
 
@@ -1247,6 +1293,10 @@ namespace clib {
         new_id->column = node->column;
         new_id->clazz = clazz;
         new_id->init = init;
+        if (init) {
+            if (type->to_string() != init->base->to_string())
+                error(node, "not equal init type, ", true);
+        }
         allocate(new_id, init);
 #if LOG_TYPE
         std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
@@ -1281,19 +1331,19 @@ namespace clib {
             case ast_literal: {
                 auto sym = find_symbol(node->data._string);
                 if (!sym)
-                    error("undefined id: " + string_t(node->data._string));
+                    error(node, "undefined id: " + string_t(node->data._string));
                 if (sym->get_type() != s_id)
-                    error("required id but got: " + sym->to_string());
+                    error(node, "required id but got: " + sym->to_string());
                 t = std::dynamic_pointer_cast<sym_id_t>(sym)->base->clone();
+                return std::make_shared<sym_var_id_t>(t, node, sym);
             }
-                break;
             case ast_string:
                 t = std::make_shared<type_base_t>(l_char, 1);
                 break;
 #define DEF_LEX(name) \
-                    case ast_##name: \
-                        t = std::make_shared<type_base_t>(l_##name, 0); \
-                        break;
+            case ast_##name: \
+                t = std::make_shared<type_base_t>(l_##name, 0); \
+                break;
             DEF_LEX(char);
             DEF_LEX(uchar);
             DEF_LEX(short);

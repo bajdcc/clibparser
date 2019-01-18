@@ -35,6 +35,7 @@ namespace clib {
         s_struct,
         s_function,
         s_var,
+        s_var_id,
         s_expression,
         s_unop,
         s_sinop,
@@ -113,6 +114,7 @@ namespace clib {
     class type_exp_t : public sym_t {
     public:
         using ref = std::shared_ptr<type_exp_t>;
+        explicit type_exp_t(const type_t::ref &base);
         symbol_t get_type() const override;
         symbol_t get_base_type() const override;
         type_t::ref base;
@@ -169,7 +171,22 @@ namespace clib {
         int size() const override;
         string_t get_name() const override;
         string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
         ast_node *node{nullptr};
+    };
+
+    class sym_var_id_t : public sym_var_t {
+    public:
+        using ref = std::shared_ptr<sym_var_id_t>;
+        explicit sym_var_id_t(const type_t::ref &base, ast_node *node, const sym_t::ref &symbol);
+        symbol_t get_type() const override;
+        int size() const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
+        std::weak_ptr<sym_t> id;
     };
 
     class sym_unop_t : public type_exp_t {
@@ -224,6 +241,7 @@ namespace clib {
     class sym_list_t : public type_exp_t {
     public:
         using ref = std::shared_ptr<sym_list_t>;
+        sym_list_t();
         symbol_t get_type() const override;
         int size() const override;
         string_t get_name() const override;
