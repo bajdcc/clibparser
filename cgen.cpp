@@ -297,7 +297,8 @@ namespace clib {
     }
 
     gen_t sym_var_t::gen_lvalue(igen &gen) {
-        return g_ok;
+        gen.error("invalid lvalue: " + to_string());
+        return g_error;
     }
 
     gen_t sym_var_t::gen_rvalue(igen &gen) {
@@ -383,16 +384,52 @@ namespace clib {
     }
 
     gen_t sym_unop_t::gen_lvalue(igen &gen) {
-        return g_ok;
+        switch (op->data._op) {
+            case op_plus:
+            case op_minus:
+            case op_logical_not:
+            case op_bit_not:
+            case op_bit_and:
+                gen.error("invalid lvalue: " + to_string());
+                break;
+            case op_plus_plus:
+            case op_minus_minus: {
+                exp->gen_lvalue(gen);
+                gen.emit(PUSH);
+                gen.emit(PUSH);
+                exp->gen_rvalue(gen);
+                base = exp->base->clone();
+                gen.emit(PUSH);
+                auto inc = exp->size(x_inc);
+                gen.emit(IMM, std::max(inc, 1));
+                gen.emit(OP_INS(op->data._op));
+                gen.emit(SAVE, exp->size(x_size));
+                gen.emit(POP);
+                return g_ok;
+            }
+            case op_times: // 解引用
+                exp->gen_rvalue(gen);
+                base = exp->base->clone();
+                if (base->to_string().back() != '*')
+                    gen.error("invalid deref: " + to_string());
+                base->ptr--;
+                gen.emit(LOAD, std::max(exp->size(x_inc), 1));
+                break;
+            default:
+                gen.error("unsupported unop");
+                break;
+        }
     }
 
     gen_t sym_unop_t::gen_rvalue(igen &gen) {
         switch (op->data._op) {
             case op_plus:
                 exp->gen_rvalue(gen);
+                base = exp->base->clone();
                 break;
             case op_minus:
                 exp->gen_rvalue(gen);
+                base = exp->base->clone();
                 gen.emit(IMM, -1);
                 gen.emit(PUSH);
                 exp->gen_rvalue(gen);
@@ -403,33 +440,39 @@ namespace clib {
                 exp->gen_lvalue(gen);
                 gen.emit(PUSH);
                 exp->gen_rvalue(gen);
+                base = exp->base->clone();
                 gen.emit(PUSH);
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
                 gen.emit(OP_INS(op->data._op));
                 gen.emit(SAVE, exp->size(x_size));
-                base = exp->base->clone();
                 return g_ok;
             }
             case op_logical_not:
                 exp->gen_rvalue(gen);
+                base = exp->base->clone();
                 gen.emit(PUSH);
                 gen.emit(IMM, 0);
                 gen.emit(EQ);
                 break;
             case op_bit_not:
                 exp->gen_rvalue(gen);
+                base = exp->base->clone();
                 gen.emit(PUSH);
                 gen.emit(IMM, -1);
                 gen.emit(XOR);
                 break;
             case op_bit_and: // 取地址
                 exp->gen_lvalue(gen);
+                base = exp->base->clone();
+                base->ptr++;
                 break;
             case op_times: // 解引用
                 exp->gen_rvalue(gen);
-                if (exp->base->to_string().back() != '*')
-                    gen.error("invalid deref");
+                base = exp->base->clone();
+                if (base->to_string().back() != '*')
+                    gen.error("invalid deref: " + to_string());
+                base->ptr--;
                 gen.emit(LOAD, std::max(exp->size(x_inc), 1));
                 break;
             default:
@@ -465,6 +508,26 @@ namespace clib {
     }
 
     gen_t sym_sinop_t::gen_lvalue(igen &gen) {
+        switch (op->data._op) {
+            case op_plus_plus:
+            case op_minus_minus: {
+                exp->gen_lvalue(gen);
+                gen.emit(PUSH);
+                gen.emit(PUSH);
+                exp->gen_rvalue(gen);
+                base = exp->base->clone();
+                gen.emit(PUSH);
+                auto inc = exp->size(x_inc);
+                gen.emit(IMM, std::max(inc, 1));
+                gen.emit(OP_INS(op->data._op));
+                gen.emit(SAVE, exp->size(x_size));
+                gen.emit(POP);
+            }
+                break;
+            default:
+                gen.error("unsupported sinop");
+                break;
+        }
         return g_ok;
     }
 
@@ -473,6 +536,7 @@ namespace clib {
             case op_plus_plus:
             case op_minus_minus: {
                 exp->gen_rvalue(gen);
+                base = exp->base->clone();
                 gen.emit(PUSH);
                 exp->gen_lvalue(gen);
                 gen.emit(PUSH);
@@ -482,7 +546,6 @@ namespace clib {
                 gen.emit(IMM, std::max(inc, 1));
                 gen.emit(OP_INS(op->data._op));
                 gen.emit(SAVE, exp->size(x_size));
-                base = exp->base->clone();
                 gen.emit(POP);
             }
                 break;
@@ -522,7 +585,8 @@ namespace clib {
     }
 
     gen_t sym_binop_t::gen_lvalue(igen &gen) {
-        return g_ok;
+        gen.error("not supported lvalue: " + to_string());
+        return g_error;
     }
 
     gen_t sym_binop_t::gen_rvalue(igen &gen) {
@@ -544,9 +608,9 @@ namespace clib {
             case op_left_shift:
             case op_right_shift: {
                 exp1->gen_rvalue(gen); // exp1
+                base = exp1->base->clone();
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen); // exp2
-                base = exp1->base->clone();
                 if (op->data._op == op_plus || op->data._op == op_minus) {
                     auto inc = exp1->size(x_inc);
                     if (inc > 1 && exp2->base->to_string() == "int") { // 指针+常量
@@ -560,6 +624,7 @@ namespace clib {
                 break;
             case op_assign: {
                 exp1->gen_lvalue(gen);
+                base = exp1->base->clone();
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen);
                 gen.emit(SAVE, exp1->size(x_size));
@@ -578,6 +643,7 @@ namespace clib {
                 exp1->gen_lvalue(gen);
                 gen.emit(PUSH);
                 exp1->gen_rvalue(gen);
+                base = exp1->base->clone();
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen);
                 gen.emit(OP_INS(op->data._op));
@@ -586,8 +652,10 @@ namespace clib {
                 break;
             case op_lsquare: {
                 exp1->gen_rvalue(gen);
+                base = exp1->base->clone();
                 if (exp1->base->to_string().back() != '*')
                     gen.error("invalid address by []");
+                base->ptr--;
                 gen.emit(PUSH); // 压入数组地址
                 exp2->gen_rvalue(gen); // index
                 auto n = exp1->size(x_inc);
@@ -640,6 +708,16 @@ namespace clib {
         return ss.str();
     }
 
+    gen_t sym_triop_t::gen_lvalue(igen &gen) {
+        gen.error("not supported: " + to_string());
+        return g_error;
+    }
+
+    gen_t sym_triop_t::gen_rvalue(igen &gen) {
+        gen.error("not supported: " + to_string());
+        return g_error;
+    }
+
     symbol_t sym_list_t::get_type() const {
         return s_list;
     }
@@ -661,6 +739,16 @@ namespace clib {
     }
 
     sym_list_t::sym_list_t() : type_exp_t(nullptr) {}
+
+    gen_t sym_list_t::gen_lvalue(igen &gen) {
+        gen.error("not supported: " + to_string());
+        return g_error;
+    }
+
+    gen_t sym_list_t::gen_rvalue(igen &gen) {
+        gen.error("not supported: " + to_string());
+        return g_error;
+    }
 
     // --------------------------------------------------------------
 

@@ -47,6 +47,7 @@ namespace clib {
 
     enum gen_t {
         g_ok,
+        g_error,
     };
 
     class igen {
@@ -251,6 +252,8 @@ namespace clib {
         int size(sym_size_t t) const override;
         string_t get_name() const override;
         string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
         type_exp_t::ref exp1, exp2, exp3;
         ast_node *op1{nullptr}, *op2{nullptr};
     };
@@ -263,6 +266,8 @@ namespace clib {
         int size(sym_size_t t) const override;
         string_t get_name() const override;
         string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
         std::vector<type_exp_t::ref> exps;
     };
 

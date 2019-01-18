@@ -26,7 +26,6 @@ int main2() {
     int a, b, c;
     a + b + 1 - 2;
     a = b = c;
-    //--1+++---1++;
     //a.b----[1](1,2);
 }
 int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
@@ -53,6 +52,8 @@ int main(){
     *ee;
     *(ee + 2);
     ee[2];
+    z = 2;
+    --z+++--z++;
 }
 )", &gen);
         cast::print(root, 0, std::cout);
