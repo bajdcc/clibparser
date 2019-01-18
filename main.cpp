@@ -43,6 +43,8 @@ int main(){
     bb + 1;
     dd;
     cc + 1;
+    int x = 1, y = 2, z = 3;
+    x += y *= z;
 }
 )", &gen);
         cast::print(root, 0, std::cout);

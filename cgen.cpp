@@ -467,6 +467,32 @@ namespace clib {
                 gen.emit(OP_INS(op->data._op));
             }
                 break;
+            case op_assign: {
+                exp1->gen_lvalue(gen);
+                gen.emit(PUSH);
+                exp2->gen_rvalue(gen);
+                gen.emit(SAVE, exp1->size());
+            }
+                break;
+            case op_plus_assign:
+            case op_minus_assign:
+            case op_times_assign:
+            case op_div_assign:
+            case op_and_assign:
+            case op_or_assign:
+            case op_xor_assign:
+            case op_mod_assign:
+            case op_left_shift_assign:
+            case op_right_shift_assign: {
+                exp1->gen_lvalue(gen);
+                gen.emit(PUSH);
+                exp1->gen_rvalue(gen);
+                gen.emit(PUSH);
+                exp2->gen_rvalue(gen);
+                gen.emit(OP_INS(op->data._op));
+                gen.emit(SAVE, exp1->size());
+            }
+                break;
             default:
                 break;
         }
@@ -980,7 +1006,16 @@ namespace clib {
                 break;
             case c_conditionalExpression:
                 break;
-            case c_assignmentExpression:
+            case c_assignmentExpression: {
+                auto &_tmp = tmp.back();
+                auto tmp_i = 0;
+                auto exp1 = to_exp(_tmp[tmp_i++]);
+                auto exp2 = to_exp(_tmp[tmp_i++]);
+                auto exp = std::make_shared<sym_binop_t>(exp1, exp2, asts.front());
+                _tmp.clear();
+                _tmp.push_back(exp);
+                asts.clear();
+            }
                 break;
             case c_assignmentOperator:
                 break;

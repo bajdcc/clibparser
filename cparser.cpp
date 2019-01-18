@@ -288,7 +288,8 @@ namespace clib {
         conditionalExpression = logicalOrExpression + *(_query_ + expression + _assign_ + conditionalExpression);
         assignmentExpression = conditionalExpression | unaryExpression + assignmentOperator + assignmentExpression;
         assignmentOperator = _assign_ | _times_assign_ | _div_assign_ | _mod_assign_ |
-                             _plus_assign_ | _minus_assign_ | _left_shift_assign_ | _right_shift_assign_;
+                            _and_assign_ | _or_assign_ | _xor_assign_ |
+                            _plus_assign_ | _minus_assign_ | _left_shift_assign_ | _right_shift_assign_;
         expression = *(expression + ~_comma_) + assignmentExpression;
         constantExpression = conditionalExpression;
         declaration = declarationSpecifiers + *initDeclaratorList + ~_semi_;
@@ -354,7 +355,7 @@ namespace clib {
                     | jumpStatement;
         labeledStatement = (Identifier
                             | _case_ + constantExpression
-                            | _default_) + _assign_ + statement;
+                            | _default_) + _colon_ + statement;
         compoundStatement = ~_lbrace_ + *blockItemList + ~_rbrace_;
         blockItemList = *blockItemList + blockItem;
         blockItem = statement | declaration;
