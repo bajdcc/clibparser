@@ -231,6 +231,7 @@ struct base_lexer_t<obj> \
     const string_t &lexer_typestr(lexer_t);
     const string_t &lexer_keywordstr(keyword_t);
     int lexer_prior(lexer_t);
+    int lexer_sizeof(lexer_t);
     const string_t &lexer_opstr(operator_t);
     const string_t &lexer_opnamestr(operator_t);
     const string_t &lexer_errstr(error_t);
@@ -239,7 +240,8 @@ struct base_lexer_t<obj> \
 
 #define LEX_T(t) base_t<l_##t>::type
 #define LEX_CONV_T(t) base_lexer_t<t>::type
-#define LEX_SIZEOF(t) base_t<l_##t>::size
+#define LEX_SIZEOF(t) sizeof(LEX_T(t))
+#define LEX_SIZE(t) lexer_sizeof(t)
 #define LEX_STRING(t) lexer_typestr(t)
 #define LEX_PRIOR(t) lexer_prior(t)
 

@@ -47,6 +47,7 @@ int main(){
     x += y *= z;
     z = x < y;
     z = 1 * 2 / 3 + 4;
+    ++z + z;
 }
 )", &gen);
         cast::print(root, 0, std::cout);

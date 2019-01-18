@@ -55,7 +55,7 @@ namespace clib {
         return node;
     }
 
-    int sym_t::size() const {
+    int sym_t::size(sym_size_t t) const {
         assert(!"invalid size");
         return 0;
     }
@@ -101,34 +101,17 @@ namespace clib {
 
     type_base_t::type_base_t(lexer_t type, int ptr) : type_t(ptr), type(type) {}
 
-    int type_base_t::size() const {
+    int type_base_t::size(sym_size_t t) const {
+        if (t == x_inc) {
+            if (ptr == 0)
+                return 1;
+            if (ptr == 1)
+                return LEX_SIZE(type);
+            return sizeof(void*);
+        }
         if (ptr > 0)
             return sizeof(void *);
-        switch (type) {
-#define DEFINE_LEXER_SIZE(t) case l_##t: return LEX_SIZEOF(t);
-            DEFINE_LEXER_SIZE(char)
-            DEFINE_LEXER_SIZE(uchar)
-            DEFINE_LEXER_SIZE(short)
-            DEFINE_LEXER_SIZE(ushort)
-            DEFINE_LEXER_SIZE(int)
-            DEFINE_LEXER_SIZE(uint)
-            DEFINE_LEXER_SIZE(long)
-            DEFINE_LEXER_SIZE(ulong)
-            DEFINE_LEXER_SIZE(float)
-            DEFINE_LEXER_SIZE(double)
-            DEFINE_LEXER_SIZE(operator)
-            DEFINE_LEXER_SIZE(keyword)
-            DEFINE_LEXER_SIZE(identifier)
-            DEFINE_LEXER_SIZE(string)
-            DEFINE_LEXER_SIZE(comment)
-            DEFINE_LEXER_SIZE(space)
-            DEFINE_LEXER_SIZE(newline)
-            DEFINE_LEXER_SIZE(error)
-#undef DEFINE_LEXER_SIZE
-            default:
-                assert(!"invalid get_type");
-                return 0;
-        }
+        return LEX_SIZE(type);
     }
 
     symbol_t type_base_t::get_type() const {
@@ -158,10 +141,10 @@ namespace clib {
         return s_type_typedef;
     }
 
-    int type_typedef_t::size() const {
+    int type_typedef_t::size(sym_size_t t) const {
         if (ptr > 0)
             return sizeof(void *);
-        return refer.lock()->size();
+        return refer.lock()->size(t);
     }
 
     string_t type_typedef_t::to_string() const {
@@ -184,8 +167,8 @@ namespace clib {
         return s_id;
     }
 
-    int sym_id_t::size() const {
-        return base->size();
+    int sym_id_t::size(sym_size_t t) const {
+        return base->size(t);
     }
 
     symbol_t sym_id_t::get_base_type() const {
@@ -219,10 +202,10 @@ namespace clib {
         if (clazz == z_global_var) {
             gen.emit(IMM, DATA_BASE | addr);
             if (base->ptr == 0)
-                gen.emit(LOAD, base->size());
+                gen.emit(LOAD, base->size(x_size));
         } else if (clazz == z_local_var) {
             gen.emit(LEA, addr);
-            gen.emit(LOAD, base->size());
+            gen.emit(LOAD, base->size(x_size));
         }
         return g_ok;
     }
@@ -237,10 +220,10 @@ namespace clib {
         return s_struct;
     }
 
-    int sym_struct_t::size() const {
+    int sym_struct_t::size(sym_size_t t) const {
         if (_size == 0) {
             for (auto &decl : decls) {
-                *const_cast<int *>(&_size) += decl->size();
+                *const_cast<int *>(&_size) += decl->size(t);
             }
         }
         return _size;
@@ -267,7 +250,7 @@ namespace clib {
         return s_function;
     }
 
-    int sym_func_t::size() const {
+    int sym_func_t::size(sym_size_t t) const {
         return sizeof(void *);
     }
 
@@ -299,8 +282,8 @@ namespace clib {
         return s_var;
     }
 
-    int sym_var_t::size() const {
-        return base->size();
+    int sym_var_t::size(sym_size_t t) const {
+        return base->size(t);
     }
 
     string_t sym_var_t::get_name() const {
@@ -353,8 +336,8 @@ namespace clib {
         return s_var_id;
     }
 
-    int sym_var_id_t::size() const {
-        return id.lock()->size();
+    int sym_var_id_t::size(sym_size_t t) const {
+        return id.lock()->size(t);
     }
 
     string_t sym_var_id_t::get_name() const {
@@ -383,8 +366,10 @@ namespace clib {
         return s_unop;
     }
 
-    int sym_unop_t::size() const {
-        return exp->size();
+    int sym_unop_t::size(sym_size_t t) const {
+        if (t == x_inc)
+            return 0;
+        return exp->size(t);
     }
 
     string_t sym_unop_t::get_name() const {
@@ -397,6 +382,23 @@ namespace clib {
         return ss.str();
     }
 
+    gen_t sym_unop_t::gen_lvalue(igen &gen) {
+        return g_ok;
+    }
+
+    gen_t sym_unop_t::gen_rvalue(igen &gen) {
+        exp->gen_lvalue(gen);
+        gen.emit(PUSH);
+        exp->gen_rvalue(gen);
+        gen.emit(PUSH);
+        auto inc = exp->size(x_inc);
+        gen.emit(IMM, std::max(inc, 1));
+        gen.emit(OP_INS(op->data._op));
+        gen.emit(SAVE, exp->size(x_size));
+        base = exp->base->clone();
+        return g_ok;
+    }
+
     sym_sinop_t::sym_sinop_t(const type_exp_t::ref &exp, ast_node *op)
             : type_exp_t(nullptr), exp(exp), op(op) {
         line = exp->line;
@@ -407,8 +409,10 @@ namespace clib {
         return s_sinop;
     }
 
-    int sym_sinop_t::size() const {
-        return exp->size();
+    int sym_sinop_t::size(sym_size_t t) const {
+        if (t == x_inc)
+            return 0;
+        return exp->size(t);
     }
 
     string_t sym_sinop_t::get_name() const {
@@ -431,8 +435,10 @@ namespace clib {
         return s_binop;
     }
 
-    int sym_binop_t::size() const {
-        return std::max(exp1->size(), exp2->size());
+    int sym_binop_t::size(sym_size_t t) const {
+        if (t == x_inc)
+            return 0;
+        return std::max(exp1->size(x_size), exp2->size(x_size));
     }
 
     string_t sym_binop_t::get_name() const {
@@ -473,11 +479,13 @@ namespace clib {
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen); // exp2
                 base = exp1->base->clone();
-                if ((op->data._op == op_plus || op->data._op == op_minus) &&
-                    exp1->base->ptr > 0 && exp2->base->to_string() == "int") { // 指针+常量
-                    gen.emit(PUSH);
-                    exp2->gen_rvalue(gen);
-                    gen.emit(MUL);
+                if (op->data._op == op_plus || op->data._op == op_minus) {
+                    auto inc = exp1->size(x_inc);
+                    if (inc > 1 && exp2->base->to_string() == "int") { // 指针+常量
+                        gen.emit(PUSH);
+                        exp2->gen_rvalue(gen);
+                        gen.emit(MUL);
+                    }
                 }
                 gen.emit(OP_INS(op->data._op));
             }
@@ -486,7 +494,7 @@ namespace clib {
                 exp1->gen_lvalue(gen);
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen);
-                gen.emit(SAVE, exp1->size());
+                gen.emit(SAVE, exp1->size(x_size));
             }
                 break;
             case op_plus_assign:
@@ -505,7 +513,7 @@ namespace clib {
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen);
                 gen.emit(OP_INS(op->data._op));
-                gen.emit(SAVE, exp1->size());
+                gen.emit(SAVE, exp1->size(x_size));
             }
                 break;
             default:
@@ -525,8 +533,10 @@ namespace clib {
         return s_triop;
     }
 
-    int sym_triop_t::size() const {
-        return std::max(std::max(exp1->size(), exp2->size()), exp3->size());
+    int sym_triop_t::size(sym_size_t t) const {
+        if (t == x_inc)
+            return 0;
+        return std::max(std::max(exp1->size(x_size), exp2->size(x_size)), exp3->size(x_size));
     }
 
     string_t sym_triop_t::get_name() const {
@@ -547,7 +557,9 @@ namespace clib {
         return s_list;
     }
 
-    int sym_list_t::size() const {
+    int sym_list_t::size(sym_size_t t) const {
+        if (t == x_inc)
+            return 0;
         return exps.size();
     }
 
@@ -1389,7 +1401,7 @@ namespace clib {
         auto type = id->base;
         if (id->clazz == z_global_var) {
             id->addr = data.size();
-            auto size = align4(type->size());
+            auto size = align4(type->size(x_size));
             if (init) {
                 if (init->get_type() == s_var) {
                     auto var = std::dynamic_pointer_cast<sym_var_t>(init);
@@ -1420,7 +1432,7 @@ namespace clib {
             }
             id->addr_end = data.size();
         } else if (id->clazz == z_local_var) {
-            auto size = align4(type->size());
+            auto size = align4(type->size(x_size));
             auto func = std::dynamic_pointer_cast<sym_func_t>(ctx.lock());
             func->ebp_local += size;
             text[func->entry] += size;
@@ -1440,7 +1452,7 @@ namespace clib {
         } else if (id->clazz == z_param_var) {
             if (init)
                 error(id, "allocate: invalid init value");
-            auto size = align4(type->size());
+            auto size = align4(type->size(x_size));
             auto func = std::dynamic_pointer_cast<sym_func_t>(ctx.lock());
             id->addr = func->ebp;
             func->ebp += size;

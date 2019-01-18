@@ -8,27 +8,27 @@
 #include "types.h"
 
 namespace clib {
-    std::tuple<lexer_t, string_t, int> lexer_string_list[] = {
-            std::make_tuple(l_none, "none", 0),
-            std::make_tuple(l_error, "error", 0),
-            std::make_tuple(l_char, "char", 1),
-            std::make_tuple(l_uchar, "uchar", 2),
-            std::make_tuple(l_short, "short", 3),
-            std::make_tuple(l_ushort, "ushort", 4),
-            std::make_tuple(l_int, "int", 5),
-            std::make_tuple(l_uint, "uint", 6),
-            std::make_tuple(l_long, "long", 7),
-            std::make_tuple(l_ulong, "ulong", 8),
-            std::make_tuple(l_float, "float", 9),
-            std::make_tuple(l_double, "double", 10),
-            std::make_tuple(l_operator, "operator", 0),
-            std::make_tuple(l_keyword, "keyword", 0),
-            std::make_tuple(l_identifier, "identifier", 0),
-            std::make_tuple(l_string, "string", 0),
-            std::make_tuple(l_comment, "comment", 0),
-            std::make_tuple(l_space, "space", 0),
-            std::make_tuple(l_newline, "newline", 0),
-            std::make_tuple(l_end, "END", 0),
+    std::tuple<lexer_t, string_t, int, int> lexer_string_list[] = {
+            std::make_tuple(l_none, "none", 0, 0),
+            std::make_tuple(l_error, "error", 0, 0),
+            std::make_tuple(l_char, "char", 1, LEX_SIZEOF(char)),
+            std::make_tuple(l_uchar, "uchar", 2, LEX_SIZEOF(uchar)),
+            std::make_tuple(l_short, "short", 3, LEX_SIZEOF(short)),
+            std::make_tuple(l_ushort, "ushort", 4, LEX_SIZEOF(ushort)),
+            std::make_tuple(l_int, "int", 5, LEX_SIZEOF(int)),
+            std::make_tuple(l_uint, "uint", 6, LEX_SIZEOF(uint)),
+            std::make_tuple(l_long, "long", 7, LEX_SIZEOF(long)),
+            std::make_tuple(l_ulong, "ulong", 8, LEX_SIZEOF(ulong)),
+            std::make_tuple(l_float, "float", 9, LEX_SIZEOF(float)),
+            std::make_tuple(l_double, "double", 10, LEX_SIZEOF(double)),
+            std::make_tuple(l_operator, "operator", 0, 0),
+            std::make_tuple(l_keyword, "keyword", 0, 0),
+            std::make_tuple(l_identifier, "identifier", 0, 0),
+            std::make_tuple(l_string, "string", 0, sizeof(void*)),
+            std::make_tuple(l_comment, "comment", 0, 0),
+            std::make_tuple(l_space, "space", 0, 0),
+            std::make_tuple(l_newline, "newline", 0, 0),
+            std::make_tuple(l_end, "END", 0, 0),
     };
 
     const string_t &lexer_typestr(lexer_t type) {
@@ -39,6 +39,11 @@ namespace clib {
     int lexer_prior(lexer_t type) {
         assert(type >= l_none && type < l_end);
         return std::get<2>(lexer_string_list[type]);
+    }
+
+    int lexer_sizeof(lexer_t type) {
+        assert(type >= l_none && type < l_end);
+        return std::get<3>(lexer_string_list[type]);
     }
 
     std::tuple<keyword_t, string_t> keyword_string_list[] = {
