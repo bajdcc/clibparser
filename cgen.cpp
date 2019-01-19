@@ -85,6 +85,11 @@ namespace clib {
         return g_ok;
     }
 
+    gen_t sym_t::gen_invoke(igen &gen, ref &list) {
+        gen.error("unsupport invoke");
+        return g_error;
+    }
+
     type_t::type_t(int ptr) : ptr(ptr) {}
 
     symbol_t type_t::get_type() const {
@@ -271,6 +276,28 @@ namespace clib {
         return ss.str();
     }
 
+    gen_t sym_func_t::gen_invoke(igen &gen, sym_t::ref &list) {
+        assert(list->get_type() == s_list);
+        auto args = std::dynamic_pointer_cast<sym_list_t>(list);
+        auto &exps = args->exps;
+        if (exps.size() != params.size()) {
+            gen.error("invoke: argument size not equal, required: " + to_string() +
+                      ", but got: " + args->to_string());
+        }
+        for (auto i = 0; i < exps.size(); ++i) {
+            exps[i]->gen_rvalue(gen);
+            if (exps[i]->base->to_string() != params[i]->to_string()) {
+                gen.error("invoke: argument type not equal, required: " + params[i]->to_string() +
+                          ", but got: " + exps[i]->to_string() + ", func: " + to_string());
+            }
+            gen.emit(PUSH);
+        }
+        gen.emit(CALL, addr);
+        if (!exps.empty()) {
+            gen.emit(ADJ, exps.size());
+        }
+    }
+
     type_exp_t::type_exp_t(const type_t::ref &base) : base(base) {}
 
     symbol_t type_exp_t::get_type() const {
@@ -363,6 +390,10 @@ namespace clib {
 
     gen_t sym_var_id_t::gen_rvalue(igen &gen) {
         return id.lock()->gen_rvalue(gen);
+    }
+
+    gen_t sym_var_id_t::gen_invoke(igen &gen, sym_t::ref &list) {
+        return id.lock()->gen_invoke(gen, list);
     }
 
     sym_unop_t::sym_unop_t(const type_exp_t::ref &exp, ast_node *op)
@@ -700,6 +731,11 @@ namespace clib {
                 }
             }
                 break;
+            case op_lparan: {
+                auto exp = std::dynamic_pointer_cast<sym_t>(exp2);
+                exp1->gen_invoke(gen, exp);
+            }
+                break;
             default:
                 gen.error("[binop] not supported rvalue: " + to_string());
                 return g_error;
@@ -763,6 +799,8 @@ namespace clib {
     }
 
     string_t sym_list_t::to_string() const {
+        if (exps.empty())
+            return "(list: empty)";
         std::stringstream ss;
         ss << "(list, " << string_join(exps, ", ") << ')';
         return ss.str();
@@ -1818,10 +1856,11 @@ namespace clib {
                 auto sym = find_symbol(node->data._string);
                 if (!sym)
                     error(node, "undefined id: " + string_t(node->data._string));
-                if (sym->get_type() != s_id)
-                    error(node, "required id but got: " + sym->to_string());
-                t = std::dynamic_pointer_cast<sym_id_t>(sym)->base->clone();
-                return std::make_shared<sym_var_id_t>(t, node, sym);
+                if (sym->get_type() == s_id || sym->get_type() == s_function) {
+                    t = std::dynamic_pointer_cast<sym_id_t>(sym)->base->clone();
+                    return std::make_shared<sym_var_id_t>(t, node, sym);
+                }
+                error(node, "required id but got: " + sym->to_string());
             }
             case ast_string:
                 t = std::make_shared<type_base_t>(l_char, 1);

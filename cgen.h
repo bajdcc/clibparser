@@ -76,6 +76,7 @@ namespace clib {
         virtual string_t to_string() const;
         virtual gen_t gen_lvalue(igen &gen);
         virtual gen_t gen_rvalue(igen &gen);
+        virtual gen_t gen_invoke(igen &gen, ref &list);
         int line{0}, column{0};
     };
 
@@ -171,6 +172,7 @@ namespace clib {
         symbol_t get_base_type() const override;
         int size(sym_size_t t) const override;
         string_t to_string() const override;
+        gen_t gen_invoke(igen &gen, sym_t::ref &list) override;
         std::vector<sym_id_t::ref> params;
         int ebp{0}, ebp_local{0};
         int entry{0};
@@ -199,6 +201,7 @@ namespace clib {
         string_t to_string() const override;
         gen_t gen_lvalue(igen &gen) override;
         gen_t gen_rvalue(igen &gen) override;
+        gen_t gen_invoke(igen &gen, sym_t::ref &list) override;
         sym_t::weak_ref id;
     };
 
