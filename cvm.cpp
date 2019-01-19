@@ -314,9 +314,18 @@ namespace clib {
         uint32_t sp = stack + poolsize; // 4KB / sizeof(int) = 1024
 
         {
+            auto argvs = vmm_malloc((uint32_t) g_argc * INC_PTR);
+            for (auto i = 0; i < g_argc; i++) {
+                auto str = vmm_malloc(256);
+                vmm_setstr(str, g_argv[i]);
+                vmm_set(argvs + INC_PTR * i, str);
+            }
+
             vmm_pushstack(sp, EXIT);
             vmm_pushstack(sp, PUSH);
             auto tmp = sp;
+            vmm_pushstack(sp, g_argc);
+            vmm_pushstack(sp, argvs);
             vmm_pushstack(sp, tmp);
         }
 

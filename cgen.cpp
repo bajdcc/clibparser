@@ -194,6 +194,8 @@ namespace clib {
             gen.emit(IMM, DATA_BASE | addr);
         } else if (clazz == z_local_var) {
             gen.emit(LEA, addr);
+        } else if (clazz == z_param_var) {
+            gen.emit(LEA, addr);
         }
         return g_ok;
     }
@@ -204,6 +206,9 @@ namespace clib {
             if (base->ptr == 0)
                 gen.emit(LOAD, base->size(x_size));
         } else if (clazz == z_local_var) {
+            gen.emit(LEA, addr);
+            gen.emit(LOAD, base->size(x_size));
+        } else if (clazz == z_param_var) {
             gen.emit(LEA, addr);
             gen.emit(LOAD, base->size(x_size));
         }
@@ -251,6 +256,8 @@ namespace clib {
     }
 
     int sym_func_t::size(sym_size_t t) const {
+        if (t == x_inc)
+            return 0;
         return sizeof(void *);
     }
 
@@ -811,7 +818,8 @@ namespace clib {
         text.push_back(d);
 #if LOG_TYPE
         std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) << " " <<
-                  std::setiosflags(std::ios::uppercase) << std::hex << d << std::endl;
+                  std::setiosflags(std::ios::uppercase) << std::hex << std::setw(8) <<
+                  std::setfill('0') << d << "(" << std::dec << d << ")" << std::endl;
 #endif
     }
 
@@ -821,7 +829,8 @@ namespace clib {
 #if LOG_TYPE
         std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) <<
                   " " << std::setiosflags(std::ios::uppercase) << std::hex <<
-                  d << " " << e << std::endl;
+                  std::setw(8) << std::setfill('0') << d << " " <<
+                  std::setw(8) << std::setfill('0') << e << std::endl;
 #endif
     }
 
@@ -1477,6 +1486,10 @@ namespace clib {
                     }
                     func->ebp += sizeof(void *);
                     func->ebp_local = func->ebp;
+                    for (auto &param : func->params) {
+                        param->addr = func->ebp - param->addr;
+                        param->addr_end = func->ebp - param->addr_end;
+                    }
                     tmps.clear();
                     asts.clear();
 #if LOG_TYPE
@@ -1700,6 +1713,19 @@ namespace clib {
             auto f = s->find(name);
             if (f != s->end()) {
                 return f->second;
+            }
+        }
+        if (ctx.lock()) {
+            auto _ctx = ctx.lock();
+            if (_ctx) {
+                if (_ctx->get_type() == s_function) {
+                    auto func = std::dynamic_pointer_cast<sym_func_t>(_ctx);
+                    for (auto &param : func->params) {
+                        if (param->get_name() == name) {
+                            return param;
+                        }
+                    }
+                }
             }
         }
         return nullptr;
