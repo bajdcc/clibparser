@@ -62,13 +62,13 @@ compilationUnit
                constant
                 int: 2
              operator: )
-      blockItem
-       statement
-        jumpStatement
-         keyword: return
-         primaryExpression
-          constant
-           int: 1
+         keyword: else
+         statement
+          jumpStatement
+           keyword: return
+           primaryExpression
+            constant
+             int: 1
   externalDeclaration
    functionDefinition
     declarationSpecifiers
@@ -142,6 +142,7 @@ compilationUnit
 [DEBUG] *GEN* ==> ADJ 00000001(1)
 [DEBUG] *GEN* ==> ADD
 [DEBUG] *GEN* ==> LEV
+[DEBUG] *GEN* ==> JMP FFFFFFFF(-1)
 [DEBUG] *GEN* ==> IMM 00000001(1)
 [DEBUG] *GEN* ==> LEV
 [DEBUG] *GEN* ==> LEV
@@ -149,7 +150,7 @@ compilationUnit
 [DEBUG] Type: int
 [DEBUG] Type: char
 [DEBUG] Func: int main, Param: [int argc, Class: param id, Addr: 12; char** argv, Class: param id, Addr: 8], Class: func
- id, Addr: 45
+ id, Addr: 47
 [DEBUG] *GEN* ==> ENT 00000000(0)
 [DEBUG] Exp: (binop, operator: (, exp1: int fib, Param: [int i, Class: param id, Addr: 8], Class: func id, Addr: 0, exp2
 : (list, (type: int, int: 10)))

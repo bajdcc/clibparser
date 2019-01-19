@@ -17,7 +17,8 @@ int main(int argc, char **argv) {
 int fib(int i) {
     if (i > 2)
         return fib(i - 1) + fib(i - 2);
-    return 1;
+    else
+        return 1;
 }
 int main(int argc, char **argv){
     fib(10);

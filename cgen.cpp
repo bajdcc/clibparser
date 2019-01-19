@@ -1754,7 +1754,7 @@ namespace clib {
                 emit(JMP, -1);
                 auto L2 = text.size() - 1;
                 text[L1] = text.size();
-                gen_rec(nodes[3], level); // false
+                gen_rec(nodes[4], level); // false
                 text[L2] = text.size();
             }
             tmp.back().clear();
