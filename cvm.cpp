@@ -10,6 +10,9 @@
 #include "cgen.h"
 #include "cexception.h"
 
+#define LOG_INS 0
+#define LOG_STACK 0
+
 int g_argc;
 char **g_argv;
 
@@ -352,7 +355,7 @@ namespace clib {
             auto op = vmm_get(pc); // get next operation code
             pc += INC_PTR;
 
-#if 1
+#if LOG_INS
             assert(op <= EXIT);
             // print debug info
             if (true) {
@@ -589,7 +592,7 @@ namespace clib {
                 }
             }
 
-#if 1
+#if LOG_STACK
             if (log) {
                 printf("\n---------------- STACK BEGIN <<<< \n");
                 printf("AX: %08X BP: %08X SP: %08X PC: %08X\n", ax, bp, sp, pc);

@@ -289,6 +289,20 @@ namespace clib {
         ast_node *op{nullptr};
     };
 
+    class sym_stmt_t : public sym_t {
+    public:
+        using ref = std::shared_ptr<sym_stmt_t>;
+        explicit sym_stmt_t(ast_node *op);
+        symbol_t get_type() const override;
+        int size(sym_size_t t) const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
+        std::vector<std::vector<sym_t::ref>> stmts;
+        ast_node *op{nullptr};
+    };
+
     // 生成虚拟机指令
     class cgen : public csemantic, public igen {
     public:
@@ -312,6 +326,7 @@ namespace clib {
     private:
         void gen_rec(ast_node *node, int level);
         void gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node);
+        void gen_stmt(const std::vector<ast_node *> &nodes, int level, ast_node *node);
 
         void allocate(sym_id_t::ref id, const type_exp_t::ref &init);
         sym_id_t::ref add_id(const type_base_t::ref &, sym_class_t, ast_node *, const type_exp_t::ref &);
@@ -329,7 +344,7 @@ namespace clib {
         std::vector<LEX_T(char)> data; // 数据
         std::vector<std::unordered_map<LEX_T(string), std::shared_ptr<sym_t>>> symbols; // 符号表
         std::vector<std::vector<ast_node *>> ast;
-        std::vector<std::vector<std::shared_ptr<sym_t>>> tmp;
+        std::vector<std::vector<sym_t::ref>> tmp;
         sym_t::weak_ref ctx;
     };
 }

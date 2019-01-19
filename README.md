@@ -1,6 +1,6 @@
-# clibparser（GLR Parser）
+# clibparser（C++ GLR Parser and VM）
 
-C++实现的LR Parser Generator。
+C++实现的**LR编译器**及**C语言虚拟机**。
 
 - 文法书写方式：以C++重载为基础的Parser Generator。
 - 语义分析：在LR解析的过程中，状态机向符号表提供分析接口，使得状态转换可手动干涉，解决“`A*b`”问题
@@ -26,63 +26,28 @@ C++实现的LR Parser Generator。
 
 文法支持顺序、分支、可选、跳过终结符。目前可以根据LR文法**自动**生成AST。后续会对AST进行标记。
 
+目前已完成：
+
+1. 递归（斐波那契）
+
 ## 示例代码
 
+**1. [递归](https://raw.githubusercontent.com/bajdcc/clibparser/master/output/1_rec.txt)**
+
 ```cpp
-struct sx {
-    int *a;
-    double b;
-};
-int *a, *_a, _b = 1;
-char *_c = "Hello world!";
-double *b;
-int *main1(int c, float *d, sx x, char y) {
-    unsigned int *a, *b;
-    float d, *e, f;
-    sx *s1;
-    //sy *s2;
+int fib(int i) {
+    if (i > 2)
+        return fib(i - 1) + fib(i - 2);
+    return 1;
 }
-int main2() {
-    int a, b, c;
-    a + b + 1 - 2;
-    a = b = c;
-    //--1+++---1++;
-    //a.b----[1](1,2);
-}
-int ta, test(unsigned int a, double b, char c), tb(long d), tc, td(int e);
-char *aa = "bajdcc";
-int bb = 2;
-int dd = bb;
-int main(){
-    char *ee = "hello";
-    char *ff = aa;
-    char *gg = ff;
-    int cc = 1;
-    aa;
-    bb;
-    bb + 1;
-    dd;
-    cc + 1;
-    int x = 1, y = 2, z = 3;
-    x += y *= z;
-    z = x < y;
-    z = 1 * 2 / 3 + 4;
-    ++z + z;
-    z++ + z;
-    &z;
-    *ee;
-    *(ee + 2);
-    *ee = '9';
-    ee[2];
-    ee[2] = '8';
-    z = 2;
-    --z+++--z++;
+int main(int argc, char **argv){
+    fib(10);
 }
 ```
 
 结果（每个单词都保存了在源文件中的位置，这里省略）：
 
-**因内容太多，故放置在文件[output.txt](https://raw.githubusercontent.com/bajdcc/clibparser/master/output.txt)中。**
+**因内容太多，故放置在文件[output.txt](https://github.com/bajdcc/clibparser/tree/master/output)中。**
 
 ## 调试信息
 
@@ -101,6 +66,15 @@ int main(){
 #define DUMP_PDA 0
 #define DEBUG_AST 0
 #define CHECK_AST 0
+```
+
+将值改为1即可。
+
+虚拟机的调试，修改cvm.cpp中的：
+
+```cpp
+#define LOG_INS 0
+#define LOG_STACK 0
 ```
 
 将值改为1即可。
@@ -158,19 +132,19 @@ int main(){
     - [x] 识别结构体声明和类型
     - [x] 计算变量声明地址
     - [ ] 识别语句
-    - [ ] 识别表达式
+    - [x] 识别表达式
 - [ ] 代码生成
     - [x] 全局变量及初始化
     - [x] 局部变量及初始化
     - [x] 形参
-    - [x] 函数调用
+    - [x] 函数调用（及递归）
     - [x] 数组寻址（及左值）
     - [ ] 结构体成员（点和指针）
     - [x] 一元运算
     - [x] 二元运算
     - [x] 赋值语句
     - [x] 返回语句
-    - [ ] if语句
+    - [x] if语句
     - [ ] for语句
     - [ ] while语句
     - [x] 取址和解引用（及左值）

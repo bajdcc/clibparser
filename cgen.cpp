@@ -167,7 +167,7 @@ namespace clib {
     }
 
     sym_id_t::sym_id_t(const type_t::ref &base, const string_t &id)
-            : base(base), id(id) {}
+        : base(base), id(id) {}
 
     symbol_t sym_id_t::get_type() const {
         return s_id;
@@ -286,7 +286,7 @@ namespace clib {
         }
         for (auto i = 0; i < exps.size(); ++i) {
             exps[i]->gen_rvalue(gen);
-            if (exps[i]->base->to_string() != params[i]->to_string()) {
+            if (exps[i]->base->to_string() != params[i]->base->to_string()) {
                 gen.error("invoke: argument type not equal, required: " + params[i]->to_string() +
                           ", but got: " + exps[i]->to_string() + ", func: " + to_string());
             }
@@ -366,7 +366,7 @@ namespace clib {
     }
 
     sym_var_id_t::sym_var_id_t(const type_t::ref &base, ast_node *node, const sym_t::ref &symbol)
-            : sym_var_t(base, node), id(symbol) {}
+        : sym_var_t(base, node), id(symbol) {}
 
     symbol_t sym_var_id_t::get_type() const {
         return s_var_id;
@@ -397,7 +397,7 @@ namespace clib {
     }
 
     sym_unop_t::sym_unop_t(const type_exp_t::ref &exp, ast_node *op)
-            : type_exp_t(nullptr), exp(exp), op(op) {
+        : type_exp_t(nullptr), exp(exp), op(op) {
         line = exp->line;
         column = exp->column;
     }
@@ -520,7 +520,7 @@ namespace clib {
     }
 
     sym_sinop_t::sym_sinop_t(const type_exp_t::ref &exp, ast_node *op)
-            : type_exp_t(nullptr), exp(exp), op(op) {
+        : type_exp_t(nullptr), exp(exp), op(op) {
         line = exp->line;
         column = exp->column;
     }
@@ -595,7 +595,7 @@ namespace clib {
     }
 
     sym_binop_t::sym_binop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2, ast_node *op)
-            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), op(op) {
+        : type_exp_t(nullptr), exp1(exp1), exp2(exp2), op(op) {
         line = exp1->line;
         column = exp1->column;
     }
@@ -734,6 +734,7 @@ namespace clib {
             case op_lparan: {
                 auto exp = std::dynamic_pointer_cast<sym_t>(exp2);
                 exp1->gen_invoke(gen, exp);
+                base = exp1->base->clone();
             }
                 break;
             default:
@@ -745,7 +746,7 @@ namespace clib {
 
     sym_triop_t::sym_triop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2,
                              const type_exp_t::ref &exp3, ast_node *op1, ast_node *op2)
-            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {
+        : type_exp_t(nullptr), exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {
         line = exp1->line;
         column = exp1->column;
     }
@@ -860,6 +861,45 @@ namespace clib {
                 gen.error("[ctrl] not supported lvalue: " + to_string());
                 return g_error;
         }
+        return g_ok;
+    }
+
+    sym_stmt_t::sym_stmt_t(ast_node *op) : op(op) {}
+
+    symbol_t sym_stmt_t::get_type() const {
+        return s_statement;
+    }
+
+    int sym_stmt_t::size(sym_size_t t) const {
+        return 0;
+    }
+
+    string_t sym_stmt_t::get_name() const {
+        return KEYWORD_STRING(op->data._keyword);
+    }
+
+    string_t sym_stmt_t::to_string() const {
+        if (AST_IS_KEYWORD_K(op, k_if)) {
+            std::stringstream ss;
+            ss << "(" << get_name();
+            ss << ", true: [" << string_join(stmts[0], ", ") << "]";
+            if (!stmts[1].empty())
+                ss << ", false: [" << string_join(stmts[1], ", ") << "]";
+            ss << ")";
+            return ss.str();
+        } else if (AST_IS_KEYWORD_K(op, k_for)) {
+        } else if (AST_IS_KEYWORD_K(op, k_while)) {
+        }
+        return get_name();
+    }
+
+    gen_t sym_stmt_t::gen_lvalue(igen &gen) {
+        gen.error("[stmt] unsupport lvalue");
+        return g_error;
+    }
+
+    gen_t sym_stmt_t::gen_rvalue(igen &gen) {
+
         return g_ok;
     }
 
@@ -1166,9 +1206,8 @@ namespace clib {
             case c_expressionStatement:
                 break;
             case c_selectionStatement:
-                break;
             case c_iterationStatement:
-                break;
+                return gen_stmt(nodes, level, node);
             case c_forCondition:
                 break;
             case c_forDeclaration:
@@ -1209,9 +1248,8 @@ namespace clib {
                 break;
             case c_postfixExpression: {
                 if (AST_IS_COLL_N(nodes[0], c_primaryExpression)) {
-                    auto &_tmp = tmp.back();
                     auto tmp_i = 0;
-                    auto exp = to_exp(_tmp[tmp_i++]);
+                    auto exp = to_exp(tmp.back()[tmp_i++]);
                     for (int i = 1; i < nodes.size(); ++i) {
                         auto &a = nodes[i];
                         if (AST_IS_OP(a)) {
@@ -1223,7 +1261,7 @@ namespace clib {
                                 exp = std::make_shared<sym_binop_t>(exp, exp2, a);
                             } else if (AST_IS_OP_K(a, op_lsquare)) {
                                 ++i;
-                                auto exp2 = to_exp(_tmp[tmp_i++]);
+                                auto exp2 = to_exp(tmp.back()[tmp_i++]);
                                 exp = std::make_shared<sym_binop_t>(exp, exp2, a);
                             } else if (AST_IS_OP_K(a, op_lparan)) {
                                 ++i;
@@ -1231,7 +1269,7 @@ namespace clib {
                                 while (true) {
                                     if (AST_IS_OP_K(nodes[i], op_rparan))
                                         break;
-                                    exp2->exps.push_back(to_exp(_tmp[tmp_i++]));
+                                    exp2->exps.push_back(to_exp(tmp.back()[tmp_i++]));
                                     ++i;
                                 }
                                 exp = std::make_shared<sym_binop_t>(exp, exp2, a);
@@ -1242,8 +1280,8 @@ namespace clib {
                             error("invalid postfix exp: coll");
                         }
                     }
-                    _tmp.clear();
-                    _tmp.push_back(exp);
+                    tmp.back().clear();
+                    tmp.back().push_back(exp);
                     asts.clear();
                 }
             }
@@ -1294,32 +1332,30 @@ namespace clib {
             case c_logicalAndExpression:
             case c_logicalOrExpression:
             case c_conditionalExpression: {
-                auto &_tmp = tmp.back();
                 auto tmp_i = 0;
-                auto exp1 = to_exp(_tmp[tmp_i++]);
-                auto exp2 = to_exp(_tmp[tmp_i++]);
+                auto exp1 = to_exp(tmp.back()[tmp_i++]);
+                auto exp2 = to_exp(tmp.back()[tmp_i++]);
                 for (auto &a : asts) {
                     if (AST_IS_OP(a)) {
                         exp1 = std::make_shared<sym_binop_t>(exp1, exp2, a);
-                        if (tmp_i < _tmp.size())
-                            exp2 = to_exp(_tmp[tmp_i++]);
+                        if (tmp_i < tmp.back().size())
+                            exp2 = to_exp(tmp.back()[tmp_i++]);
                     } else {
                         error("invalid plus/minus exp: coll");
                     }
                 }
-                _tmp.clear();
-                _tmp.push_back(exp1);
+                tmp.back().clear();
+                tmp.back().push_back(exp1);
                 asts.clear();
             }
                 break;
             case c_assignmentExpression: {
-                auto &_tmp = tmp.back();
                 auto tmp_i = 0;
-                auto exp1 = to_exp(_tmp[tmp_i++]);
-                auto exp2 = to_exp(_tmp[tmp_i++]);
+                auto exp1 = to_exp(tmp.back()[tmp_i++]);
+                auto exp2 = to_exp(tmp.back()[tmp_i++]);
                 auto exp = std::make_shared<sym_binop_t>(exp1, exp2, asts.front());
-                _tmp.clear();
-                _tmp.push_back(exp);
+                tmp.back().clear();
+                tmp.back().push_back(exp);
                 asts.clear();
             }
                 break;
@@ -1459,7 +1495,6 @@ namespace clib {
                 auto type = std::dynamic_pointer_cast<type_t>((tmp.rbegin() + 1)->front());
                 auto ptr = 0;
                 auto tmp_i = 0;
-                auto &_tmp = tmp.back();
                 for (auto &ast : asts) {
                     if (AST_IS_OP_N(ast, op_times)) {
                         ptr++;
@@ -1468,7 +1503,7 @@ namespace clib {
                         new_type->ptr = ptr;
                         type_exp_t::ref init;
                         if (clazz != z_struct_var) {
-                            auto t = _tmp[tmp_i++];
+                            auto t = tmp.back()[tmp_i++];
                             if (t) {
                                 init = to_exp(t);
                             }
@@ -1477,7 +1512,7 @@ namespace clib {
                         ptr = 0;
                     }
                 }
-                _tmp.clear();
+                tmp.back().clear();
             }
                 break;
             case c_initDeclarator: {
@@ -1621,7 +1656,8 @@ namespace clib {
             case c_designator:
                 break;
             case c_statement: {
-                tmp.back().front()->gen_rvalue(*this);
+                if (!tmp.back().empty())
+                    tmp.back().front()->gen_rvalue(*this);
             }
                 break;
             case c_labeledStatement:
@@ -1651,28 +1687,27 @@ namespace clib {
             case c_jumpStatement: {
                 auto &a = asts[0];
                 if (AST_IS_KEYWORD(a)) {
-                    auto &_tmp = tmp.back();
                     if (AST_IS_KEYWORD_K(a, k_return)) {
-                        if (asts.size() > 1) {
-                            auto exp = _tmp.front();
+                        if (!tmp.back().empty()) {
+                            auto exp = tmp.back().front();
                             if (exp->get_base_type() != s_expression) {
                                 error(a, "return requires exp: ", true);
                             }
                             auto _exp = std::dynamic_pointer_cast<type_exp_t>(exp);
                             auto ctrl = std::make_shared<sym_ctrl_t>(a);
                             ctrl->exp = _exp;
-                            _tmp.clear();
-                            _tmp.push_back(ctrl);
+                            tmp.back().clear();
+                            tmp.back().push_back(ctrl);
                             asts.clear();
                         } else {
                             auto ctrl = std::make_shared<sym_ctrl_t>(a);
-                            _tmp.clear();
-                            _tmp.push_back(ctrl);
+                            tmp.back().clear();
+                            tmp.back().push_back(ctrl);
                             asts.clear();
                         }
                     } else if (AST_IS_KEYWORD_K(a, k_break) || AST_IS_KEYWORD_K(a, k_continue)) {
                         auto ctrl = std::make_shared<sym_ctrl_t>(a);
-                        _tmp.push_back(ctrl);
+                        tmp.back().push_back(ctrl);
                         asts.clear();
                     } else {
                         error(a, "invalid jump: keyword", true);
@@ -1697,6 +1732,34 @@ namespace clib {
                 break;
             case c_declarationList:
                 break;
+        }
+    }
+
+    void cgen::gen_stmt(const std::vector<ast_node *> &nodes, int level, ast_node *node) {
+        auto &k = nodes[0];
+        if (AST_IS_KEYWORD_K(k, k_if)) {
+            gen_rec(nodes[1], level); // exp
+            auto exp = tmp.back().back();
+            tmp.back().clear();
+            exp->gen_rvalue(*this);
+            if (nodes.size() < 4) { // one branch
+                emit(JZ, -1);
+                auto L1 = text.size() - 1;
+                gen_rec(nodes[2], level); // true
+                text[L1] = text.size();
+            } else {
+                emit(JZ, -1);
+                auto L1 = text.size() - 1;
+                gen_rec(nodes[2], level); // true
+                emit(JMP, -1);
+                auto L2 = text.size() - 1;
+                text[L1] = text.size();
+                gen_rec(nodes[3], level); // false
+                text[L2] = text.size();
+            }
+            tmp.back().clear();
+        } else {
+            error(k, "invalid stmt keyword: ", true);
         }
     }
 
@@ -1888,12 +1951,12 @@ namespace clib {
     }
 
     std::tuple<sym_class_t, string_t> sym_class_string_list[] = {
-            std::make_tuple(z_undefined, "undefined"),
-            std::make_tuple(z_global_var, "global id"),
-            std::make_tuple(z_local_var, "local id"),
-            std::make_tuple(z_param_var, "param id"),
-            std::make_tuple(z_struct_var, "struct id"),
-            std::make_tuple(z_function, "func id"),
+        std::make_tuple(z_undefined, "undefined"),
+        std::make_tuple(z_global_var, "global id"),
+        std::make_tuple(z_local_var, "local id"),
+        std::make_tuple(z_param_var, "param id"),
+        std::make_tuple(z_struct_var, "struct id"),
+        std::make_tuple(z_function, "func id"),
     };
 
     const string_t &sym_class_string(sym_class_t t) {

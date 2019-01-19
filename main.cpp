@@ -14,11 +14,13 @@ int main(int argc, char **argv) {
         cparser p;
         cgen gen;
         auto root = p.parse(R"(
-int test(int i) {
-    return i;
+int fib(int i) {
+    if (i > 2)
+        return fib(i - 1) + fib(i - 2);
+    return 1;
 }
 int main(int argc, char **argv){
-    test(1);
+    fib(10);
 }
 )", &gen);
         cast::print(root, 0, std::cout);
