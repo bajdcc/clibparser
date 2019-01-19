@@ -61,6 +61,7 @@ int main(int argc, char **argv){
     ee[2] = '8';
     z = 2;
     --z+++--z++;
+    return z;
 }
 )", &gen);
         cast::print(root, 0, std::cout);

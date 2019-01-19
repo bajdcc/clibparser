@@ -13,7 +13,8 @@
 #include "cexception.h"
 
 #define AST_IS_KEYWORD(node) ((node)->flag == ast_keyword)
-#define AST_IS_KEYWORD_N(node, k) (AST_IS_KEYWORD(node) && (node)->data._keyword == (k))
+#define AST_IS_KEYWORD_K(node, k) ((node)->data._keyword == (k))
+#define AST_IS_KEYWORD_N(node, k) (AST_IS_KEYWORD(node) && AST_IS_KEYWORD_K(node, k))
 #define AST_IS_OP(node) ((node)->flag == ast_operator)
 #define AST_IS_OP_K(node, k) ((node)->data._op == (k))
 #define AST_IS_OP_N(node, k) (AST_IS_OP(node) && AST_IS_OP_K(node, k))
@@ -422,8 +423,8 @@ namespace clib {
                 base->ptr--;
                 break;
             default:
-                gen.error("unsupported unop");
-                break;
+                gen.error("[unop] not supported lvalue: " + to_string());
+                return g_error;
         }
     }
 
@@ -482,8 +483,8 @@ namespace clib {
                 gen.emit(LOAD, std::max(exp->size(x_inc), 1));
                 break;
             default:
-                gen.error("unsupported unop");
-                break;
+                gen.error("[unop] not supported rvalue: " + to_string());
+                return g_error;
         }
     }
 
@@ -531,8 +532,8 @@ namespace clib {
             }
                 break;
             default:
-                gen.error("unsupported sinop");
-                break;
+                gen.error("[sinop] not supported lvalue: " + to_string());
+                return g_error;
         }
         return g_ok;
     }
@@ -556,8 +557,8 @@ namespace clib {
             }
                 break;
             default:
-                gen.error("unsupported sinop");
-                break;
+                gen.error("[sinop] not supported rvalue: " + to_string());
+                return g_error;
         }
         return g_ok;
     }
@@ -612,7 +613,7 @@ namespace clib {
             }
                 break;
             default:
-                gen.error("not supported lvalue: " + to_string());
+                gen.error("[binop] not supported lvalue: " + to_string());
                 return g_error;
         }
     }
@@ -700,7 +701,8 @@ namespace clib {
             }
                 break;
             default:
-                break;
+                gen.error("[binop] not supported rvalue: " + to_string());
+                return g_error;
         }
         return g_ok;
     }
@@ -737,12 +739,12 @@ namespace clib {
     }
 
     gen_t sym_triop_t::gen_lvalue(igen &gen) {
-        gen.error("not supported: " + to_string());
+        gen.error("[triop] not supported: " + to_string());
         return g_error;
     }
 
     gen_t sym_triop_t::gen_rvalue(igen &gen) {
-        gen.error("not supported: " + to_string());
+        gen.error("[triop] not supported: " + to_string());
         return g_error;
     }
 
@@ -776,6 +778,51 @@ namespace clib {
     gen_t sym_list_t::gen_rvalue(igen &gen) {
         gen.error("not supported: " + to_string());
         return g_error;
+    }
+
+    sym_ctrl_t::sym_ctrl_t(ast_node *op) : op(op) {
+        line = op->line;
+        column = op->column;
+    }
+
+    symbol_t sym_ctrl_t::get_type() const {
+        return s_ctrl;
+    }
+
+    int sym_ctrl_t::size(sym_size_t t) const {
+        return 0;
+    }
+
+    string_t sym_ctrl_t::get_name() const {
+        return KEYWORD_STRING(op->data._keyword);
+    }
+
+    string_t sym_ctrl_t::to_string() const {
+        std::stringstream ss;
+        ss << "(" << get_name();
+        if (exp)
+            ss << ", " << exp->to_string();
+        ss << ")";
+        return ss.str();
+    }
+
+    gen_t sym_ctrl_t::gen_lvalue(igen &gen) {
+        gen.error("[ctrl] not supported lvalue: " + to_string());
+    }
+
+    gen_t sym_ctrl_t::gen_rvalue(igen &gen) {
+        switch (op->data._keyword) {
+            case k_return: {
+                if (exp)
+                    exp->gen_rvalue(gen);
+                gen.emit(LEV);
+            }
+                break;
+            default:
+                gen.error("[ctrl] not supported lvalue: " + to_string());
+                return g_error;
+        }
+        return g_ok;
     }
 
     // --------------------------------------------------------------
@@ -1535,7 +1582,9 @@ namespace clib {
                 break;
             case c_designator:
                 break;
-            case c_statement:
+            case c_statement: {
+                tmp.back().front()->gen_rvalue(*this);
+            }
                 break;
             case c_labeledStatement:
                 break;
@@ -1549,7 +1598,6 @@ namespace clib {
 #if LOG_TYPE
                 std::cout << "[DEBUG] Exp: " << string_join(tmp.back(), ", ") << std::endl;
 #endif
-                tmp.back().front()->gen_rvalue(*this);
             }
                 break;
             case c_selectionStatement:
@@ -1562,7 +1610,39 @@ namespace clib {
                 break;
             case c_forExpression:
                 break;
-            case c_jumpStatement:
+            case c_jumpStatement: {
+                auto &a = asts[0];
+                if (AST_IS_KEYWORD(a)) {
+                    auto &_tmp = tmp.back();
+                    if (AST_IS_KEYWORD_K(a, k_return)) {
+                        if (asts.size() > 1) {
+                            auto exp = _tmp.front();
+                            if (exp->get_base_type() != s_expression) {
+                                error(a, "return requires exp: ", true);
+                            }
+                            auto _exp = std::dynamic_pointer_cast<type_exp_t>(exp);
+                            auto ctrl = std::make_shared<sym_ctrl_t>(a);
+                            ctrl->exp = _exp;
+                            _tmp.clear();
+                            _tmp.push_back(ctrl);
+                            asts.clear();
+                        } else {
+                            auto ctrl = std::make_shared<sym_ctrl_t>(a);
+                            _tmp.clear();
+                            _tmp.push_back(ctrl);
+                            asts.clear();
+                        }
+                    } else if (AST_IS_KEYWORD_K(a, k_break) || AST_IS_KEYWORD_K(a, k_continue)) {
+                        auto ctrl = std::make_shared<sym_ctrl_t>(a);
+                        _tmp.push_back(ctrl);
+                        asts.clear();
+                    } else {
+                        error(a, "invalid jump: keyword", true);
+                    }
+                } else {
+                    error(a, "invalid jump: op", true);
+                }
+            }
                 break;
             case c_compilationUnit:
                 break;

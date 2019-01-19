@@ -42,6 +42,7 @@ namespace clib {
         s_binop,
         s_triop,
         s_list,
+        s_ctrl,
         s_statement,
     };
 
@@ -269,6 +270,20 @@ namespace clib {
         gen_t gen_lvalue(igen &gen) override;
         gen_t gen_rvalue(igen &gen) override;
         std::vector<type_exp_t::ref> exps;
+    };
+
+    class sym_ctrl_t : public sym_t {
+    public:
+        using ref = std::shared_ptr<sym_ctrl_t>;
+        explicit sym_ctrl_t(ast_node *op);
+        symbol_t get_type() const override;
+        int size(sym_size_t t) const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
+        type_exp_t::ref exp;
+        ast_node *op{nullptr};
     };
 
     // 生成虚拟机指令
