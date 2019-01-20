@@ -56,6 +56,7 @@ namespace clib {
         virtual void emit(ins_t) = 0;
         virtual void emit(ins_t, int) = 0;
         virtual void emit(ins_t, int, int) = 0;
+        virtual void emit(keyword_t) = 0;
         virtual int load_string(const string_t &) = 0;
         virtual void error(const string_t &) = 0;
     };
@@ -289,18 +290,9 @@ namespace clib {
         ast_node *op{nullptr};
     };
 
-    class sym_stmt_t : public sym_t {
-    public:
-        using ref = std::shared_ptr<sym_stmt_t>;
-        explicit sym_stmt_t(ast_node *op);
-        symbol_t get_type() const override;
-        int size(sym_size_t t) const override;
-        string_t get_name() const override;
-        string_t to_string() const override;
-        gen_t gen_lvalue(igen &gen) override;
-        gen_t gen_rvalue(igen &gen) override;
-        std::vector<std::vector<sym_t::ref>> stmts;
-        ast_node *op{nullptr};
+    struct cycle_t {
+        uint _break;
+        uint _continue;
     };
 
     // 生成虚拟机指令
@@ -321,6 +313,7 @@ namespace clib {
         void emit(ins_t) override;
         void emit(ins_t, int) override;
         void emit(ins_t, int, int) override;
+        void emit(keyword_t) override;
         int load_string(const string_t &) override;
         void error(const string_t &) override;
     private:
@@ -345,6 +338,7 @@ namespace clib {
         std::vector<std::unordered_map<LEX_T(string), std::shared_ptr<sym_t>>> symbols; // 符号表
         std::vector<std::vector<ast_node *>> ast;
         std::vector<std::vector<sym_t::ref>> tmp;
+        std::vector<cycle_t> cycle;
         sym_t::weak_ref ctx;
     };
 }

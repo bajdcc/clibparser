@@ -20,8 +20,24 @@ int fib(int i) {
     else
         return 1;
 }
+int sum(int i) {
+    int s = 0;
+    while (i > 0) {
+        s += i--;
+    }
+    return s;
+}
+int sum2(int n) {
+    int i, s;
+    for (i = 1; i <= n; ++i) {
+        s += i;
+    }
+    return s;
+}
 int main(int argc, char **argv){
     fib(10);
+    sum(100);
+    sum2(100);
 }
 )", &gen);
         cast::print(root, 0, std::cout);

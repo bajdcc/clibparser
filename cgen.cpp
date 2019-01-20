@@ -857,49 +857,15 @@ namespace clib {
                 gen.emit(LEV);
             }
                 break;
+            case k_break:
+            case k_continue: {
+                gen.emit(op->data._keyword);
+            }
+                break;
             default:
-                gen.error("[ctrl] not supported lvalue: " + to_string());
+                gen.error("[ctrl] not supported rvalue: " + to_string());
                 return g_error;
         }
-        return g_ok;
-    }
-
-    sym_stmt_t::sym_stmt_t(ast_node *op) : op(op) {}
-
-    symbol_t sym_stmt_t::get_type() const {
-        return s_statement;
-    }
-
-    int sym_stmt_t::size(sym_size_t t) const {
-        return 0;
-    }
-
-    string_t sym_stmt_t::get_name() const {
-        return KEYWORD_STRING(op->data._keyword);
-    }
-
-    string_t sym_stmt_t::to_string() const {
-        if (AST_IS_KEYWORD_K(op, k_if)) {
-            std::stringstream ss;
-            ss << "(" << get_name();
-            ss << ", true: [" << string_join(stmts[0], ", ") << "]";
-            if (!stmts[1].empty())
-                ss << ", false: [" << string_join(stmts[1], ", ") << "]";
-            ss << ")";
-            return ss.str();
-        } else if (AST_IS_KEYWORD_K(op, k_for)) {
-        } else if (AST_IS_KEYWORD_K(op, k_while)) {
-        }
-        return get_name();
-    }
-
-    gen_t sym_stmt_t::gen_lvalue(igen &gen) {
-        gen.error("[stmt] unsupport lvalue");
-        return g_error;
-    }
-
-    gen_t sym_stmt_t::gen_rvalue(igen &gen) {
-
         return g_ok;
     }
 
@@ -957,6 +923,40 @@ namespace clib {
                   std::setw(8) << std::setfill('0') << d << " " <<
                   std::setw(8) << std::setfill('0') << e << std::endl;
 #endif
+    }
+
+    void cgen::emit(keyword_t k) {
+        switch (k) {
+            case k_break: {
+                if (cycle.empty()) {
+                    error("invalid break");
+                }
+                for (auto c = cycle.rbegin(); c != cycle.rend(); ++c) {
+                    if (c->_break >= 0) {
+                        emit(JMP, c->_break);
+                        return;
+                    }
+                }
+                error("invalid break");
+            }
+                break;
+            case k_continue: {
+                if (cycle.empty()) {
+                    error("invalid continue");
+                }
+                for (auto c = cycle.rbegin(); c != cycle.rend(); ++c) {
+                    if (c->_continue >= 0) {
+                        emit(JMP, c->_continue);
+                        return;
+                    }
+                }
+                error("invalid continue");
+            }
+                break;
+            default:
+                error("invalid keyword: " + KEYWORD_STRING(k));
+                break;
+        }
     }
 
     int cgen::load_string(const string_t &s) {
@@ -1758,6 +1758,24 @@ namespace clib {
                 text[L2] = text.size();
             }
             tmp.back().clear();
+        } else if (AST_IS_KEYWORD_K(k, k_while)) {
+            gen_rec(nodes[1], level); // exp
+            auto exp = tmp.back().back();
+            tmp.back().clear();
+            emit(JMP, text.size() + 4);
+            auto L1 = text.size(); // break
+            emit(JMP, -1);
+            auto L2 = text.size(); // continue
+            exp->gen_rvalue(*this);
+            emit(JZ, L1); // break
+            cycle_t c{L1, L2};
+            cycle.push_back(c);
+            gen_rec(nodes[2], level); // stmt
+            emit(JMP, L2);
+            text[L2 - 1] = text.size(); // break
+            tmp.back().clear();
+            cycle.pop_back();
+        } else if (AST_IS_KEYWORD_K(k, k_for)) {
         } else {
             error(k, "invalid stmt keyword: ", true);
         }

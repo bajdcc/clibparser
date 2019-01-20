@@ -32,16 +32,25 @@ C++实现的**LR编译器**及**C语言虚拟机**。
 
 ## 示例代码
 
-**1. [递归](https://raw.githubusercontent.com/bajdcc/clibparser/master/output/1_rec.txt)**
+**1. [递归与求和](https://raw.githubusercontent.com/bajdcc/clibparser/master/output/1_rec.txt)**
 
 ```cpp
 int fib(int i) {
     if (i > 2)
         return fib(i - 1) + fib(i - 2);
-    return 1;
+    else
+        return 1;
+}
+int sum(int i) {
+    int s = 0;
+    while (i > 0) {
+        s += i--;
+    }
+    return s;
 }
 int main(int argc, char **argv){
-    fib(10);
+    fib(10);  // 55
+    sum(100); // 5050
 }
 ```
 
@@ -146,7 +155,8 @@ int main(int argc, char **argv){
     - [x] 返回语句
     - [x] if语句
     - [ ] for语句
-    - [ ] while语句
+    - [x] while语句
+    - [x] break和continue
     - [x] 取址和解引用（及左值）
 - [x] 虚拟机
     - [x] 设计指令（寄存器式分配）
