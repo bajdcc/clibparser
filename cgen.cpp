@@ -27,6 +27,12 @@
 
 namespace clib {
 
+    static string_t sym_to_string(const sym_t::ref &sym) {
+        if (sym)
+            return sym->to_string();
+        return "none";
+    }
+
     template<class T>
     std::string string_join(const std::vector<T> &v, const string_t &sep) {
         if (v.empty())
@@ -1662,7 +1668,9 @@ namespace clib {
                 break;
             case c_labeledStatement:
                 break;
-            case c_compoundStatement:
+            case c_compoundStatement: {
+                tmp.back().clear();
+            }
                 break;
             case c_blockItemList:
                 break;
@@ -1741,6 +1749,9 @@ namespace clib {
             gen_rec(nodes[1], level); // exp
             auto exp = tmp.back().back();
             tmp.back().clear();
+#if LOG_TYPE
+            std::cout << "[DEBUG] If: " << exp->to_string() << std::endl;
+#endif
             exp->gen_rvalue(*this);
             if (nodes.size() < 4) { // one branch
                 emit(JZ, -1);
@@ -1759,23 +1770,73 @@ namespace clib {
             }
             tmp.back().clear();
         } else if (AST_IS_KEYWORD_K(k, k_while)) {
-            gen_rec(nodes[1], level); // exp
+            auto &_exp = nodes[1];
+            auto &_stmt = nodes[2];
+            gen_rec(_exp, level); // exp
             auto exp = tmp.back().back();
+#if LOG_TYPE
+            std::cout << "[DEBUG] While: " << exp->to_string() << std::endl;
+#endif
             tmp.back().clear();
             emit(JMP, text.size() + 4);
             auto L1 = text.size(); // break
             emit(JMP, -1);
             auto L2 = text.size(); // continue
             exp->gen_rvalue(*this);
-            emit(JZ, L1); // break
+            emit(JZ, L1); // jump break
             cycle_t c{L1, L2};
             cycle.push_back(c);
-            gen_rec(nodes[2], level); // stmt
-            emit(JMP, L2);
-            text[L2 - 1] = text.size(); // break
+            gen_rec(_stmt, level); // stmt
+            emit(JMP, L2); // jump continue
+            text[L2 - 1] = text.size(); // jump exit
             tmp.back().clear();
             cycle.pop_back();
         } else if (AST_IS_KEYWORD_K(k, k_for)) {
+            auto &_exp = nodes[1];
+            auto &_stmt = nodes[2];
+            auto _cond = gen_get_children(_exp->child);
+            std::array<sym_t::ref, 3> _cond_exp;
+            auto _cond_i = 0;
+            for (auto &_c : _cond) {
+                gen_rec(_c, level);
+                if (!tmp.back().empty()) {
+                    _cond_exp[_cond_i] = tmp.back().front();
+                    tmp.back().clear();
+                } else {
+                    _cond_i++;
+                    ast.back().clear();
+                }
+            }
+            if (_cond_exp[0]) { // init exp
+#if LOG_TYPE
+                std::cout << "[DEBUG] For: init= " << sym_to_string(_cond_exp[0]) << std::endl;
+#endif
+                _cond_exp[0]->gen_rvalue(*this);
+            }
+            emit(JMP, text.size() + 4);
+            auto L1 = text.size(); // break
+            emit(JMP, -1);
+            auto L2 = text.size(); // continue
+            if (_cond_exp[1]) { // cond exp
+#if LOG_TYPE
+                std::cout << "[DEBUG] For: cond= " << sym_to_string(_cond_exp[1]) << std::endl;
+#endif
+                _cond_exp[1]->gen_rvalue(*this);
+                emit(JZ, L1); // jump break
+            }
+            cycle_t c{L1, L2};
+            cycle.push_back(c);
+            gen_rec(_stmt, level); // stmt
+            if (_cond_exp[2]) { // iter exp
+#if LOG_TYPE
+                std::cout << "[DEBUG] For: iter= " << sym_to_string(_cond_exp[2]) << std::endl;
+#endif
+                _cond_exp[2]->gen_rvalue(*this);
+            }
+            emit(JMP, L2); // jump continue
+            text[L2 - 1] = text.size(); // jump exit
+            tmp.back().clear();
+            cycle.pop_back();
         } else {
             error(k, "invalid stmt keyword: ", true);
         }

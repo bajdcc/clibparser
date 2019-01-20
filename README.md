@@ -48,9 +48,17 @@ int sum(int i) {
     }
     return s;
 }
+int sum2(int n) {
+    int i, s;
+    for (i = 1; i <= n; ++i) {
+        s += i;
+    }
+    return s;
+}
 int main(int argc, char **argv){
-    fib(10);  // 55
-    sum(100); // 5050
+    fib(10);
+    sum(100);
+    sum2(100);
 }
 ```
 
@@ -154,8 +162,10 @@ int main(int argc, char **argv){
     - [x] 赋值语句
     - [x] 返回语句
     - [x] if语句
-    - [ ] for语句
+    - [x] for语句
     - [x] while语句
+    - [ ] do..while语句
+    - [ ] switch语句
     - [x] break和continue
     - [x] 取址和解引用（及左值）
 - [x] 虚拟机

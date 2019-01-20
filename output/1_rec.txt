@@ -146,6 +146,89 @@ compilationUnit
        keyword: int
     declarator
      directDeclarator
+      id: sum2
+      operator: (
+      parameterTypeList
+       parameterList
+        parameterDeclaration
+         declarationSpecifiers
+          declarationSpecifier
+           typeSpecifier
+            keyword: int
+         declarator
+          directDeclarator
+           id: n
+    compoundStatement
+     blockItemList
+      blockItem
+       declaration
+        declarationSpecifiers
+         declarationSpecifier
+          typeSpecifier
+           keyword: int
+        initDeclaratorList
+         initDeclarator
+          declarator
+           directDeclarator
+            id: i
+         initDeclarator
+          declarator
+           directDeclarator
+            id: s
+      blockItem
+       statement
+        iterationStatement
+         keyword: for
+         forCondition
+          assignmentExpression
+           primaryExpression
+            id: i
+           assignmentOperator
+            operator: =
+           primaryExpression
+            constant
+             int: 1
+          operator: ;
+          forExpression
+           relationalExpression
+            primaryExpression
+             id: i
+            operator: <=
+            primaryExpression
+             id: n
+          operator: ;
+          forExpression
+           unaryExpression
+            operator: ++
+            primaryExpression
+             id: i
+         statement
+          compoundStatement
+           blockItemList
+            blockItem
+             statement
+              expressionStatement
+               assignmentExpression
+                primaryExpression
+                 id: s
+                assignmentOperator
+                 operator: +=
+                primaryExpression
+                 id: i
+      blockItem
+       statement
+        jumpStatement
+         keyword: return
+         primaryExpression
+          id: s
+  externalDeclaration
+   functionDefinition
+    declarationSpecifiers
+     declarationSpecifier
+      typeSpecifier
+       keyword: int
+    declarator
+     directDeclarator
       id: main
       operator: (
       parameterTypeList
@@ -193,10 +276,22 @@ compilationUnit
            constant
             int: 100
           operator: )
+      blockItem
+       statement
+        expressionStatement
+         postfixExpression
+          primaryExpression
+           id: sum2
+          operator: (
+          primaryExpression
+           constant
+            int: 100
+          operator: )
 [DEBUG] Type: int
 [DEBUG] Type: int
 [DEBUG] Func: int fib, Param: [int i, Class: param id, Addr: 8], Class: func id, Addr: 0
 [DEBUG] *GEN* ==> ENT 00000000(0)
+[DEBUG] If: (binop, operator: >, exp1: int i, Class: param id, Addr: 8, exp2: (type: int, int: 2))
 [DEBUG] *GEN* ==> LEA 00000008(8)
 [DEBUG] *GEN* ==> LOAD 00000004(4)
 [DEBUG] *GEN* ==> PUSH
@@ -236,12 +331,15 @@ compilationUnit
 [DEBUG] *GEN* ==> IMM 00000000(0)
 [DEBUG] *GEN* ==> SAVE 00000004(4)
 [DEBUG] Id: int s, Class: local id, Init: (type: int, int: 0), Addr: -4
+[DEBUG] While: (binop, operator: >, exp1: int i, Class: param id, Addr: 8, exp2: (type: int, int: 0))
+[DEBUG] *GEN* ==> JMP 0000003C(60)
+[DEBUG] *GEN* ==> JMP FFFFFFFF(-1)
 [DEBUG] *GEN* ==> LEA 00000008(8)
 [DEBUG] *GEN* ==> LOAD 00000004(4)
 [DEBUG] *GEN* ==> PUSH
 [DEBUG] *GEN* ==> IMM 00000000(0)
 [DEBUG] *GEN* ==> GT
-[DEBUG] *GEN* ==> JZ FFFFFFFF(-1)
+[DEBUG] *GEN* ==> JZ 0000003A(58)
 [DEBUG] Exp: (binop, operator: +=, exp1: int s, Class: local id, Init: (type: int, int: 0), Addr: -4, exp2: (sinop, oper
 ator: --, exp: int i, Class: param id, Addr: 8))
 [DEBUG] *GEN* ==> LEA FFFFFFFC(-4)
@@ -263,27 +361,54 @@ ator: --, exp: int i, Class: param id, Addr: 8))
 [DEBUG] *GEN* ==> POP
 [DEBUG] *GEN* ==> ADD
 [DEBUG] *GEN* ==> SAVE 00000004(4)
+[DEBUG] *GEN* ==> JMP 0000003C(60)
+[DEBUG] *GEN* ==> LEA FFFFFFFC(-4)
+[DEBUG] *GEN* ==> LOAD 00000004(4)
+[DEBUG] *GEN* ==> LEV
+[DEBUG] *GEN* ==> LEV
+[DEBUG] Type: int
+[DEBUG] Type: int
+[DEBUG] Func: int sum2, Param: [int n, Class: param id, Addr: 8], Class: func id, Addr: 108
+[DEBUG] *GEN* ==> ENT 00000000(0)
+[DEBUG] Type: int
+[DEBUG] Id: int i, Class: local id, Addr: -4
+[DEBUG] Id: int s, Class: local id, Addr: -8
+[DEBUG] For: init= (binop, operator: =, exp1: int i, Class: local id, Addr: -4, exp2: (type: int, int: 1))
 [DEBUG] *GEN* ==> LEA FFFFFFFC(-4)
 [DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> IMM 00000001(1)
+[DEBUG] *GEN* ==> SAVE 00000004(4)
+[DEBUG] *GEN* ==> JMP 00000079(121)
+[DEBUG] *GEN* ==> JMP FFFFFFFF(-1)
+[DEBUG] For: cond= (binop, operator: <=, exp1: int i, Class: local id, Addr: -4, exp2: int n, Class: param id, Addr: 8)
 [DEBUG] *GEN* ==> LEA FFFFFFFC(-4)
 [DEBUG] *GEN* ==> LOAD 00000004(4)
 [DEBUG] *GEN* ==> PUSH
 [DEBUG] *GEN* ==> LEA 00000008(8)
 [DEBUG] *GEN* ==> LOAD 00000004(4)
+[DEBUG] *GEN* ==> LE
+[DEBUG] *GEN* ==> JZ 00000077(119)
+[DEBUG] Exp: (binop, operator: +=, exp1: int s, Class: local id, Addr: -8, exp2: int i, Class: local id, Addr: -4)
+[DEBUG] *GEN* ==> LEA FFFFFFF8(-8)
 [DEBUG] *GEN* ==> PUSH
-[DEBUG] *GEN* ==> LEA 00000008(8)
+[DEBUG] *GEN* ==> LEA FFFFFFF8(-8)
+[DEBUG] *GEN* ==> LOAD 00000004(4)
 [DEBUG] *GEN* ==> PUSH
-[DEBUG] *GEN* ==> LEA 00000008(8)
+[DEBUG] *GEN* ==> LEA FFFFFFFC(-4)
+[DEBUG] *GEN* ==> LOAD 00000004(4)
+[DEBUG] *GEN* ==> ADD
+[DEBUG] *GEN* ==> SAVE 00000004(4)
+[DEBUG] For: iter= (unop, operator: ++, exp: int i, Class: local id, Addr: -4)
+[DEBUG] *GEN* ==> LEA FFFFFFFC(-4)
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> LEA FFFFFFFC(-4)
 [DEBUG] *GEN* ==> LOAD 00000004(4)
 [DEBUG] *GEN* ==> PUSH
 [DEBUG] *GEN* ==> IMM 00000001(1)
-[DEBUG] *GEN* ==> SUB
-[DEBUG] *GEN* ==> SAVE 00000004(4)
-[DEBUG] *GEN* ==> POP
 [DEBUG] *GEN* ==> ADD
 [DEBUG] *GEN* ==> SAVE 00000004(4)
-[DEBUG] *GEN* ==> JMP 00000038(56)
-[DEBUG] *GEN* ==> LEA FFFFFFFC(-4)
+[DEBUG] *GEN* ==> JMP 00000079(121)
+[DEBUG] *GEN* ==> LEA FFFFFFF8(-8)
 [DEBUG] *GEN* ==> LOAD 00000004(4)
 [DEBUG] *GEN* ==> LEV
 [DEBUG] *GEN* ==> LEV
@@ -291,7 +416,7 @@ ator: --, exp: int i, Class: param id, Addr: 8))
 [DEBUG] Type: int
 [DEBUG] Type: char
 [DEBUG] Func: int main, Param: [int argc, Class: param id, Addr: 12; char** argv, Class: param id, Addr: 8], Class: func
- id, Addr: 134
+ id, Addr: 169
 [DEBUG] *GEN* ==> ENT 00000000(0)
 [DEBUG] Exp: (binop, operator: (, exp1: int fib, Param: [int i, Class: param id, Addr: 8], Class: func id, Addr: 0, exp2
 : (list, (type: int, int: 10)))
@@ -304,6 +429,12 @@ ator: --, exp: int i, Class: param id, Addr: 8))
 [DEBUG] *GEN* ==> IMM 00000064(100)
 [DEBUG] *GEN* ==> PUSH
 [DEBUG] *GEN* ==> CALL 0000002F(47)
+[DEBUG] *GEN* ==> ADJ 00000001(1)
+[DEBUG] Exp: (binop, operator: (, exp1: int sum2, Param: [int n, Class: param id, Addr: 8], Class: func id, Addr: 108, e
+xp2: (list, (type: int, int: 100)))
+[DEBUG] *GEN* ==> IMM 00000064(100)
+[DEBUG] *GEN* ==> PUSH
+[DEBUG] *GEN* ==> CALL 0000006C(108)
 [DEBUG] *GEN* ==> ADJ 00000001(1)
 [DEBUG] *GEN* ==> LEV
 exit(5050)
