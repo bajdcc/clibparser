@@ -8,6 +8,8 @@
 #include "cgui.h"
 #include "cexception.h"
 
+#define LOG_AST 0
+
 namespace clib {
 
     cgui::cgui() {
@@ -56,11 +58,25 @@ int sum3(int i) {
     } while (i > 0);
     return s;
 }
-int main(int argc, char **argv){
+int welcome() {
+    put_string(" ________  ________        ___  ________  ________  ________     \n");
+    put_string("|\\   __  \\|\\   __  \\      |\\  \\|\\   ___ \\|\\   ____\\|\\   ____\\    \n");
+    put_string("\\ \\  \\|\\ /\\ \\  \\|\\  \\     \\ \\  \\ \\  \\_|\\ \\ \\  \\___|\\ \\  \\___|    \n");
+    put_string(" \\ \\   __  \\ \\   __  \\  __ \\ \\  \\ \\  \\ \\\\ \\ \\  \\    \\ \\  \\       \n");
+    put_string("  \\ \\  \\|\\  \\ \\  \\ \\  \\|\\  \\\\_\\  \\ \\  \\_\\\\ \\ \\  \\____\\ \\  \\____ \n");
+    put_string("   \\ \\_______\\ \\__\\ \\__\\ \\________\\ \\_______\\ \\_______\\ \\_______\\\n");
+    put_string("    \\|_______|\\|__|\\|__|\\|________|\\|_______|\\|_______|\\|_______|\n");
+    put_string("\n\n");
+    put_string("Welcome to @clibos system by bajdcc!");
+    put_string("\n\n");
+}
+int main(int argc, char **argv) {
+    welcome();
     put_string("fib(10): ");   put_int(fib(10));   put_string("\n"); sleep(1000);
     put_string("sum(100): ");  put_int(sum(100));  put_string("\n"); sleep(1000);
     put_string("sum2(100): "); put_int(sum2(100)); put_string("\n"); sleep(1000);
     put_string("sum3(100): "); put_int(sum3(100)); put_string("\n"); sleep(1000);
+    return 0;
 }
 )",
         };
@@ -72,9 +88,11 @@ int main(int argc, char **argv){
         return gui;
     }
 
-    void cgui::draw() {
-        for (int i = 0; i < ticks; ++i) {
-            tick();
+    void cgui::draw(bool paused) {
+        if (!paused) {
+            for (int i = 0; i < ticks; ++i) {
+                tick();
+            }
         }
         draw_text();
     }
@@ -130,7 +148,9 @@ int main(int argc, char **argv){
                 codes.pop_front();
                 try {
                     auto root = p.parse(current_code, &gen);
-                    //cast::print(root, 0, std::cout);
+#if LOG_AST
+                    cast::print(root, 0, std::cout);
+#endif
                     gen.gen(root);
                     if (gen.eval(GUI_CYCLES, c)) {
                         running = true;

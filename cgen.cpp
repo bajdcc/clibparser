@@ -1281,14 +1281,14 @@ namespace clib {
                                 exp = std::make_shared<sym_binop_t>(exp, exp2, a);
                             } else if (AST_IS_OP_K(a, op_lparan)) {
                                 ++i;
-                                auto exp2 = std::make_shared<sym_list_t>();
-                                while (true) {
-                                    if (AST_IS_OP_K(nodes[i], op_rparan))
-                                        break;
-                                    exp2->exps.push_back(to_exp(tmp.back()[tmp_i++]));
+                                if (!AST_IS_OP_K(nodes[i], op_rparan)) {
+                                    exp = std::make_shared<sym_binop_t>(exp,
+                                        to_exp(tmp.back()[tmp_i++]), a);
                                     ++i;
+                                } else {
+                                    auto exp2 = std::make_shared<sym_list_t>();
+                                    exp = std::make_shared<sym_binop_t>(exp, exp2, a);
                                 }
-                                exp = std::make_shared<sym_binop_t>(exp, exp2, a);
                             } else {
                                 error("invalid postfix exp: op");
                             }
@@ -1302,7 +1302,14 @@ namespace clib {
                 }
             }
                 break;
-            case c_argumentExpressionList:
+            case c_argumentExpressionList: {
+                auto list = std::make_shared<sym_list_t>();
+                for (auto &_t : tmp.back()) {
+                    list->exps.push_back(to_exp(_t));
+                }
+                tmp.back().clear();
+                tmp.back().push_back(list);
+            }
                 break;
             case c_unaryExpression: {
                 auto &op = asts[0];

@@ -86,11 +86,25 @@ int sum3(int i) {
     } while (i > 0);
     return s;
 }
-int main(int argc, char **argv){
+int welcome() {
+    put_string(" ________  ________        ___  ________  ________  ________     \n");
+    put_string("|\\   __  \\|\\   __  \\      |\\  \\|\\   ___ \\|\\   ____\\|\\   ____\\    \n");
+    put_string("\\ \\  \\|\\ /\\ \\  \\|\\  \\     \\ \\  \\ \\  \\_|\\ \\ \\  \\___|\\ \\  \\___|    \n");
+    put_string(" \\ \\   __  \\ \\   __  \\  __ \\ \\  \\ \\  \\ \\\\ \\ \\  \\    \\ \\  \\       \n");
+    put_string("  \\ \\  \\|\\  \\ \\  \\ \\  \\|\\  \\\\_\\  \\ \\  \\_\\\\ \\ \\  \\____\\ \\  \\____ \n");
+    put_string("   \\ \\_______\\ \\__\\ \\__\\ \\________\\ \\_______\\ \\_______\\ \\_______\\\n");
+    put_string("    \\|_______|\\|__|\\|__|\\|________|\\|_______|\\|_______|\\|_______|\n");
+    put_string("\n\n");
+    put_string("Welcome to @clibos system by bajdcc!");
+    put_string("\n\n");
+}
+int main(int argc, char **argv) {
+    welcome();
     put_string("fib(10): ");   put_int(fib(10));   put_string("\n"); sleep(1000);
     put_string("sum(100): ");  put_int(sum(100));  put_string("\n"); sleep(1000);
     put_string("sum2(100): "); put_int(sum2(100)); put_string("\n"); sleep(1000);
     put_string("sum3(100): "); put_int(sum3(100)); put_string("\n"); sleep(1000);
+    return 0;
 }
 ```
 
@@ -239,6 +253,7 @@ int main(int argc, char **argv){
 - [x] 可配置归约与纯左递归的优先级
 - [x] LR分析阶段提供语义分析接口
 - [x] 美化表达式树（减少深度）
+- [x] 解决了字符串转义的问题
 
 ## 参考
 

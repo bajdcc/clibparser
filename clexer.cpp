@@ -648,7 +648,21 @@ LEX_T(t) clexer::get_store_##t(int index) const \
         auto i = index;
         auto prev = str[i];
         // 寻找非'\"'的第一个'"'
-        for (i++; i < length && (prev == '\\' || (str[i]) != '"'); prev = str[i++]);
+        for (i++; i < length; prev = str[i++]) {
+            if (str[i] == '"') {
+                if (prev != '\\') {
+                    break;
+                } else {
+                    auto j = i - 2;
+                    for (; j > 0 && str[j] == '\\'; --j);
+                    if ((i - j) % 2 != 0) {
+                        break;
+                    } else {
+                        return record_error(e_invalid_string, i - index + 1);
+                    }
+                }
+            }
+        }
         auto j = i;
         if (j == length) { // " EOF
             return record_error(e_invalid_string, i - index);

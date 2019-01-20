@@ -32,7 +32,7 @@ namespace clib {
         cgui(const cgui &) = delete;
         cgui &operator=(const cgui &) = delete;
 
-        void draw();
+        void draw(bool paused);
 
         void put_char(char c);
         void put_int(int number);

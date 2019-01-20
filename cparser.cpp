@@ -176,7 +176,7 @@ namespace clib {
         DEF_RULE(primaryExpression);
         DEF_RULE(constant);
         DEF_RULE_EXP(postfixExpression);
-        DEF_RULE_EXP(argumentExpressionList);
+        DEF_RULE(argumentExpressionList);
         DEF_RULE_EXP(unaryExpression);
         DEF_RULE_EXP(unaryOperator);
         DEF_RULE_EXP(castExpression);

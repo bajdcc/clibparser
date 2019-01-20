@@ -57,7 +57,7 @@ void display() {
     int h = glutGet(GLUT_WINDOW_HEIGHT); // 窗口的高
     int w = glutGet(GLUT_WINDOW_WIDTH); // 窗口的宽
 
-    clib::cgui::singleton().draw();
+    clib::cgui::singleton().draw(paused);
 
     // 绘制文字
     draw_text(10, 20, "clibparser @bajdcc"); // 暂不支持中文
