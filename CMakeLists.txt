@@ -3,6 +3,8 @@ project(clibparser)
 
 set(CMAKE_CXX_STANDARD 14)
 
+link_libraries(freeglut opengl32 glu32)
+
 add_executable(clibparser main.cpp
         cast.h cast.cpp
         cexception.h cexception.cpp
@@ -12,7 +14,8 @@ add_executable(clibparser main.cpp
         types.h types.cpp
         cunit.h cunit.cpp
         cgen.h cgen.cpp
-        cvm.h cvm.cpp)
+        cvm.h cvm.cpp
+        cgui.h cgui.cpp)
 
 add_executable(clibparser-test test.cpp
         cast.h cast.cpp
@@ -23,4 +26,5 @@ add_executable(clibparser-test test.cpp
         types.h types.cpp
         cunit.h cunit.cpp
         cgen.h cgen.cpp
-        cvm.h cvm.cpp)
+        cvm.h cvm.cpp
+        cgui.h cgui.cpp)

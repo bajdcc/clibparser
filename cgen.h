@@ -10,6 +10,7 @@
 #include <memory>
 #include "cast.h"
 #include "cparser.h"
+#include "cvm.h"
 
 /* 用户代码段基址 */
 #define USER_BASE 0xc0000000
@@ -308,7 +309,7 @@ namespace clib {
 
         void gen(ast_node *node);
         void reset();
-        void eval();
+        bool eval(int cycle, int &cycles);
 
         void emit(ins_t) override;
         void emit(ins_t, int) override;
@@ -339,6 +340,7 @@ namespace clib {
         std::vector<std::vector<ast_node *>> ast;
         std::vector<std::vector<sym_t::ref>> tmp;
         std::vector<cycle_t> cycle;
+        std::unique_ptr<cvm> vm;
         sym_t::weak_ref ctx;
     };
 }

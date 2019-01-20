@@ -83,10 +83,12 @@ namespace clib {
 
     class cvm {
     public:
-        explicit cvm(const std::vector<LEX_T(int)> &text, const std::vector<LEX_T(char)> &data);
+        explicit cvm(const std::vector<LEX_T(int)> &text,
+                     const std::vector<LEX_T(char)> &data,
+                     int entry);
         ~cvm();
 
-        int exec(int entry = -1);
+        bool exec(int cycle, int &cycles);
 
     private:
         // 申请页框
@@ -130,6 +132,19 @@ namespace clib {
         /* 堆内存 */
         memory_pool<HEAP_MEM> heap;
         byte *heapHead;
+        int entry{0};
+
+        struct context_t {
+            uint poolsize;
+            uint stack;
+            uint data;
+            uint base;
+            uint pc;
+            int ax;
+            uint bp;
+            uint sp;
+            bool log;
+        } ctx;
     };
 }
 

@@ -39,6 +39,7 @@ namespace clib {
     using ulong = unsigned long long;
 
     using byte = uint8;
+    using decimal = double; // 浮点类型
 
     enum lexer_t {
         l_none,

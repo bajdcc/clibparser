@@ -894,13 +894,16 @@ namespace clib {
         ast.emplace_back();
     }
 
-    void cgen::eval() {
-        auto entry = symbols[0].find("main");
-        if (entry == symbols[0].end()) {
-            error("main() not defined");
+    bool cgen::eval(int cycle, int &cycles) {
+        if (!vm) {
+            auto entry = symbols[0].find("main");
+            if (entry == symbols[0].end()) {
+                error("main() not defined");
+            }
+            vm = std::make_unique<cvm>(text, data,
+                std::dynamic_pointer_cast<sym_func_t>(entry->second)->addr);
         }
-        cvm vm(text, data);
-        vm.exec(std::dynamic_pointer_cast<sym_func_t>(entry->second)->addr);
+        return vm->exec(cycle, cycles);
     }
 
     void cgen::emit(ins_t i) {
