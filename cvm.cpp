@@ -9,6 +9,7 @@
 #include "cvm.h"
 #include "cgen.h"
 #include "cexception.h"
+#include "cgui.h"
 
 #define LOG_INS 0
 #define LOG_STACK 0
@@ -506,74 +507,26 @@ namespace clib {
                 case MOD:
                     ctx.ax = vmm_popstack(ctx.sp) % ctx.ax;
                     break;
-                    // --------------------------------------
-                case PRTF: {
-                    init_args(args, ctx.sp, ctx.pc);
-                    ctx.ax = printf(vmm_getstr(args[0]), args[1], args[2], args[3], args[4], args[5]);
-                }
-                    break;
                 case EXIT: {
                     printf("exit(%d)\n", ctx.ax);
                     return false;
                 }
-                case OPEN: {
-                    init_args(args, ctx.sp, ctx.pc);
-                    ctx.ax = (int) fopen(vmm_getstr(args[0]), "rb");
-#if 0
-                    printf("OPEN> name=%s fd=%08X\n", vmm_getstr(args[0]), ctx.ax);
-#endif
-                }
-                    break;
-                case READ: {
-                    init_args(args, ctx.sp, ctx.pc);
-#if 0
-                    printf("READ> src=%p size=%08X fd=%08X\n", vmm_getstr(args[1]), args[2], args[0]);
-#endif
-                    ctx.ax = (int) fread(vmm_getstr(args[1]), 1, (size_t) args[2], (FILE *) args[0]);
-                    if (ctx.ax > 0) {
-                        rewind((FILE *) args[0]); // 坑：避免重复读取
-                        ctx.ax = (int) fread(vmm_getstr(args[1]), 1, (size_t) ctx.ax, (FILE *) args[0]);
-                        vmm_getstr(args[1])[ctx.ax] = 0;
-#if 0
-                        printf("READ> %s\n", vmm_getstr(args[1]));
-#endif
+                case INTR: { // 中断调用，以寄存器ax传参
+                    switch (vmm_get(ctx.pc)) {
+                        case 0:
+                            cgui::singleton().put_char((char) ctx.ax);
+                            break;
+                        case 1:
+                            cgui::singleton().put_int((int) ctx.ax);
+                            break;
+                        default:
+                            printf("unknown interrupt:%d\n", ctx.ax);
+                            error("unknown interrupt");
+                            break;
                     }
-                }
+                    ctx.pc += INC_PTR;
                     break;
-                case CLOS: {
-                    init_args(args, ctx.sp, ctx.pc);
-                    ctx.ax = (int) fclose((FILE *) args[0]);
                 }
-                    break;
-                case MALC: {
-                    init_args(args, ctx.sp, ctx.pc);
-                    ctx.ax = (int) vmm_malloc((uint32_t) args[0]);
-                }
-                    break;
-                case MSET: {
-                    init_args(args, ctx.sp, ctx.pc);
-#if 0
-                    printf("MEMSET> PTR=%08X SIZE=%08X VAL=%d\n", (uint32_t)vmm_getstr(args[0]), (uint32_t)args[2], (uint32_t)args[1]);
-#endif
-                    ctx.ax = (int) vmm_memset(args[0], (uint32_t) args[1], (uint32_t) args[2]);
-                }
-                    break;
-                case MCMP: {
-                    init_args(args, ctx.sp, ctx.pc);
-                    ctx.ax = (int) vmm_memcmp(args[0], args[1], (uint32_t) args[2]);
-                }
-                    break;
-                case TRAC: {
-                    init_args(args, ctx.sp, ctx.pc);
-                    ctx.ax = ctx.log;
-                    ctx.log = args[0] != 0;
-                }
-                    break;
-                case TRAN: {
-                    init_args(args, ctx.sp, ctx.pc);
-                    ctx.ax = (uint32_t) vmm_getstr(args[0]);
-                }
-                    break;
                 default: {
                     printf("AX: %08X BP: %08X SP: %08X PC: %08X\n", ctx.ax, ctx.bp, ctx.sp, ctx.pc);
                     for (uint32_t j = ctx.sp; j < STACK_BASE + PAGE_SIZE; j += 4) {

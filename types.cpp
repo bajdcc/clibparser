@@ -83,6 +83,7 @@ namespace clib {
             std::make_tuple(k_void, "void"),
             std::make_tuple(k_volatile, "volatile"),
             std::make_tuple(k_while, "while"),
+            std::make_tuple(k_interrupt, "interrupt"),
             std::make_tuple(k__end, "@END"),
     };
 
@@ -274,6 +275,7 @@ namespace clib {
             std::make_tuple(ENT, "ENT"),
             std::make_tuple(LOAD, "LOAD"),
             std::make_tuple(SAVE, "SAVE"),
+            std::make_tuple(INTR, "INTR"),
             std::make_tuple(ADJ, "ADJ"),
             std::make_tuple(LEV, "LEV"),
             std::make_tuple(PUSH, "PUSH"),
@@ -294,15 +296,6 @@ namespace clib {
             std::make_tuple(MUL, "MUL"),
             std::make_tuple(DIV, "DIV"),
             std::make_tuple(MOD, "MOD"),
-            std::make_tuple(OPEN, "OPEN"),
-            std::make_tuple(READ, "READ"),
-            std::make_tuple(CLOS, "CLOS"),
-            std::make_tuple(PRTF, "PRTF"),
-            std::make_tuple(MALC, "MALC"),
-            std::make_tuple(MSET, "MSET"),
-            std::make_tuple(MCMP, "MCMP"),
-            std::make_tuple(TRAC, "TRAC"),
-            std::make_tuple(TRAN, "TRAN"),
             std::make_tuple(EXIT, "EXIT"),
     };
 

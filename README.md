@@ -36,13 +36,24 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约9k。
 
 目前已完成：
 
-1. 递归（斐波那契）
+1. 递归（斐波那契），循环
 
 ## 示例代码
 
 **1. [递归与求和](https://raw.githubusercontent.com/bajdcc/clibparser/master/output/1_rec.txt)**
 
 ```cpp
+int put_char(char c) {
+    c;
+    interrupt 0;
+}
+int put_string(char *text) {
+    while (put_char(*text++));
+}
+int put_int(int number) {
+    number;
+    interrupt 1;
+}
 int fib(int i) {
     if (i > 2)
         return fib(i - 1) + fib(i - 2);
@@ -58,7 +69,7 @@ int sum(int i) {
 }
 int sum2(int n) {
     int i, s;
-    for (i = 1; i <= n; ++i) {
+    for (i = 1, s = 0; i <= n; ++i) {
         s += i;
     }
     return s;
@@ -71,12 +82,16 @@ int sum3(int i) {
     return s;
 }
 int main(int argc, char **argv){
-    fib(10);
-    sum(100);
-    sum2(100);
-    sum3(100);
+    put_string("fib(10): ");   put_int(fib(10));   put_string("\n");
+    put_string("sum(100): ");  put_int(sum(100));  put_string("\n");
+    put_string("sum2(100): "); put_int(sum2(100)); put_string("\n");
+    put_string("sum3(100): "); put_int(sum3(100)); put_string("\n");
 }
 ```
+
+运行截图：
+
+![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/1.png)
 
 结果（每个单词都保存了在源文件中的位置，这里省略）：
 
@@ -172,9 +187,12 @@ int main(int argc, char **argv){
     - [x] 形参
     - [x] 函数调用（及递归）
     - [x] 数组寻址（及左值）
+    - [ ] 枚举
     - [ ] 结构体成员（点和指针）
     - [x] 一元运算
     - [x] 二元运算
+    - [ ] 短路运算
+    - [ ] 三元运算
     - [x] 赋值语句
     - [x] 返回语句
     - [x] if语句
@@ -189,7 +207,9 @@ int main(int argc, char **argv){
     - [x] 解析类型系统
     - [x] 生成指令
     - [x] 虚页分配（已实现）
+    - [ ] 虚页权限管理
     - [x] 运行指令
+    - [ ] 中断指令
     - [ ] 扩展指令
 - [ ] 操作系统
     - [ ] 多任务机制

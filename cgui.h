@@ -35,6 +35,7 @@ namespace clib {
         void draw();
 
         void put_char(char c);
+        void put_int(int number);
 
         void set_cycle(int cycle);
         void set_ticks(int ticks);

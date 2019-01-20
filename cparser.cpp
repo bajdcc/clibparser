@@ -100,6 +100,7 @@ namespace clib {
         DEF_KEYWORD(void);
         DEF_KEYWORD(volatile);
         DEF_KEYWORD(while);
+        DEF_KEYWORD(interrupt);
 #undef DEF_KEYWORD
 #define DEF_OP(name) auto &_##name##_ = unit.token(op_##name)
         DEF_OP(assign);
@@ -370,7 +371,7 @@ namespace clib {
         forCondition = (forDeclaration | *expression) + _semi_ + *forExpression + _semi_ + *forExpression;
         forDeclaration = declarationSpecifiers + *initDeclaratorList;
         forExpression = *(forExpression + ~_comma_) + assignmentExpression;
-        jumpStatement = (_goto_ + Identifier | _continue_ | _break_ | _return_ + *expression) + ~_semi_;
+        jumpStatement = (_goto_ + Identifier | _continue_ | _break_ | _return_ + *expression | _interrupt_ + Integer) + ~_semi_;
         compilationUnit = translationUnit + *compilationUnit;
         translationUnit = *translationUnit + externalDeclaration;
         externalDeclaration = functionDefinition | declaration | ~_semi_;

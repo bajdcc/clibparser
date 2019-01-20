@@ -12,6 +12,8 @@
 #include "cvm.h"
 #include "cexception.h"
 
+#define LOG_TYPE 0
+
 #define AST_IS_KEYWORD(node) ((node)->flag == ast_keyword)
 #define AST_IS_KEYWORD_K(node, k) ((node)->data._keyword == (k))
 #define AST_IS_KEYWORD_N(node, k) (AST_IS_KEYWORD(node) && AST_IS_KEYWORD_K(node, k))
@@ -22,8 +24,6 @@
 #define AST_IS_COLL(node) ((node)->flag == ast_collection)
 #define AST_IS_COLL_K(node, k) ((node)->data._coll == (k))
 #define AST_IS_COLL_N(node, k) (AST_IS_COLL(node) && AST_IS_COLL_K(node, k))
-
-#define LOG_TYPE 1
 
 namespace clib {
 
@@ -791,6 +791,8 @@ namespace clib {
         return g_error;
     }
 
+    sym_list_t::sym_list_t() : type_exp_t(nullptr) {}
+
     symbol_t sym_list_t::get_type() const {
         return s_list;
     }
@@ -813,16 +815,17 @@ namespace clib {
         return ss.str();
     }
 
-    sym_list_t::sym_list_t() : type_exp_t(nullptr) {}
-
     gen_t sym_list_t::gen_lvalue(igen &gen) {
         gen.error("not supported: " + to_string());
         return g_error;
     }
 
     gen_t sym_list_t::gen_rvalue(igen &gen) {
-        gen.error("not supported: " + to_string());
-        return g_error;
+        for (auto &exp : exps) {
+            exp->gen_rvalue(gen);
+        }
+        base = exps.back()->base->clone();
+        return g_ok;
     }
 
     sym_ctrl_t::sym_ctrl_t(ast_node *op) : op(op) {
@@ -866,6 +869,10 @@ namespace clib {
             case k_break:
             case k_continue: {
                 gen.emit(op->data._keyword);
+            }
+            case k_interrupt: {
+                auto number = std::dynamic_pointer_cast<sym_var_t>(exp);
+                gen.emit(INTR, number->node->data._int);
             }
                 break;
             default:
@@ -1665,8 +1672,11 @@ namespace clib {
             case c_designator:
                 break;
             case c_statement: {
-                if (!tmp.back().empty())
-                    tmp.back().front()->gen_rvalue(*this);
+                if (!tmp.back().empty()) {
+                    for (auto &_t : tmp.back()) {
+                        _t->gen_rvalue(*this);
+                    }
+                }
             }
                 break;
             case c_labeledStatement:
@@ -1720,6 +1730,12 @@ namespace clib {
                         auto ctrl = std::make_shared<sym_ctrl_t>(a);
                         tmp.back().push_back(ctrl);
                         asts.clear();
+                    } else if (AST_IS_KEYWORD_K(a, k_interrupt)) {
+                        auto ctrl = std::make_shared<sym_ctrl_t>(a);
+                        auto number = primary_node(asts[1]);
+                        ctrl->exp = number;
+                        tmp.back().push_back(ctrl);
+                        asts.clear();
                     } else {
                         error(a, "invalid jump: keyword", true);
                     }
@@ -1746,11 +1762,20 @@ namespace clib {
         }
     }
 
+    sym_list_t::ref exp_list(const std::vector<sym_t::ref> &exps) {
+        auto list = std::make_shared<sym_list_t>();
+        for (auto &exp : exps) {
+            assert(exp->get_base_type() == s_expression);
+            list->exps.push_back(std::dynamic_pointer_cast<type_exp_t>(exp));
+        }
+        return list;
+    }
+
     void cgen::gen_stmt(const std::vector<ast_node *> &nodes, int level, ast_node *node) {
         auto &k = nodes[0];
         if (AST_IS_KEYWORD_K(k, k_if)) {
             gen_rec(nodes[1], level); // exp
-            auto exp = tmp.back().back();
+            auto exp = exp_list(tmp.back());
             tmp.back().clear();
 #if LOG_TYPE
             std::cout << "[DEBUG] If: " << exp->to_string() << std::endl;
@@ -1776,7 +1801,7 @@ namespace clib {
             auto &_exp = nodes[1];
             auto &_stmt = nodes[2];
             gen_rec(_exp, level); // exp
-            auto exp = tmp.back().back();
+            auto exp = exp_list(tmp.back());
 #if LOG_TYPE
             std::cout << "[DEBUG] While: " << exp->to_string() << std::endl;
 #endif
@@ -1803,7 +1828,7 @@ namespace clib {
             for (auto &_c : _cond) {
                 gen_rec(_c, level);
                 if (!tmp.back().empty()) {
-                    _cond_exp[_cond_i] = tmp.back().front();
+                    _cond_exp[_cond_i] = exp_list(tmp.back());
                     tmp.back().clear();
                 } else {
                     _cond_i++;
@@ -1844,7 +1869,7 @@ namespace clib {
             auto &_exp = nodes[3];
             auto &_stmt = nodes[1];
             gen_rec(_exp, level); // exp
-            auto exp = tmp.back().back();
+            auto exp = exp_list(tmp.back());
 #if LOG_TYPE
             std::cout << "[DEBUG] Do-while: " << exp->to_string() << std::endl;
 #endif

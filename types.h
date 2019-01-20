@@ -101,6 +101,7 @@ namespace clib {
         k_void,
         k_volatile,
         k_while,
+        k_interrupt,
         k__end
     };
 
@@ -166,9 +167,9 @@ namespace clib {
     };
 
     enum ins_t {
-        NOP, LEA, IMM, IMX, JMP, CALL, JZ, JNZ, ENT, LOAD, SAVE, ADJ, LEV, PUSH, POP,
-        OR, XOR, AND, EQ, NE, LT, GT, LE, GE, SHL, SHR, ADD, SUB, MUL, DIV, MOD,
-        OPEN, READ, CLOS, PRTF, MALC, MSET, MCMP, TRAC, TRAN, EXIT
+        NOP, LEA, IMM, IMX, JMP, CALL, JZ, JNZ, ENT, LOAD, SAVE, INTR, ADJ, LEV,
+        PUSH, POP, OR, XOR, AND, EQ, NE, LT, GT, LE, GE, SHL, SHR, ADD, SUB, MUL, DIV, MOD,
+        EXIT,
     };
 
     template<lexer_t>

@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
         glutInitWindowPosition(50, 50);
     }
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE); // GLUT_DOUBLE 启用双缓冲，避免闪屏
-    glutCreateWindow("cliblisp system -- bajdcc");
+    glutCreateWindow("clibparser GUI -- bajdcc");
     glutDisplayFunc(&idle); // 绘制
     glutReshapeFunc(&reshape); // 窗口大小改变事件
     glutMouseFunc(&mouse); // 鼠标点击事件

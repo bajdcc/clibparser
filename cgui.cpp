@@ -13,6 +13,17 @@ namespace clib {
     cgui::cgui() {
         auto cs = std::vector<string_t>{
             R"(
+int put_char(char c) {
+    c;
+    interrupt 0;
+}
+int put_string(char *text) {
+    while (put_char(*text++));
+}
+int put_int(int number) {
+    number;
+    interrupt 1;
+}
 int fib(int i) {
     if (i > 2)
         return fib(i - 1) + fib(i - 2);
@@ -28,7 +39,7 @@ int sum(int i) {
 }
 int sum2(int n) {
     int i, s;
-    for (i = 1; i <= n; ++i) {
+    for (i = 1, s = 0; i <= n; ++i) {
         s += i;
     }
     return s;
@@ -41,10 +52,10 @@ int sum3(int i) {
     return s;
 }
 int main(int argc, char **argv){
-    fib(10);
-    sum(100);
-    sum2(100);
-    sum3(100);
+    put_string("fib(10): ");   put_int(fib(10));   put_string("\n");
+    put_string("sum(100): ");  put_int(sum(100));  put_string("\n");
+    put_string("sum2(100): "); put_int(sum2(100)); put_string("\n");
+    put_string("sum3(100): "); put_int(sum3(100)); put_string("\n");
 }
 )",
         };
@@ -114,6 +125,7 @@ int main(int argc, char **argv){
                 codes.pop_front();
                 try {
                     auto root = p.parse(current_code, &gen);
+                    //cast::print(root, 0, std::cout);
                     gen.gen(root);
                     if (gen.eval(GUI_CYCLES, c)) {
                         running = true;
@@ -184,6 +196,14 @@ int main(int argc, char **argv){
             draw_char(c);
             ptr_x++;
         }
+    }
+
+    void cgui::put_int(int number) {
+        static char str[256];
+        sprintf(str, "%d", number);
+        auto s = str;
+        while (*s)
+            put_char(*s++);
     }
 
     void cgui::new_line() {
