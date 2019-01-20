@@ -43,6 +43,11 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约9k。
 **1. [递归与求和](https://raw.githubusercontent.com/bajdcc/clibparser/master/output/1_rec.txt)**
 
 ```cpp
+int sleep(int ms) {
+    ms;
+    interrupt 100;
+    interrupt 101;
+}
 int put_char(char c) {
     c;
     interrupt 0;
@@ -82,10 +87,10 @@ int sum3(int i) {
     return s;
 }
 int main(int argc, char **argv){
-    put_string("fib(10): ");   put_int(fib(10));   put_string("\n");
-    put_string("sum(100): ");  put_int(sum(100));  put_string("\n");
-    put_string("sum2(100): "); put_int(sum2(100)); put_string("\n");
-    put_string("sum3(100): "); put_int(sum3(100)); put_string("\n");
+    put_string("fib(10): ");   put_int(fib(10));   put_string("\n"); sleep(1000);
+    put_string("sum(100): ");  put_int(sum(100));  put_string("\n"); sleep(1000);
+    put_string("sum2(100): "); put_int(sum2(100)); put_string("\n"); sleep(1000);
+    put_string("sum3(100): "); put_int(sum3(100)); put_string("\n"); sleep(1000);
 }
 ```
 
@@ -218,6 +223,7 @@ int main(int argc, char **argv){
 - [ ] 图形用户界面
     - [x] 用OpenGL创建窗口
     - [x] 实现制作台输出接口
+    - [x] 延时功能
 
 1. 将文法树转换表（完成）
 2. 根据PDA表生成AST（完成）

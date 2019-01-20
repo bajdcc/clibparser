@@ -519,6 +519,15 @@ namespace clib {
                         case 1:
                             cgui::singleton().put_int((int) ctx.ax);
                             break;
+                        case 100:
+                            cgui::singleton().record((int) ctx.ax);
+                            break;
+                        case 101:
+                            if (!cgui::singleton().reach()) {
+                                ctx.pc -= INC_PTR;
+                                return true;
+                            }
+                            break;
                         default:
                             printf("unknown interrupt:%d\n", ctx.ax);
                             error("unknown interrupt");

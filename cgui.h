@@ -40,8 +40,8 @@ namespace clib {
         void set_cycle(int cycle);
         void set_ticks(int ticks);
 
-        void record();
-        bool reach(const decimal &d);
+        void record(int ms);
+        bool reach() const;
         void control(int type);
 
     private:
@@ -69,6 +69,7 @@ namespace clib {
         int continues{0};
         string_t current_code;
         std::chrono::system_clock::time_point record_now;
+        decimal waiting_ms{0};
     };
 }
 

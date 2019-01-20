@@ -13,6 +13,11 @@ namespace clib {
     cgui::cgui() {
         auto cs = std::vector<string_t>{
             R"(
+int sleep(int ms) {
+    ms;
+    interrupt 100;
+    interrupt 101;
+}
 int put_char(char c) {
     c;
     interrupt 0;
@@ -52,10 +57,10 @@ int sum3(int i) {
     return s;
 }
 int main(int argc, char **argv){
-    put_string("fib(10): ");   put_int(fib(10));   put_string("\n");
-    put_string("sum(100): ");  put_int(sum(100));  put_string("\n");
-    put_string("sum2(100): "); put_int(sum2(100)); put_string("\n");
-    put_string("sum3(100): "); put_int(sum3(100)); put_string("\n");
+    put_string("fib(10): ");   put_int(fib(10));   put_string("\n"); sleep(1000);
+    put_string("sum(100): ");  put_int(sum(100));  put_string("\n"); sleep(1000);
+    put_string("sum2(100): "); put_int(sum2(100)); put_string("\n"); sleep(1000);
+    put_string("sum3(100): "); put_int(sum3(100)); put_string("\n"); sleep(1000);
 }
 )",
         };
@@ -226,13 +231,14 @@ int main(int argc, char **argv){
         this->ticks = ticks;
     }
 
-    void cgui::record() {
+    void cgui::record(int ms) {
         record_now = std::chrono::high_resolution_clock::now();
+        waiting_ms = ms * 0.001;
     }
 
-    bool cgui::reach(const decimal &d) {
+    bool cgui::reach() const {
         auto now = std::chrono::high_resolution_clock::now();
-        return std::chrono::duration_cast<std::chrono::duration<decimal>>(now - record_now).count() > d;
+        return std::chrono::duration_cast<std::chrono::duration<decimal>>(now - record_now).count() > waiting_ms;
     }
 
     void cgui::control(int type) {
