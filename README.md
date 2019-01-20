@@ -21,6 +21,7 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约9k。
 - [【Parser系列】实现LR分析——完成编译器前端！](https://zhuanlan.zhihu.com/p/53070412)
 - [【Parser系列】实现LR分析——识别变量声明](https://zhuanlan.zhihu.com/p/54716082)
 - [【Parser系列】实现LR分析——解决二义性问题](https://zhuanlan.zhihu.com/p/54766453)
+- [【虚拟机系列】C语言虚拟机诞生！](https://zhuanlan.zhihu.com/p/55319251)
 
 ## 功能
 
