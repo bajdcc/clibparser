@@ -1,11 +1,17 @@
 # clibparser（C++ GLR Parser and VM）
 
-C++实现的**LR编译器**及**C语言虚拟机**。
+C++实现的**LR编译器**及**C语言虚拟机**。代码量：约9k。
 
 - 文法书写方式：以C++重载为基础的Parser Generator。
 - 语义分析：在LR解析的过程中，状态机向符号表提供分析接口，使得状态转换可手动干涉，解决“`A*b`”问题
 - 识别方式：**以下推自动机为基础，向看查看一个字符、带回溯的LR分析**。
 - 内存管理：自制内存池。
+
+## 计划
+
+- 第一阶段：实现基本的C++编译器和虚拟机，支持控制流语句，模拟虚页机制。后续支持结构体、指针和汇编。
+- 第二阶段：实现最小化标准库，搭建虚拟操作系统。
+- 第三阶段：实现图形化用户界面，制作桌面。
 
 ## 文章
 
@@ -55,10 +61,18 @@ int sum2(int n) {
     }
     return s;
 }
+int sum3(int i) {
+    int s = 0;
+    do {
+        s += i--;
+    } while (i > 0);
+    return s;
+}
 int main(int argc, char **argv){
     fib(10);
     sum(100);
     sum2(100);
+    sum3(100);
 }
 ```
 
@@ -163,8 +177,7 @@ int main(int argc, char **argv){
     - [x] 返回语句
     - [x] if语句
     - [x] for语句
-    - [x] while语句
-    - [ ] do..while语句
+    - [x] while语句和do..while语句
     - [ ] switch语句
     - [x] break和continue
     - [x] 取址和解引用（及左值）

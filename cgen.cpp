@@ -1837,6 +1837,29 @@ namespace clib {
             text[L2 - 1] = text.size(); // jump exit
             tmp.back().clear();
             cycle.pop_back();
+        } else if (AST_IS_KEYWORD_K(k, k_do)) {
+            auto &_exp = nodes[3];
+            auto &_stmt = nodes[1];
+            gen_rec(_exp, level); // exp
+            auto exp = tmp.back().back();
+#if LOG_TYPE
+            std::cout << "[DEBUG] Do-while: " << exp->to_string() << std::endl;
+#endif
+            tmp.back().clear();
+            emit(JMP, -1);
+            auto L1 = text.size(); // break
+            emit(JMP, -1);
+            auto L2 = text.size(); // continue
+            exp->gen_rvalue(*this);
+            emit(JZ, L1); // jump break
+            cycle_t c{L1, L2};
+            cycle.push_back(c);
+            text[L1 - 1] = text.size();
+            gen_rec(_stmt, level); // stmt
+            emit(JMP, L2); // jump continue
+            text[L2 - 1] = text.size(); // jump exit
+            tmp.back().clear();
+            cycle.pop_back();
         } else {
             error(k, "invalid stmt keyword: ", true);
         }

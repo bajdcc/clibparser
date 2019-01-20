@@ -34,10 +34,18 @@ int sum2(int n) {
     }
     return s;
 }
+int sum3(int i) {
+    int s = 0;
+    do {
+        s += i--;
+    } while (i > 0);
+    return s;
+}
 int main(int argc, char **argv){
     fib(10);
     sum(100);
     sum2(100);
+    sum3(100);
 }
 )", &gen);
         cast::print(root, 0, std::cout);
