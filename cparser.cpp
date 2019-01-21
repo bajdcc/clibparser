@@ -316,7 +316,7 @@ namespace clib {
         specifierQualifierList = (typeSpecifier | typeQualifier) + *specifierQualifierList;
         structDeclaratorList = *(structDeclaratorList + ~_comma_) + structDeclarator;
         structDeclarator = declarator | *declarator + ~_assign_ + constantExpression;
-        enumSpecifier = ~_enum_ + ((*Identifier + ~_lbrace_ + enumeratorList + *~_comma_ + ~_lbrace_) | Identifier);
+        enumSpecifier = _enum_ + ((*Identifier + _lbrace_ + enumeratorList + *~_comma_ + ~_rbrace_) | Identifier);
         enumeratorList = *(enumeratorList + ~_comma_) + enumerator;
         enumerator = enumerationConstant + *(~_assign_ + constantExpression);
         enumerationConstant = Identifier;

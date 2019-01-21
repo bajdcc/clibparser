@@ -15,6 +15,12 @@ namespace clib {
     cgui::cgui() {
         auto cs = std::vector<string_t>{
             R"(
+enum INTR_TABLE {
+    INTR_PUT_CHAR = 0,
+    INTR_PUT_NUMBER = 1,
+    INTR_SLEEP_RECORD = 100,
+    INTR_SLEEP_REACH = 101,
+};
 int sleep(int ms) {
     ms;
     interrupt 100;

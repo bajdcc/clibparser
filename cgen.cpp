@@ -1397,6 +1397,36 @@ namespace clib {
                     asts.clear();
                     break;
                 }
+                if (AST_IS_KEYWORD_N(asts[0], k_enum)) {
+                    auto ast_i = 1;
+                    auto tmp_i = 0;
+                    if (AST_IS_ID(asts[ast_i]))
+                        ast_i++;
+                    if (AST_IS_OP_N(asts[ast_i], op_lbrace))
+                        ast_i++;
+                    auto clazz = ctx.lock() ? z_local_var : z_global_var;
+                    auto &s = symbols.back();
+                    auto &_tmp = tmp.back();
+                    for (int i = ast_i; i < asts.size(); ++i) {
+                        auto &a = asts[i];
+                        if (AST_IS_ID(a)) {
+                            type_exp_t::ref init;
+                            if (a->parent != a->parent->next) {
+                                init = to_exp(_tmp[tmp_i++]);
+                            }
+                            if (s.find(a->data._string) == s.end()) {
+                                auto type = std::make_shared<type_base_t>(l_int, 0);
+                                add_id(type, clazz, a, init);
+                            } else {
+                                error(a, "conflict enum id: ", true);
+                            }
+                        }
+                    }
+                    asts.clear();
+                    _tmp.clear();
+                    _tmp.push_back(std::make_shared<type_base_t>(l_int, 0));
+                    break;
+                }
                 if (AST_IS_KEYWORD_N(asts[0], k_unsigned)) { // unsigned ...
                     if (asts.size() == 1 || (asts.size() > 1 && !AST_IS_KEYWORD(asts[1]))) {
                         base_type = std::make_shared<type_base_t>(l_int);
@@ -1969,14 +1999,15 @@ namespace clib {
             id->addr = func->ebp - func->ebp_local;
             id->addr_end = id->addr - size;
             if (init) {
-                auto var = std::dynamic_pointer_cast<sym_var_t>(init);
                 // L_VALUE
                 // PUSH
                 // R_VALUE
                 // SAVE
                 id->gen_lvalue(*this);
                 emit(PUSH);
-                var->gen_rvalue(*this);
+                init->gen_rvalue(*this);
+                if (type->to_string() != init->base->to_string())
+                    error(init, "not equal init type");
                 emit(SAVE, size);
             }
         } else if (id->clazz == z_param_var) {
@@ -2005,7 +2036,7 @@ namespace clib {
         new_id->clazz = clazz;
         new_id->init = init;
         if (init) {
-            if (type->to_string() != init->base->to_string())
+            if (init->base && type->to_string() != init->base->to_string())
                 error(node, "not equal init type, ", true);
         }
         allocate(new_id, init);
