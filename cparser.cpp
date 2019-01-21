@@ -286,7 +286,7 @@ namespace clib {
         inclusiveOrExpression = *(inclusiveOrExpression + _bit_or_) + exclusiveOrExpression;
         logicalAndExpression = *(logicalAndExpression + _logical_and_) + inclusiveOrExpression;
         logicalOrExpression = *(logicalOrExpression + _logical_or_) + logicalAndExpression;
-        conditionalExpression = logicalOrExpression + *(_query_ + expression + _assign_ + conditionalExpression);
+        conditionalExpression = logicalOrExpression + *(_query_ + expression + _colon_ + conditionalExpression);
         assignmentExpression = conditionalExpression | unaryExpression + assignmentOperator + assignmentExpression;
         assignmentOperator = _assign_ | _times_assign_ | _div_assign_ | _mod_assign_ |
                             _and_assign_ | _or_assign_ | _xor_assign_ |

@@ -43,6 +43,9 @@ int fib(int i) {
     else
         return 1;
 }
+int fib2(int i) {
+    return i > 2 ? fib(i - 1) + fib(i - 2) : 1;
+}
 int sum(int i) {
     int s = 0;
     while (i > 0) {
@@ -78,8 +81,9 @@ int welcome() {
 }
 int main(int argc, char **argv) {
     welcome();
-    put_string("fib(10): ");   put_int(fib(10));   put_string("\n"); sleep(1000);
-    put_string("sum(100): ");  put_int(sum(100));  put_string("\n"); sleep(1000);
+    put_string("fib(10):   "); put_int(fib2(10));  put_string("\n"); sleep(1000);
+    put_string("fib2(10):  "); put_int(fib(10));   put_string("\n"); sleep(1000);
+    put_string("sum(100):  "); put_int(sum(100));  put_string("\n"); sleep(1000);
     put_string("sum2(100): "); put_int(sum2(100)); put_string("\n"); sleep(1000);
     put_string("sum3(100): "); put_int(sum3(100)); put_string("\n"); sleep(1000);
     return 0;

@@ -797,8 +797,22 @@ namespace clib {
     }
 
     gen_t sym_triop_t::gen_rvalue(igen &gen) {
-        gen.error("[triop] not supported: " + to_string());
-        return g_error;
+        if (AST_IS_OP_N(op1, op_query) && AST_IS_OP_N(op2, op_colon)) {
+            exp1->gen_rvalue(gen); // cond
+            gen.emit(JZ, -1);
+            auto L1 = gen.current() - 1;
+            exp2->gen_rvalue(gen); // true
+            base = exp2->base;
+            gen.emit(JMP, -1);
+            auto L2 = gen.current() - 1;
+            gen.edit(L1, gen.current());
+            exp3->gen_rvalue(gen); // false
+            gen.edit(L2, gen.current());
+            return g_ok;
+        } else {
+            gen.error("[triop] not supported: " + to_string());
+            return g_error;
+        }
     }
 
     sym_list_t::sym_list_t() : type_exp_t(nullptr) {}
@@ -1378,13 +1392,23 @@ namespace clib {
                 auto tmp_i = 0;
                 auto exp1 = to_exp(tmp.back()[tmp_i++]);
                 auto exp2 = to_exp(tmp.back()[tmp_i++]);
-                for (auto &a : asts) {
+                for (auto i = 0; i < asts.size(); ++i) {
+                    auto &a = asts[i];
                     if (AST_IS_OP(a)) {
-                        exp1 = std::make_shared<sym_binop_t>(exp1, exp2, a);
-                        if (tmp_i < tmp.back().size())
-                            exp2 = to_exp(tmp.back()[tmp_i++]);
+                        if (node->data._coll == c_conditionalExpression &&
+                            AST_IS_OP_K(a, op_query)) { // triop
+                            auto exp3 = to_exp(tmp.back()[tmp_i++]);
+                            exp1 = std::make_shared<sym_triop_t>(exp1, exp2, exp3, a, asts[i + 1]);
+                            if (tmp_i < tmp.back().size())
+                                exp2 = to_exp(tmp.back()[tmp_i++]);
+                            i++;
+                        } else { // binop
+                            exp1 = std::make_shared<sym_binop_t>(exp1, exp2, a);
+                            if (tmp_i < tmp.back().size())
+                                exp2 = to_exp(tmp.back()[tmp_i++]);
+                        }
                     } else {
-                        error("invalid plus/minus exp: coll");
+                        error("invalid binop: coll");
                     }
                 }
                 tmp.back().clear();
