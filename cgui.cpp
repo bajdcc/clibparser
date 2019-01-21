@@ -71,21 +71,49 @@ int welcome() {
     put_string(" ________  ________        ___  ________  ________  ________     \n");
     put_string("|\\   __  \\|\\   __  \\      |\\  \\|\\   ___ \\|\\   ____\\|\\   ____\\    \n");
     put_string("\\ \\  \\|\\ /\\ \\  \\|\\  \\     \\ \\  \\ \\  \\_|\\ \\ \\  \\___|\\ \\  \\___|    \n");
-    put_string(" \\ \\   __  \\ \\   __  \\  __ \\ \\  \\ \\  \\ \\\\ \\ \\  \\    \\ \\  \\       \n");
-    put_string("  \\ \\  \\|\\  \\ \\  \\ \\  \\|\\  \\\\_\\  \\ \\  \\_\\\\ \\ \\  \\____\\ \\  \\____ \n");
+    put_string(" \\ \\   __  \\ \\   __  \\  ___\\ \\  \\ \\  \\ \\\\ \\ \\  \\    \\ \\  \\       \n");
+    put_string("  \\ \\  \\|\\  \\ \\  \\ \\  \\|\\  \\\\_\\  \\ \\  \\_\\\\ \\ \\  \\____\\ \\  \\_____\n");
     put_string("   \\ \\_______\\ \\__\\ \\__\\ \\________\\ \\_______\\ \\_______\\ \\_______\\\n");
     put_string("    \\|_______|\\|__|\\|__|\\|________|\\|_______|\\|_______|\\|_______|\n");
     put_string("\n\n");
     put_string("Welcome to @clibos system by bajdcc!");
     put_string("\n\n");
 }
+enum TEST {
+    TEST_IF = 1,
+    TEST_TRIOP = 2,
+    TEST_WHILE = 3,
+    TEST_FOR = 4,
+    TEST_DO = 5,
+};
+int test(int i) {
+    switch (i) {
+        case TEST_IF:
+            put_string("fib(10):   "); put_int(fib2(10));
+            break;
+        case TEST_TRIOP:
+            put_string("fib2(10):  "); put_int(fib(10));
+            break;
+        case TEST_WHILE:
+            put_string("sum(100):  "); put_int(sum(100));
+            break;
+        case TEST_FOR:
+            put_string("sum2(100): "); put_int(sum2(100));
+            break;
+        case TEST_DO:
+            put_string("sum3(100): "); put_int(sum3(100));
+            break;
+        default:
+            put_string("undefined task");
+            break;
+    }
+    put_string("\n"); sleep(1000);
+}
 int main(int argc, char **argv) {
     welcome();
-    put_string("fib(10):   "); put_int(fib2(10));  put_string("\n"); sleep(1000);
-    put_string("fib2(10):  "); put_int(fib(10));   put_string("\n"); sleep(1000);
-    put_string("sum(100):  "); put_int(sum(100));  put_string("\n"); sleep(1000);
-    put_string("sum2(100): "); put_int(sum2(100)); put_string("\n"); sleep(1000);
-    put_string("sum3(100): "); put_int(sum3(100)); put_string("\n"); sleep(1000);
+    int i;
+    for (i = TEST_IF; i <= TEST_DO; ++i)
+        test(i);
     return 0;
 }
 )",

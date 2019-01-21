@@ -46,6 +46,15 @@ namespace clib {
         return std::move(ss.str());
     }
 
+    sym_list_t::ref exp_list(const std::vector<sym_t::ref> &exps) {
+        auto list = std::make_shared<sym_list_t>();
+        for (auto &exp : exps) {
+            assert(exp->get_base_type() == s_expression);
+            list->exps.push_back(std::dynamic_pointer_cast<type_exp_t>(exp));
+        }
+        return list;
+    }
+
     static int align4(int n) {
         if (n % 4 == 0)
             return n;
@@ -894,6 +903,7 @@ namespace clib {
             case k_continue: {
                 gen.emit(op->data._keyword);
             }
+                break;
             case k_interrupt: {
                 auto number = std::dynamic_pointer_cast<sym_var_t>(exp);
                 gen.emit(INTR, number->node->data._int);
@@ -932,37 +942,46 @@ namespace clib {
                 error("main() not defined");
             }
             vm = std::make_unique<cvm>(text, data,
-                std::dynamic_pointer_cast<sym_func_t>(entry->second)->addr);
+                                       std::dynamic_pointer_cast<sym_func_t>(entry->second)->addr);
         }
         return vm->exec(cycle, cycles);
     }
 
     void cgen::emit(ins_t i) {
-        text.push_back(i);
 #if LOG_TYPE
-        std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) << std::endl;
+        std::cout << "[DEBUG] *GEN* ==> [" << setiosflags(std::ios::right)
+                  << std::setiosflags(std::ios::uppercase) << std::hex << std::setw(8)
+                  << std::setfill('0') << text.size() << "] " << setiosflags(std::ios::left)
+                  << std::setw(4) << std::setfill(' ') << INS_STRING(i) << std::endl;
 #endif
+        text.push_back(i);
     }
 
     void cgen::emit(ins_t i, int d) {
+#if LOG_TYPE
+        std::cout << "[DEBUG] *GEN* ==> [" << setiosflags(std::ios::right)
+                  << std::setiosflags(std::ios::uppercase) << std::hex << std::setw(8)
+                  << std::setfill('0') << text.size() << "] " << setiosflags(std::ios::left)
+                  << std::setw(4) << std::setfill(' ') << INS_STRING(i) << " " << setiosflags(std::ios::right)
+                  << std::setiosflags(std::ios::uppercase) << std::hex << std::setw(8)
+                  << std::setfill('0') << d << "(" << std::dec << d << ")" << std::endl;
+#endif
         text.push_back(i);
         text.push_back(d);
-#if LOG_TYPE
-        std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) << " " <<
-                  std::setiosflags(std::ios::uppercase) << std::hex << std::setw(8) <<
-                  std::setfill('0') << d << "(" << std::dec << d << ")" << std::endl;
-#endif
     }
 
     void cgen::emit(ins_t i, int d, int e) {
+#if LOG_TYPE
+        std::cout << "[DEBUG] *GEN* ==> [" << setiosflags(std::ios::right)
+                  << std::setiosflags(std::ios::uppercase) << std::hex << std::setw(8)
+                  << std::setfill('0') << text.size() << "] " << setiosflags(std::ios::left)
+                  << std::setw(4) << std::setfill(' ') << INS_STRING(i) << " " << setiosflags(std::ios::right)
+                  << std::setiosflags(std::ios::uppercase) << std::hex
+                  << std::setw(8) << std::setfill('0') << d << " "
+                  << std::setw(8) << std::setfill('0') << e << std::endl;
+#endif
         text.push_back(i);
         text.push_back(d);
-#if LOG_TYPE
-        std::cout << "[DEBUG] *GEN* ==> " << INS_STRING(i) <<
-                  " " << std::setiosflags(std::ios::uppercase) << std::hex <<
-                  std::setw(8) << std::setfill('0') << d << " " <<
-                  std::setw(8) << std::setfill('0') << e << std::endl;
-#endif
     }
 
     void cgen::emit(keyword_t k) {
@@ -1245,7 +1264,14 @@ namespace clib {
                 break;
             case c_statement:
                 break;
-            case c_labeledStatement:
+            case c_labeledStatement: {
+                switch_t s;
+                s.addr = (int) text.size();
+                cases.back().push_back(s);
+#if LOG_TYPE
+                std::cout << "[DEBUG] Case: addr= " << s.addr << std::endl;
+#endif
+            }
                 break;
             case c_compoundStatement:
                 break;
@@ -1317,7 +1343,7 @@ namespace clib {
                                 ++i;
                                 if (!AST_IS_OP_K(nodes[i], op_rparan)) {
                                     exp = std::make_shared<sym_binop_t>(exp,
-                                        to_exp(tmp.back()[tmp_i++]), a);
+                                                                        to_exp(tmp.back()[tmp_i++]), a);
                                     ++i;
                                 } else {
                                     auto exp2 = std::make_shared<sym_list_t>();
@@ -1760,7 +1786,19 @@ namespace clib {
                 }
             }
                 break;
-            case c_labeledStatement:
+            case c_labeledStatement: {
+                if (AST_IS_KEYWORD_N(asts[0], k_case)) {
+                    cases.back().back()._case = to_exp(tmp.back().front());
+#if LOG_TYPE
+                    std::cout << "[DEBUG] Case: " << cases.back().back()._case->to_string() << std::endl;
+#endif
+                } else if (AST_IS_KEYWORD_N(asts[0], k_default)) {
+                } else {
+                    error(asts[0], "not supported: ", true);
+                }
+                tmp.back().clear();
+                asts.clear();
+            }
                 break;
             case c_compoundStatement: {
                 tmp.back().clear();
@@ -1843,15 +1881,6 @@ namespace clib {
         }
     }
 
-    sym_list_t::ref exp_list(const std::vector<sym_t::ref> &exps) {
-        auto list = std::make_shared<sym_list_t>();
-        for (auto &exp : exps) {
-            assert(exp->get_base_type() == s_expression);
-            list->exps.push_back(std::dynamic_pointer_cast<type_exp_t>(exp));
-        }
-        return list;
-    }
-
     void cgen::gen_stmt(const std::vector<ast_node *> &nodes, int level, ast_node *node) {
         auto &k = nodes[0];
         if (AST_IS_KEYWORD_K(k, k_if)) {
@@ -1862,20 +1891,17 @@ namespace clib {
             std::cout << "[DEBUG] If: " << exp->to_string() << std::endl;
 #endif
             exp->gen_rvalue(*this);
+            emit(JZ, -1);
+            auto L1 = (int) text.size() - 1;
+            gen_rec(nodes[2], level); // true
             if (nodes.size() < 4) { // one branch
-                emit(JZ, -1);
-                auto L1 = text.size() - 1;
-                gen_rec(nodes[2], level); // true
-                text[L1] = text.size();
+                text[L1] = (int) text.size();
             } else {
-                emit(JZ, -1);
-                auto L1 = text.size() - 1;
-                gen_rec(nodes[2], level); // true
                 emit(JMP, -1);
-                auto L2 = text.size() - 1;
-                text[L1] = text.size();
+                auto L2 = (int) text.size() - 1;
+                text[L1] = (int) text.size();
                 gen_rec(nodes[4], level); // false
-                text[L2] = text.size();
+                text[L2] = (int) text.size();
             }
             tmp.back().clear();
         } else if (AST_IS_KEYWORD_K(k, k_while)) {
@@ -1887,17 +1913,17 @@ namespace clib {
             std::cout << "[DEBUG] While: " << exp->to_string() << std::endl;
 #endif
             tmp.back().clear();
-            emit(JMP, text.size() + 4);
-            auto L1 = text.size(); // break
+            emit(JMP, (int) text.size() + 4);
+            auto L1 = (int) text.size(); // break
             emit(JMP, -1);
-            auto L2 = text.size(); // continue
+            auto L2 = (int) text.size(); // continue
             exp->gen_rvalue(*this);
             emit(JZ, L1); // jump break
             cycle_t c{L1, L2};
             cycle.push_back(c);
             gen_rec(_stmt, level); // stmt
             emit(JMP, L2); // jump continue
-            text[L2 - 1] = text.size(); // jump exit
+            text[L2 - 1] = (int) text.size(); // jump exit
             tmp.back().clear();
             cycle.pop_back();
         } else if (AST_IS_KEYWORD_K(k, k_for)) {
@@ -1922,10 +1948,10 @@ namespace clib {
 #endif
                 _cond_exp[0]->gen_rvalue(*this);
             }
-            emit(JMP, text.size() + 4);
-            auto L1 = text.size(); // break
+            emit(JMP, (int) text.size() + 4);
+            auto L1 = (int) text.size(); // break
             emit(JMP, -1);
-            auto L2 = text.size(); // continue
+            auto L2 = (int) text.size(); // continue
             if (_cond_exp[1]) { // cond exp
 #if LOG_TYPE
                 std::cout << "[DEBUG] For: cond= " << sym_to_string(_cond_exp[1]) << std::endl;
@@ -1943,7 +1969,7 @@ namespace clib {
                 _cond_exp[2]->gen_rvalue(*this);
             }
             emit(JMP, L2); // jump continue
-            text[L2 - 1] = text.size(); // jump exit
+            text[L2 - 1] = (int) text.size(); // jump exit
             tmp.back().clear();
             cycle.pop_back();
         } else if (AST_IS_KEYWORD_K(k, k_do)) {
@@ -1956,18 +1982,62 @@ namespace clib {
 #endif
             tmp.back().clear();
             emit(JMP, -1);
-            auto L1 = text.size(); // break
+            auto L1 = (int) text.size(); // break
             emit(JMP, -1);
-            auto L2 = text.size(); // continue
+            auto L2 = (int) text.size(); // continue
             exp->gen_rvalue(*this);
             emit(JZ, L1); // jump break
             cycle_t c{L1, L2};
             cycle.push_back(c);
-            text[L1 - 1] = text.size();
+            text[L1 - 1] = (int) text.size();
             gen_rec(_stmt, level); // stmt
             emit(JMP, L2); // jump continue
-            text[L2 - 1] = text.size(); // jump exit
+            text[L2 - 1] = (int) text.size(); // jump exit
             tmp.back().clear();
+            cycle.pop_back();
+        } else if (AST_IS_KEYWORD_K(k, k_switch)) {
+            auto &_exp = nodes[1];
+            auto &_stmt = nodes[2];
+            gen_rec(_exp, level); // exp
+            auto exp = exp_list(tmp.back());
+#if LOG_TYPE
+            std::cout << "[DEBUG] Switch: " << exp->to_string() << std::endl;
+#endif
+            tmp.back().clear();
+            emit(JMP, (int) text.size() + 4);
+            auto L1 = (int) text.size(); // break
+            emit(JMP, -1);
+            exp->gen_rvalue(*this);
+            emit(PUSH); // PUSH cond
+            emit(JMP, -1); // jump cases
+            auto L2 = (int) text.size(); // cases
+            cycle_t c{L1, -1};
+            cycle.push_back(c);
+            cases.emplace_back();
+            gen_rec(_stmt, level); // stmt
+            emit(JMP, L1);
+            text[L2 - 1] = text.size(); // jump cases
+            auto _default = -1;
+            auto &_cases = cases.back();
+            for (auto i = 0; i < _cases.size(); ++i) {
+                auto &_c = _cases[i];
+                if (_c._case) {
+                    _c._case->gen_rvalue(*this);
+                    emit(CASE);
+                    emit(JZ, _c.addr);
+                } else if (_default == -1) {
+                    _default = i;
+                } else {
+                    error(k, "conflict default: ", true);
+                }
+            }
+            emit(POP);
+            if (_default != -1) {
+                emit(JMP, _cases[_default].addr);
+            }
+            text[L1 + 1] = text.size(); // jump break
+            tmp.back().clear();
+            cases.pop_back();
             cycle.pop_back();
         } else {
             error(k, "invalid stmt keyword: ", true);

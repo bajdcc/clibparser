@@ -471,6 +471,14 @@ namespace clib {
                 case EQ:
                     ctx.ax = vmm_popstack(ctx.sp) == ctx.ax;
                     break;
+                case CASE:
+                    if (vmm_get(ctx.sp) == ctx.ax) {
+                        ctx.sp += INC_PTR;
+                        ctx.ax = 0; // 0 for same
+                    } else {
+                        ctx.ax = 1;
+                    }
+                    break;
                 case NE:
                     ctx.ax = vmm_popstack(ctx.sp) != ctx.ax;
                     break;
@@ -549,7 +557,7 @@ namespace clib {
 #if LOG_STACK
             if (ctx.log) {
                 printf("\n---------------- STACK BEGIN <<<< \n");
-                printf("AX: %08X BP: %08X ctx.sp: %08X ctx.pc: %08X\n", ctx.ax, ctx.bp, ctx.sp, ctx.pc);
+                printf("AX: %08X BP: %08X SP: %08X PC: %08X\n", ctx.ax, ctx.bp, ctx.sp, ctx.pc);
                 for (uint32_t j = ctx.sp; j < STACK_BASE + PAGE_SIZE; j += 4) {
                     printf("[%08X]> %08X\n", j, vmm_get<uint32_t>(j));
                 }

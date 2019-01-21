@@ -43,6 +43,12 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约9k。
 **1. [递归与求和](https://raw.githubusercontent.com/bajdcc/clibparser/master/output/1_rec.txt)**
 
 ```cpp
+enum INTR_TABLE {
+    INTR_PUT_CHAR = 0,
+    INTR_PUT_NUMBER = 1,
+    INTR_SLEEP_RECORD = 100,
+    INTR_SLEEP_REACH = 101,
+};
 int sleep(int ms) {
     ms;
     interrupt 100;
@@ -65,6 +71,9 @@ int fib(int i) {
     else
         return 1;
 }
+int fib2(int i) {
+    return i > 2 ? fib(i - 1) + fib(i - 2) : 1;
+}
 int sum(int i) {
     int s = 0;
     while (i > 0) {
@@ -74,7 +83,7 @@ int sum(int i) {
 }
 int sum2(int n) {
     int i, s;
-    for (i = 1, s = 0; i <= n; ++i) {
+    for (i = 1, s = 0; i <= n ; ++i) {
         s += i;
     }
     return s;
@@ -90,20 +99,49 @@ int welcome() {
     put_string(" ________  ________        ___  ________  ________  ________     \n");
     put_string("|\\   __  \\|\\   __  \\      |\\  \\|\\   ___ \\|\\   ____\\|\\   ____\\    \n");
     put_string("\\ \\  \\|\\ /\\ \\  \\|\\  \\     \\ \\  \\ \\  \\_|\\ \\ \\  \\___|\\ \\  \\___|    \n");
-    put_string(" \\ \\   __  \\ \\   __  \\  __ \\ \\  \\ \\  \\ \\\\ \\ \\  \\    \\ \\  \\       \n");
-    put_string("  \\ \\  \\|\\  \\ \\  \\ \\  \\|\\  \\\\_\\  \\ \\  \\_\\\\ \\ \\  \\____\\ \\  \\____ \n");
+    put_string(" \\ \\   __  \\ \\   __  \\  ___\\ \\  \\ \\  \\ \\\\ \\ \\  \\    \\ \\  \\       \n");
+    put_string("  \\ \\  \\|\\  \\ \\  \\ \\  \\|\\  \\\\_\\  \\ \\  \\_\\\\ \\ \\  \\____\\ \\  \\_____\n");
     put_string("   \\ \\_______\\ \\__\\ \\__\\ \\________\\ \\_______\\ \\_______\\ \\_______\\\n");
     put_string("    \\|_______|\\|__|\\|__|\\|________|\\|_______|\\|_______|\\|_______|\n");
     put_string("\n\n");
     put_string("Welcome to @clibos system by bajdcc!");
     put_string("\n\n");
 }
+enum TEST {
+    TEST_IF = 1,
+    TEST_TRIOP = 2,
+    TEST_WHILE = 3,
+    TEST_FOR = 4,
+    TEST_DO = 5,
+};
+int test(int i) {
+    switch (i) {
+        case TEST_IF:
+            put_string("fib(10):   "); put_int(fib2(10));
+            break;
+        case TEST_TRIOP:
+            put_string("fib2(10):  "); put_int(fib(10));
+            break;
+        case TEST_WHILE:
+            put_string("sum(100):  "); put_int(sum(100));
+            break;
+        case TEST_FOR:
+            put_string("sum2(100): "); put_int(sum2(100));
+            break;
+        case TEST_DO:
+            put_string("sum3(100): "); put_int(sum3(100));
+            break;
+        default:
+            put_string("undefined task");
+            break;
+    }
+    put_string("\n"); sleep(1000);
+}
 int main(int argc, char **argv) {
     welcome();
-    put_string("fib(10): ");   put_int(fib(10));   put_string("\n"); sleep(1000);
-    put_string("sum(100): ");  put_int(sum(100));  put_string("\n"); sleep(1000);
-    put_string("sum2(100): "); put_int(sum2(100)); put_string("\n"); sleep(1000);
-    put_string("sum3(100): "); put_int(sum3(100)); put_string("\n"); sleep(1000);
+    int i;
+    for (i = TEST_IF; i <= TEST_DO; ++i)
+        test(i);
     return 0;
 }
 ```
@@ -217,7 +255,7 @@ int main(int argc, char **argv) {
     - [x] if语句
     - [x] for语句
     - [x] while语句和do..while语句
-    - [ ] switch语句
+    - [x] switch语句
     - [x] break和continue
     - [x] 取址和解引用（及左值）
 - [x] 虚拟机

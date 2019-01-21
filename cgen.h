@@ -294,8 +294,13 @@ namespace clib {
     };
 
     struct cycle_t {
-        uint _break;
-        uint _continue;
+        int _break;
+        int _continue;
+    };
+
+    struct switch_t {
+        type_exp_t::ref _case;
+        int addr;
     };
 
     // 生成虚拟机指令
@@ -344,6 +349,7 @@ namespace clib {
         std::vector<std::vector<ast_node *>> ast;
         std::vector<std::vector<sym_t::ref>> tmp;
         std::vector<cycle_t> cycle;
+        std::vector<std::vector<switch_t>> cases;
         std::unique_ptr<cvm> vm;
         sym_t::weak_ref ctx;
     };
