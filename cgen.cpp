@@ -716,6 +716,16 @@ namespace clib {
                 gen.emit(SAVE, exp1->size(x_size));
             }
                 break;
+            case op_logical_and:
+            case op_logical_or: {
+                exp1->gen_rvalue(gen);
+                base = exp1->base->clone();
+                gen.emit(OP_INS(op->data._op), -1); // 短路优化
+                auto L1 = gen.current() - 1;
+                exp2->gen_rvalue(gen);
+                gen.edit(L1, gen.current()); // a = exit
+            }
+                break;
             case op_lsquare: {
                 exp1->gen_rvalue(gen);
                 base = exp1->base->clone();
@@ -972,6 +982,16 @@ namespace clib {
             default:
                 error("invalid keyword: " + KEYWORD_STRING(k));
                 break;
+        }
+    }
+
+    int cgen::current() const {
+        return text.size();
+    }
+
+    int cgen::edit(int addr, int value) {
+        if (addr >= 0 && addr < text.size()) {
+            text[addr] = value;
         }
     }
 

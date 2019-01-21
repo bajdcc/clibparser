@@ -52,7 +52,7 @@ int sum(int i) {
 }
 int sum2(int n) {
     int i, s;
-    for (i = 1, s = 0; i <= n; ++i) {
+    for (i = 1, s = 0; i <= n ; ++i) {
         s += i;
     }
     return s;
