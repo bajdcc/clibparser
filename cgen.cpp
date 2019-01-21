@@ -1477,16 +1477,24 @@ namespace clib {
                     auto clazz = ctx.lock() ? z_local_var : z_global_var;
                     auto &s = symbols.back();
                     auto &_tmp = tmp.back();
+                    ast_node zero;
+                    zero.flag = ast_int;
+                    zero.data._int = 0;
+                    auto init_type = std::make_shared<type_base_t>(l_int, 0);
+                    type_exp_t::ref init = std::make_shared<sym_var_t>(init_type, &zero);
+                    auto delta = -1;
                     for (int i = ast_i; i < asts.size(); ++i) {
                         auto &a = asts[i];
                         if (AST_IS_ID(a)) {
-                            type_exp_t::ref init;
                             if (a->parent != a->parent->next) {
+                                delta = 0;
                                 init = to_exp(_tmp[tmp_i++]);
+                            } else {
+                                delta++;
                             }
                             if (s.find(a->data._string) == s.end()) {
                                 auto type = std::make_shared<type_base_t>(l_int, 0);
-                                add_id(type, clazz, a, init);
+                                add_id(type, clazz, a, init, delta);
                             } else {
                                 error(a, "conflict enum id: ", true);
                             }
@@ -2070,7 +2078,7 @@ namespace clib {
         return std::dynamic_pointer_cast<type_exp_t>(s);
     }
 
-    void cgen::allocate(sym_id_t::ref id, const type_exp_t::ref &init) {
+    void cgen::allocate(sym_id_t::ref id, const type_exp_t::ref &init, int delta) {
         assert(id->base->get_base_type() == s_type);
         auto type = id->base;
         if (id->clazz == z_global_var) {
@@ -2084,6 +2092,9 @@ namespace clib {
                         std::copy((char *) &node->data._ins,
                                   ((char *) &node->data._ins) + size,
                                   std::back_inserter(data));
+                        if (delta > 0) {
+                            *(((int*) (data.data() + data.size())) - 1) += delta;
+                        }
                     } else {
                         load_string(node->data._string);
                     }
@@ -2096,6 +2107,9 @@ namespace clib {
                     std::copy(data.data() + var2->addr,
                               data.data() + var2->addr_end,
                               std::back_inserter(data));
+                    if (delta > 0) {
+                        *(((int*) (data.data() + data.size())) - 1) += delta;
+                    }
                 } else {
                     error(id, "allocate: not supported");
                 }
@@ -2120,6 +2134,11 @@ namespace clib {
                 id->gen_lvalue(*this);
                 emit(PUSH);
                 init->gen_rvalue(*this);
+                if (delta > 0) {
+                    emit(PUSH);
+                    emit(IMM, delta);
+                    emit(ADD);
+                }
                 if (type->to_string() != init->base->to_string())
                     error(init, "not equal init type");
                 emit(SAVE, size);
@@ -2142,7 +2161,8 @@ namespace clib {
         }
     }
 
-    sym_id_t::ref cgen::add_id(const type_base_t::ref &type, sym_class_t clazz, ast_node *node, const type_exp_t::ref &init) {
+    sym_id_t::ref cgen::add_id(const type_base_t::ref &type, sym_class_t clazz,
+                               ast_node *node, const type_exp_t::ref &init, int delta) {
         assert(AST_IS_ID(node));
         auto new_id = std::make_shared<sym_id_t>(type, node->data._string);
         new_id->line = node->line;
@@ -2153,7 +2173,7 @@ namespace clib {
             if (init->base && type->to_string() != init->base->to_string())
                 error(node, "not equal init type, ", true);
         }
-        allocate(new_id, init);
+        allocate(new_id, init, delta);
 #if LOG_TYPE
         std::cout << "[DEBUG] Id: " << new_id->to_string() << std::endl;
 #endif

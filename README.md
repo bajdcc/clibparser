@@ -108,11 +108,11 @@ int welcome() {
     put_string("\n\n");
 }
 enum TEST {
-    TEST_IF = 1,
-    TEST_TRIOP = 2,
-    TEST_WHILE = 3,
-    TEST_FOR = 4,
-    TEST_DO = 5,
+    TEST_IF,
+    TEST_TRIOP,
+    TEST_WHILE,
+    TEST_FOR,
+    TEST_DO,
 };
 int test(int i) {
     switch (i) {
@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
     - [x] if语句
     - [x] for语句
     - [x] while语句和do..while语句
-    - [x] switch语句
+    - [x] switch语句（default和case）
     - [x] break和continue
     - [x] 取址和解引用（及左值）
 - [x] 虚拟机

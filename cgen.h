@@ -331,8 +331,8 @@ namespace clib {
         void gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node);
         void gen_stmt(const std::vector<ast_node *> &nodes, int level, ast_node *node);
 
-        void allocate(sym_id_t::ref id, const type_exp_t::ref &init);
-        sym_id_t::ref add_id(const type_base_t::ref &, sym_class_t, ast_node *, const type_exp_t::ref &);
+        void allocate(sym_id_t::ref id, const type_exp_t::ref &init, int delta = 0);
+        sym_id_t::ref add_id(const type_base_t::ref &, sym_class_t, ast_node *, const type_exp_t::ref &, int = 0);
 
         sym_t::ref find_symbol(const string_t &name);
         sym_var_t::ref primary_node(ast_node *node);

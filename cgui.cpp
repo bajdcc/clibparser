@@ -80,11 +80,11 @@ int welcome() {
     put_string("\n\n");
 }
 enum TEST {
-    TEST_IF = 1,
-    TEST_TRIOP = 2,
-    TEST_WHILE = 3,
-    TEST_FOR = 4,
-    TEST_DO = 5,
+    TEST_IF,
+    TEST_TRIOP,
+    TEST_WHILE,
+    TEST_FOR,
+    TEST_DO,
 };
 int test(int i) {
     switch (i) {
