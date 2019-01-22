@@ -26,7 +26,7 @@ namespace clib {
 
     class cgui {
     public:
-        cgui();
+        cgui() = default;
         ~cgui() = default;
 
         cgui(const cgui &) = delete;
@@ -50,12 +50,15 @@ namespace clib {
         void new_line();
         inline void draw_char(const char &c);
 
+        static void error(const string_t &);
+
     public:
         static cgui &singleton();
 
+        static string_t load_file(const string_t &name);
+
     private:
         std::array<std::array<char, GUI_COLS>, GUI_ROWS> buffer;
-        std::unordered_map<string_t, string_t> vfs;
         cgen gen;
         cparser p;
         std::unique_ptr<cvm> vm;

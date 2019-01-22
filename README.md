@@ -40,7 +40,9 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约9k。
 
 ## 示例代码
 
-**1. [递归与求和](https://raw.githubusercontent.com/bajdcc/clibparser/master/output/1_rec.txt)**
+代码均在code文件夹下，运行时从该文件夹中读取C文件。
+
+**1. [递归与求和](https://raw.githubusercontent.com/bajdcc/clibparser/master/code/sys/entry.cpp)**
 
 ```cpp
 enum INTR_TABLE {
