@@ -77,8 +77,8 @@ int fib2(int i) {
 int fib3(int i) {
     int a[3], j;
     a[0] = a[1] = 1;
-    for (j = 0; j < i; ++j)
-        a[2] = a[0] + a[1], a[0] = a[1], a[1] = a[3];
+    for (j = 1; j < i; ++j)
+        a[2] = a[0] + a[1], a[0] = a[1], a[1] = a[2];
     return a[0];
 }
 int sum(int i) {
@@ -125,13 +125,13 @@ enum TEST {
 int test(int i) {
     switch (i) {
         case TEST_IF:
-            put_string("fib(10):   "); put_int(fib2(10));
+            put_string("fib(10):   "); put_int(fib(10));
             break;
         case TEST_TRIOP:
-            put_string("fib2(10):  "); put_int(fib(10));
+            put_string("fib2(10):  "); put_int(fib2(10));
             break;
         case TEST_ARRAY:
-            put_string("fib3(10):  "); put_int(fib(10));
+            put_string("fib3(10):  "); put_int(fib3(10));
             break;
         case TEST_WHILE:
             put_string("sum(100):  "); put_int(sum(100));
@@ -277,10 +277,13 @@ int main(int argc, char **argv) {
     - [x] 虚页分配（已实现）
     - [ ] 虚页权限管理
     - [x] 运行指令
-    - [ ] 中断指令
+    - [x] 中断指令
     - [ ] 扩展指令
 - [ ] 操作系统
     - [ ] 多任务机制
+    - [ ] 共享代码区
+    - [ ] 内核与用户态分离
+    - [ ] 内存权限管理
     - [ ] 中断机制
     - [ ] 虚拟文件系统
 - [ ] 图形用户界面

@@ -49,8 +49,8 @@ int fib2(int i) {
 int fib3(int i) {
     int a[3], j;
     a[0] = a[1] = 1;
-    for (j = 0; j < i; ++j)
-        a[2] = a[0] + a[1], a[0] = a[1], a[1] = a[3];
+    for (j = 1; j < i; ++j)
+        a[2] = a[0] + a[1], a[0] = a[1], a[1] = a[2];
     return a[0];
 }
 int sum(int i) {
@@ -97,13 +97,13 @@ enum TEST {
 int test(int i) {
     switch (i) {
         case TEST_IF:
-            put_string("fib(10):   "); put_int(fib2(10));
+            put_string("fib(10):   "); put_int(fib(10));
             break;
         case TEST_TRIOP:
-            put_string("fib2(10):  "); put_int(fib(10));
+            put_string("fib2(10):  "); put_int(fib2(10));
             break;
         case TEST_ARRAY:
-            put_string("fib3(10):  "); put_int(fib(10));
+            put_string("fib3(10):  "); put_int(fib3(10));
             break;
         case TEST_WHILE:
             put_string("sum(100):  "); put_int(sum(100));
