@@ -81,14 +81,15 @@ namespace clib {
 /* 堆内存(单位：16B) */
 #define HEAP_MEM (256 * 1024)
 
+#define TASK_NUM 128
+
     class cvm {
     public:
-        explicit cvm(const std::vector<LEX_T(int)> &text,
-                     const std::vector<LEX_T(char)> &data,
-                     int entry);
+        cvm();
         ~cvm();
 
-        bool exec(int cycle, int &cycles);
+        void load(std::vector<byte> file);
+        bool run(int cycle, int &cycles);
 
     private:
         // 申请页框
@@ -98,7 +99,7 @@ namespace clib {
         // 虚页映射
         void vmm_map(uint32_t va, uint32_t pa, uint32_t flags);
         // 解除映射
-        void vmm_unmap(pde_t *pgdir, uint32_t va);
+        void vmm_unmap(uint32_t va);
         // 查询分页情况
         int vmm_ismap(uint32_t va, uint32_t *pa) const;
 
@@ -119,6 +120,8 @@ namespace clib {
         void init_args(uint32_t *args, uint32_t sp, uint32_t pc, bool converted = false);
 
         void error(const string_t &);
+        void exec(int cycle, int &cycles);
+        void destroy();
 
     private:
         /* 内核页表 = PTE_SIZE*PAGE_SIZE */
@@ -132,19 +135,34 @@ namespace clib {
         /* 堆内存 */
         memory_pool<HEAP_MEM> heap;
         byte *heapHead;
-        int entry{0};
+
+        enum ctx_flag_t {
+            CTX_VALID = 1 << 1,
+            CTX_KERNEL = 1 << 2,
+        };
 
         struct context_t {
+            uint flag;
+            int id;
+            string_t path;
+            uint mask;
+            uint entry;
             uint poolsize;
             uint stack;
             uint data;
             uint base;
+            uint heap;
             uint pc;
             int ax;
             uint bp;
             uint sp;
             bool log;
-        } ctx;
+            std::vector<byte> file;
+            std::vector<uint32_t> allocation;
+        };
+        context_t *ctx{nullptr};
+        int available_tasks{0};
+        std::array<context_t, TASK_NUM> tasks;
     };
 }
 

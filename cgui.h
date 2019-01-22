@@ -42,7 +42,6 @@ namespace clib {
 
         void record(int ms);
         bool reach() const;
-        void control(int type);
 
     private:
         void tick();
@@ -56,9 +55,10 @@ namespace clib {
 
     private:
         std::array<std::array<char, GUI_COLS>, GUI_ROWS> buffer;
-        std::deque<string_t> codes;
+        std::unordered_map<string_t, string_t> vfs;
         cgen gen;
         cparser p;
+        std::unique_ptr<cvm> vm;
         bool running{false};
         int cycle{ GUI_CYCLES };
         int ticks{ GUI_TICKS };
@@ -66,8 +66,6 @@ namespace clib {
         int ptr_y{0};
         int ptr_mx{0};
         int ptr_my{0};
-        int continues{0};
-        string_t current_code;
         std::chrono::system_clock::time_point record_now;
         decimal waiting_ms{0};
     };

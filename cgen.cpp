@@ -976,16 +976,23 @@ namespace clib {
         ast.emplace_back();
     }
 
-    bool cgen::eval(int cycle, int &cycles) {
-        if (!vm) {
-            auto entry = symbols[0].find("main");
-            if (entry == symbols[0].end()) {
-                error("main() not defined");
-            }
-            vm = std::make_unique<cvm>(text, data,
-                                       std::dynamic_pointer_cast<sym_func_t>(entry->second)->addr);
+    std::vector<byte> cgen::file() const {
+        std::vector<byte> file;
+        auto entry = symbols[0].find("main");
+        if (entry == symbols[0].end()) {
+            error("main() not defined");
         }
-        return vm->exec(cycle, cycles);
+        auto magic = string_t(PE_MAGIC);
+        std::copy((byte*) magic.data(), (byte*) magic.data() + magic.size(), std::back_inserter(file));
+        auto addr = std::dynamic_pointer_cast<sym_func_t>(entry->second)->addr;
+        std::copy((byte*) &addr, (byte*) &addr + sizeof(entry), std::back_inserter(file));
+        auto data_size = data.size() * sizeof(data[0]);
+        std::copy((byte*) &data_size, (byte*) &data_size + sizeof(data_size), std::back_inserter(file));
+        auto text_size = text.size() * sizeof(text[0]);
+        std::copy((byte*) &text_size, (byte*) &text_size + sizeof(text_size), std::back_inserter(file));
+        std::copy(data.begin(), data.end(), std::back_inserter(file));
+        std::copy((byte*) text.data(), (byte*) text.data() + text_size, std::back_inserter(file));
+        return file;
     }
 
     void cgen::emit(ins_t i) {
@@ -2110,13 +2117,13 @@ namespace clib {
         }
     }
 
-    void cgen::error(const string_t &str) {
+    void cgen::error(const string_t &str) const {
         std::stringstream ss;
         ss << "GEN ERROR: " << str;
         throw cexception(ss.str());
     }
 
-    void cgen::error(ast_node *node, const string_t &str, bool info) {
+    void cgen::error(ast_node *node, const string_t &str, bool info) const {
         std::stringstream ss;
         ss << "GEN ERROR: " << "[" << node->line << ":" << node->column << "] " << str;
         if (info) {
@@ -2125,7 +2132,7 @@ namespace clib {
         throw cexception(ss.str());
     }
 
-    void cgen::error(sym_t::ref s, const string_t &str) {
+    void cgen::error(sym_t::ref s, const string_t &str) const {
         std::stringstream ss;
         ss << "GEN ERROR: " << "[" << s->line << ":" << s->column << "] " << str;
         throw cexception(ss.str());

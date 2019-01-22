@@ -27,7 +27,8 @@ namespace clib {
         // 清空AST
         ast.reset();
         // 产生式
-        gen();
+        if (unit.get_pda().empty())
+            gen();
         // 语法分析（递归下降）
         program();
         return ast.get_root();
@@ -409,11 +410,16 @@ namespace clib {
     }
 
     void cparser::program() {
+        base_type = l_none;
         next();
         state_stack.clear();
         ast_stack.clear();
+        ast_cache.clear();
+        ast_cache_index = 0;
+        ast_coll_cache.clear();
+        ast_reduce_cache.clear();
         state_stack.push_back(0);
-        auto &pdas = unit.get_pda();
+        const auto &pdas = unit.get_pda();
         auto root = ast.new_node(ast_collection);
         root->line = root->column = 0;
         root->data._coll = pdas[0].coll;
@@ -456,7 +462,7 @@ namespace clib {
             if (bk->direction != b_error)
                 for (;;) {
                     auto is_end = lexer->is_type(l_end) && ast_cache_index >= ast_cache.size();
-                    auto &current_state = pdas[state];
+                    const auto &current_state = pdas[state];
                     if (is_end) {
                         if (current_state.final) {
                             if (state_stack.empty()) {

@@ -25,6 +25,8 @@
 /* 段掩码 */
 #define SEGMENT_MASK 0x0fffffff
 
+#define PE_MAGIC "ccos"
+
 namespace clib {
 
     enum symbol_t {
@@ -61,7 +63,7 @@ namespace clib {
         virtual int current() const = 0;
         virtual int edit(int, int) = 0;
         virtual int load_string(const string_t &) = 0;
-        virtual void error(const string_t &) = 0;
+        virtual void error(const string_t &) const = 0;
     };
 
     enum sym_size_t {
@@ -305,6 +307,16 @@ namespace clib {
         int addr;
     };
 
+    struct PE {
+        char magic[4];
+        uint entry;
+        uint data_len;
+        uint text_len;
+        byte data;
+        // byte *data;
+        // byte *text;
+    };
+
     // 生成虚拟机指令
     class cgen : public csemantic, public igen {
     public:
@@ -318,7 +330,7 @@ namespace clib {
 
         void gen(ast_node *node);
         void reset();
-        bool eval(int cycle, int &cycles);
+        std::vector<byte> file() const;
 
         void emit(ins_t) override;
         void emit(ins_t, int) override;
@@ -327,7 +339,7 @@ namespace clib {
         int current() const override;
         int edit(int, int) override;
         int load_string(const string_t &) override;
-        void error(const string_t &) override;
+        void error(const string_t &) const override;
     private:
         void gen_rec(ast_node *node, int level);
         void gen_coll(const std::vector<ast_node *> &nodes, int level, ast_node *node);
@@ -339,8 +351,8 @@ namespace clib {
         sym_t::ref find_symbol(const string_t &name);
         sym_var_t::ref primary_node(ast_node *node);
 
-        void error(ast_node *, const string_t &, bool info = false);
-        void error(sym_t::ref s, const string_t &);
+        void error(ast_node *, const string_t &, bool info = false) const ;
+        void error(sym_t::ref s, const string_t &) const ;
 
         static type_exp_t::ref to_exp(sym_t::ref s);
 

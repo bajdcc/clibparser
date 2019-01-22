@@ -10,10 +10,12 @@
 
 #define LOG_AST 0
 
+#define ENTRY_FILE "/sys/entry"
+
 namespace clib {
 
     cgui::cgui() {
-        auto cs = std::vector<string_t>{
+        vfs.insert(std::make_pair(ENTRY_FILE,
             R"(
 enum INTR_TABLE {
     INTR_PUT_CHAR = 0,
@@ -127,9 +129,7 @@ int main(int argc, char **argv) {
         test(i);
     return 0;
 }
-)",
-        };
-        std::copy(cs.begin(), cs.end(), std::back_inserter(codes));
+)"));
     }
 
     cgui &cgui::singleton() {
@@ -178,46 +178,42 @@ int main(int argc, char **argv) {
 
     void cgui::tick() {
         auto c = 0;
-        auto error = false;
         if (running) {
             try {
-                if (!gen.eval(GUI_CYCLES, c)) {
+                if (!vm->run(GUI_CYCLES, c)) {
                     running = false;
+                    vm.reset();
                     gen.reset();
                 }
             } catch (const cexception &e) {
-                error = true;
                 std::cout << "RUNTIME ERROR: " << e.msg << std::endl;
+                vm.reset();
                 gen.reset();
                 running = false;
             }
         } else {
-            if (!codes.empty()) {
-                current_code = codes.front();
-                codes.pop_front();
+            if (!vm) {
+                auto current_code = vfs[ENTRY_FILE];
                 try {
+                    gen.reset();
                     auto root = p.parse(current_code, &gen);
 #if LOG_AST
                     cast::print(root, 0, std::cout);
 #endif
                     gen.gen(root);
-                    if (gen.eval(GUI_CYCLES, c)) {
+                    vm = std::make_unique<cvm>();
+                    vm->load(gen.file());
+                    if (vm->run(GUI_CYCLES, c)) {
                         running = true;
                     } else {
+                        vm.reset();
                         gen.reset();
                     }
                 } catch (const cexception &e) {
-                    error = true;
+                    vm.reset();
+                    gen.reset();
                     std::cout << "RUNTIME ERROR: " << e.msg << std::endl;
                 }
-            }
-        }
-        if (continues > 0) {
-            if (error) {
-                continues = 0;
-                current_code = "";
-            } else {
-                codes.push_front(current_code);
             }
         }
     }
@@ -308,13 +304,5 @@ int main(int argc, char **argv) {
     bool cgui::reach() const {
         auto now = std::chrono::high_resolution_clock::now();
         return std::chrono::duration_cast<std::chrono::duration<decimal>>(now - record_now).count() > waiting_ms;
-    }
-
-    void cgui::control(int type) {
-        if (type == 0) { // continue
-            continues++;
-        } else if (type == 1) { // break
-            continues = 0;
-        }
     }
 }
