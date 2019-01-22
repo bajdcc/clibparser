@@ -88,7 +88,9 @@ int test(int i) {
 }
 int main(int argc, char **argv) {
     int i;
+    put_string("========== [#1 TEST REC] ==========\n");
     for (i = TEST_IF; i <= TEST_DO; ++i)
         test(i);
+    put_string("========== [#1 TEST REC] ==========\n");
     return 0;
 }

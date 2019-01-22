@@ -146,7 +146,7 @@ namespace clib {
 
         enum ctx_state_t {
             CTS_RUNNING,
-            CTS_SLEEP,
+            CTS_WAIT,
             CTS_ZOMBIE,
             CTS_DEAD,
         };

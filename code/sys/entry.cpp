@@ -3,6 +3,7 @@ enum INTR_TABLE {
     INTR_PUT_NUMBER = 1,
     INTR_PUT_EXEC_CHAR = 50,
     INTR_PUT_EXEC_FILE = 51,
+    INTR_PUT_EXEC_WAIT = 52,
     INTR_SLEEP_RECORD = 100,
     INTR_SLEEP_REACH = 101,
 };
@@ -26,6 +27,9 @@ int exec(char *path) {
     while (exec_char(*path++));
     interrupt 51;
 }
+int wait() {
+    interrupt 52;
+}
 int sleep(int ms) {
     ms;
     interrupt 100;
@@ -46,6 +50,7 @@ int welcome() {
 }
 int main(int argc, char **argv) {
     welcome();
-    exec("/usr/test");
+    exec("/usr/test_rec");  wait();
+    exec("/usr/test_fork"); wait();
     return 0;
 }

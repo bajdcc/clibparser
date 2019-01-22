@@ -284,7 +284,7 @@ int main(int argc, char **argv) {
 - [ ] 操作系统
     - [x] 多任务机制
     - [x] 读取并执行C文件
-    - [x] exec调用
+    - [x] exec、wait调用
     - [ ] 共享代码区
     - [ ] 内核与用户态分离
     - [ ] 内存权限管理

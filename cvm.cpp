@@ -480,6 +480,17 @@ namespace clib {
                         case 51:
                             ctx->ax = exec_file(ctx->exec_path.str());
                             ctx->exec_path.str("");
+                            ctx->pc += INC_PTR;
+                            return;
+                        case 52: {
+                            if (!ctx->child.empty()) {
+                                ctx->state = CTS_WAIT;
+                                ctx->pc += INC_PTR;
+                                return;
+                            } else {
+                                ctx->ax = -1;
+                            }
+                        }
                             break;
                         case 100:
                             cgui::singleton().record((int) ctx->ax);
@@ -707,8 +718,12 @@ namespace clib {
             ctx->pool.reset();
             ctx->flag = 0;
             if (ctx->parent != -1) {
-                tasks[ctx->parent].child.erase(ctx->id);
-                destroy(ctx->parent);
+                auto &parent = tasks[ctx->parent];
+                parent.child.erase(ctx->id);
+                if (parent.state == CTS_ZOMBIE)
+                    destroy(ctx->parent);
+                else if (parent.state == CTS_WAIT)
+                    parent.state = CTS_RUNNING;
                 ctx->parent = -1;
             }
         }
