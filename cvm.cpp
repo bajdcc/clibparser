@@ -53,6 +53,9 @@ namespace clib {
 
         for (i = 0; i < TASK_NUM; ++i) {
             tasks[i].flag = 0;
+            tasks[i].id = i;
+            tasks[i].parent = -1;
+            tasks[i].state = CTS_DEAD;
         }
     }
 
@@ -127,7 +130,7 @@ namespace clib {
 
     template<class T>
     T cvm::vmm_get(uint32_t va) {
-        if (ctx->flag & CTX_KERNEL)
+        if (!(ctx->flag & CTX_KERNEL))
             va |= ctx->mask;
         uint32_t pa;
         if (vmm_ismap(va, &pa)) {
@@ -143,9 +146,9 @@ namespace clib {
 
     template<class T>
     T cvm::vmm_set(uint32_t va, T value) {
-        uint32_t pa;
-        if (ctx->flag & CTX_KERNEL)
+        if (!(ctx->flag & CTX_KERNEL))
             va |= ctx->mask;
+        uint32_t pa;
         if (vmm_ismap(va, &pa)) {
             *(T *) ((byte *) pa + OFFSET_INDEX(va)) = value;
             return value;
@@ -270,7 +273,7 @@ namespace clib {
 
     bool cvm::run(int cycle, int &cycles) {
         for (int i = 0; i < TASK_NUM; ++i) {
-            if (tasks[i].flag & CTX_VALID) {
+            if (tasks[i].flag & CTX_VALID && tasks[i].state == CTS_RUNNING) {
                 ctx = &tasks[i];
                 exec(cycle, cycles);
             }
@@ -459,7 +462,7 @@ namespace clib {
 #if LOG_SYSTEM
                     printf("[SYSTEM] PROC | Exit: PID= #%d, CODE= %d\n", ctx->id, ctx->ax);
 #endif
-                    destroy();
+                    destroy(ctx->id);
                     return;
                 }
                 case INTR: { // 中断调用，以寄存器ax传参
@@ -469,6 +472,14 @@ namespace clib {
                             break;
                         case 1:
                             cgui::singleton().put_int((int) ctx->ax);
+                            break;
+                        case 50:
+                            if (ctx->ax)
+                                ctx->exec_path << (char) ctx->ax;
+                            break;
+                        case 51:
+                            ctx->ax = exec_file(ctx->exec_path.str());
+                            ctx->exec_path.str("");
                             break;
                         case 100:
                             cgui::singleton().record((int) ctx->ax);
@@ -508,7 +519,6 @@ namespace clib {
             }
 #endif
         }
-        return;
     }
 
     void cvm::error(const string_t &str) {
@@ -517,15 +527,18 @@ namespace clib {
         throw cexception(ss.str());
     }
 
-    void cvm::load(std::vector<byte> file) {
+    int cvm::load(const std::vector<byte> &file) {
         if (available_tasks >= TASK_NUM) {
             error("max process num!");
         }
         auto old_ctx = ctx;
-        for (int i = 0; i < TASK_NUM; ++i) {
-            if (!(tasks[i].flag & CTX_VALID)) {
-                tasks[i].flag |= CTX_VALID;
-                ctx = &tasks[i];
+        auto end = TASK_NUM + ids;
+        for (int i = ids; i < end; ++i) {
+            auto j = i % TASK_NUM;
+            if (!(tasks[j].flag & CTX_VALID)) {
+                tasks[j].flag |= CTX_VALID;
+                ctx = &tasks[j];
+                ids = (j + 1) % TASK_NUM;
                 ctx->id = i;
                 ctx->file = file;
                 break;
@@ -546,6 +559,7 @@ namespace clib {
         ctx->heap = HEAP_BASE | ctx->mask;
         ctx->pool = std::make_unique<memory_pool<HEAP_MEM>>();
         ctx->flag |= CTX_KERNEL;
+        ctx->state = CTS_RUNNING;
         /* 映射4KB的代码空间 */
         {
             auto size = PAGE_SIZE / sizeof(int);
@@ -630,12 +644,23 @@ namespace clib {
             ctx->log = true;
         }
         available_tasks++;
+        auto pid = ctx->id;
         ctx = old_ctx;
+        return pid;
     }
 
-    void cvm::destroy() {
-        ctx->flag = 0;
+    void cvm::destroy(int id) {
         auto old_ctx = ctx;
+        ctx = &tasks[id];
+        if (!ctx->child.empty()) {
+            ctx->state = CTS_ZOMBIE;
+            ctx = old_ctx;
+            return;
+        }
+#if LOG_SYSTEM
+        printf("[SYSTEM] PROC | Destroy: PID= #%d\n", ctx->id);
+#endif
+        ctx->flag = 0;
         {
             PE *pe = (PE *) ctx->file.data();
             ctx->poolsize = PAGE_SIZE;
@@ -675,11 +700,31 @@ namespace clib {
                     memory.free_array((byte *)a);
                 }
             }
+            ctx->child.clear();
+            ctx->state = CTS_DEAD;
             ctx->file.clear();
             ctx->allocation.clear();
             ctx->pool.reset();
+            ctx->flag = 0;
+            if (ctx->parent != -1) {
+                tasks[ctx->parent].child.erase(ctx->id);
+                destroy(ctx->parent);
+                ctx->parent = -1;
+            }
         }
         ctx = old_ctx;
         available_tasks--;
+    }
+
+    int cvm::exec_file(const string_t &path) {
+        auto pid = cgui::singleton().compile(path);
+        if (pid != -1) { // SUCCESS
+            ctx->child.insert(pid);
+            tasks[pid].parent = ctx->id;
+#if LOG_SYSTEM
+            printf("[SYSTEM] PROC | Exec: Parent= #%d, Child= #%d\n", ctx->id, pid);
+#endif
+        }
+        return pid;
     }
 }

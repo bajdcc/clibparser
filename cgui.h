@@ -33,6 +33,7 @@ namespace clib {
         cgui &operator=(const cgui &) = delete;
 
         void draw(bool paused);
+        int compile(const string_t &path);
 
         void put_char(char c);
         void put_int(int number);
@@ -62,6 +63,7 @@ namespace clib {
         cgen gen;
         cparser p;
         std::unique_ptr<cvm> vm;
+        std::unordered_map<string_t, std::vector<byte>> cache;
         bool running{false};
         int cycle{ GUI_CYCLES };
         int ticks{ GUI_TICKS };

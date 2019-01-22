@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <vector>
+#include <unordered_set>
 #include "types.h"
 #include "memory.h"
 
@@ -91,7 +92,7 @@ namespace clib {
         cvm();
         ~cvm();
 
-        void load(std::vector<byte> file);
+        int load(const std::vector<byte> &file);
         bool run(int cycle, int &cycles);
 
     private:
@@ -124,7 +125,8 @@ namespace clib {
 
         void error(const string_t &);
         void exec(int cycle, int &cycles);
-        void destroy();
+        void destroy(int id);
+        int exec_file(const string_t &path);
 
     private:
         /* 内核页表 = PTE_SIZE*PAGE_SIZE */
@@ -135,15 +137,26 @@ namespace clib {
         memory_pool<PHY_MEM> memory;
         /* 页表 */
         pde_t *pgdir{nullptr};
+        int ids{0};
 
         enum ctx_flag_t {
-            CTX_VALID = 1 << 1,
-            CTX_KERNEL = 1 << 2,
+            CTX_VALID = 1 << 0,
+            CTX_KERNEL = 1 << 1,
+        };
+
+        enum ctx_state_t {
+            CTS_RUNNING,
+            CTS_SLEEP,
+            CTS_ZOMBIE,
+            CTS_DEAD,
         };
 
         struct context_t {
             uint flag;
             int id;
+            int parent;
+            std::unordered_set<int> child;
+            ctx_state_t state;
             string_t path;
             uint mask;
             uint entry;
@@ -161,6 +174,8 @@ namespace clib {
             std::vector<byte> file;
             std::vector<uint32_t> allocation;
             std::unique_ptr<memory_pool<HEAP_MEM>> pool;
+            // SYSTEM CALL
+            std::stringstream exec_path;
         };
         context_t *ctx{nullptr};
         int available_tasks{0};

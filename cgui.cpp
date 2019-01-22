@@ -13,7 +13,7 @@
 
 #define LOG_AST 0
 
-#define ENTRY_FILE "/sys/entry.cpp"
+#define ENTRY_FILE "/sys/entry"
 
 namespace clib {
 
@@ -29,7 +29,8 @@ namespace clib {
         if (std::regex_match(name, res, re)) {
             auto dir = res[1].str();
             auto file = res[2].str();
-            std::ifstream t("../code/" + dir + "/" + file);
+            auto path = "../code/" + dir + "/" + file + ".cpp";
+            std::ifstream t(path);
             if (t) {
                 std::stringstream buffer;
                 buffer << t.rdbuf();
@@ -95,26 +96,9 @@ namespace clib {
             }
         } else {
             if (!vm) {
-                try {
-                    auto code = load_file(ENTRY_FILE);
-                    gen.reset();
-                    auto root = p.parse(code, &gen);
-#if LOG_AST
-                    cast::print(root, 0, std::cout);
-#endif
-                    gen.gen(root);
-                    vm = std::make_unique<cvm>();
-                    vm->load(gen.file());
-                    if (vm->run(cycle, c)) {
-                        running = true;
-                    } else {
-                        vm.reset();
-                        gen.reset();
-                    }
-                } catch (const cexception &e) {
-                    vm.reset();
-                    gen.reset();
-                    std::cout << "RUNTIME ERROR: " << e.msg << std::endl;
+                vm = std::make_unique<cvm>();
+                if (compile(ENTRY_FILE) != -1) {
+                    running = true;
                 }
             }
         }
@@ -212,5 +196,24 @@ namespace clib {
     bool cgui::reach() const {
         auto now = std::chrono::high_resolution_clock::now();
         return std::chrono::duration_cast<std::chrono::duration<decimal>>(now - record_now).count() > waiting_ms;
+    }
+
+    int cgui::compile(const string_t &path) {
+        try {
+            auto code = load_file(path);
+            gen.reset();
+            auto root = p.parse(code, &gen);
+#if LOG_AST
+            cast::print(root, 0, std::cout);
+#endif
+            gen.gen(root);
+            auto file = gen.file();
+            cache.insert(std::make_pair(path, file));
+            return vm->load(file);
+        } catch (const cexception &e) {
+            gen.reset();
+            std::cout << "COMPILE ERROR: " << e.msg << std::endl;
+            return -1;
+        }
     }
 }
