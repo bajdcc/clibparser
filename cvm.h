@@ -6,6 +6,7 @@
 #ifndef CMINILANG_VM_H
 #define CMINILANG_VM_H
 
+#include <memory>
 #include <vector>
 #include "types.h"
 #include "memory.h"
@@ -72,14 +73,16 @@ namespace clib {
 /* 用户堆基址 */
 #define HEAP_BASE 0xf0000000
 /* 用户堆大小 */
-#define HEAP_SIZE 1000
+#define HEAP_SIZE 16
 /* 段掩码 */
 #define SEGMENT_MASK 0x0fffffff
 
 /* 物理内存(单位：16B) */
 #define PHY_MEM (16 * 1024)
 /* 堆内存(单位：16B) */
-#define HEAP_MEM (256 * 1024)
+#define HEAP_MEM (16 * 1024)
+
+#define PE_MAGIC "ccos"
 
 #define TASK_NUM 128
 
@@ -132,9 +135,6 @@ namespace clib {
         memory_pool<PHY_MEM> memory;
         /* 页表 */
         pde_t *pgdir{nullptr};
-        /* 堆内存 */
-        memory_pool<HEAP_MEM> heap;
-        byte *heapHead;
 
         enum ctx_flag_t {
             CTX_VALID = 1 << 1,
@@ -152,6 +152,7 @@ namespace clib {
             uint data;
             uint base;
             uint heap;
+            byte *heapHead;
             uint pc;
             int ax;
             uint bp;
@@ -159,6 +160,7 @@ namespace clib {
             bool log;
             std::vector<byte> file;
             std::vector<uint32_t> allocation;
+            std::unique_ptr<memory_pool<HEAP_MEM>> pool;
         };
         context_t *ctx{nullptr};
         int available_tasks{0};

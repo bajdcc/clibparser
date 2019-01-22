@@ -12,21 +12,6 @@
 #include "cparser.h"
 #include "cvm.h"
 
-/* 用户代码段基址 */
-#define USER_BASE 0xc0000000
-/* 用户数据段基址 */
-#define DATA_BASE 0xd0000000
-/* 用户栈基址 */
-#define STACK_BASE 0xe0000000
-/* 用户堆基址 */
-#define HEAP_BASE 0xf0000000
-/* 用户堆大小 */
-#define HEAP_SIZE 1000
-/* 段掩码 */
-#define SEGMENT_MASK 0x0fffffff
-
-#define PE_MAGIC "ccos"
-
 namespace clib {
 
     enum symbol_t {

@@ -174,23 +174,23 @@ namespace clib {
 #if 0
         printf("MALLOC> Available: %08X\n", heap.available() * 0x10);
 #endif
-        auto ptr = heap.alloc_array<byte>(size);
+        auto ptr = ctx->pool->alloc_array<byte>(size);
         if (ptr == nullptr) {
             printf("out of memory");
             exit(-1);
         }
-        if (ptr < heapHead) {
-            heap.alloc_array<byte>(heapHead - ptr);
+        if (ptr < ctx->heapHead) {
+            ctx->pool->alloc_array<byte>(ctx->heapHead - ptr);
 #if 0
             printf("MALLOC> Skip %08X bytes\n", heapHead - ptr);
 #endif
             return vmm_malloc(size);
         }
-        if (ptr + size >= heapHead + HEAP_SIZE * PAGE_SIZE) {
+        if (ptr + size >= ctx->heapHead + HEAP_SIZE * PAGE_SIZE) {
             printf("out of memory");
             exit(-1);
         }
-        auto va = vmm_pa2va(HEAP_BASE, HEAP_SIZE, ((uint32_t) ptr - (uint32_t) heapHead));
+        auto va = vmm_pa2va(HEAP_BASE, HEAP_SIZE, ((uint32_t) ptr - (uint32_t) ctx->heapHead));
 #if 0
         printf("MALLOC> V=%08X P=%p> %08X bytes\n", va, ptr, size);
 #endif
@@ -544,6 +544,7 @@ namespace clib {
         ctx->data = DATA_BASE | ctx->mask;
         ctx->base = USER_BASE | ctx->mask;
         ctx->heap = HEAP_BASE | ctx->mask;
+        ctx->pool = std::make_unique<memory_pool<HEAP_MEM>>();
         ctx->flag |= CTX_KERNEL;
         /* 映射4KB的代码空间 */
         {
@@ -585,19 +586,19 @@ namespace clib {
         vmm_map(ctx->stack, (uint32_t) pmm_alloc(), PTE_U | PTE_P | PTE_R); // 用户栈空间
         /* 映射16KB的堆空间 */
         {
-            auto head = heap.alloc_array<byte>(PAGE_SIZE * (HEAP_SIZE + 2));
+            auto head = ctx->pool->alloc_array<byte>(PAGE_SIZE * (HEAP_SIZE + 2));
 #if 0
             printf("HEAP> ALLOC=%p\n", head);
 #endif
-            heapHead = head; // 得到内存池起始地址
-            heap.free_array(heapHead);
-            heapHead = (byte *) PAGE_ALIGN_UP((uint32_t) head);
+            ctx->heapHead = head; // 得到内存池起始地址
+            ctx->pool->free_array(ctx->heapHead);
+            ctx->heapHead = (byte *) PAGE_ALIGN_UP((uint32_t) head);
 #if 0
             printf("HEAP> HEAD=%p\n", heapHead);
 #endif
-            memset(heapHead, 0, PAGE_SIZE * HEAP_SIZE);
+            memset(ctx->heapHead, 0, PAGE_SIZE * HEAP_SIZE);
             for (int i = 0; i < HEAP_SIZE; ++i) {
-                vmm_map(ctx->heap + PAGE_SIZE * i, (uint32_t) heapHead + PAGE_SIZE * i, PTE_U | PTE_P | PTE_R);
+                vmm_map(ctx->heap + PAGE_SIZE * i, (uint32_t) ctx->heapHead + PAGE_SIZE * i, PTE_U | PTE_P | PTE_R);
             }
         }
         ctx->flag &= ~CTX_KERNEL;
@@ -634,7 +635,6 @@ namespace clib {
 
     void cvm::destroy() {
         ctx->flag = 0;
-        ctx->file.clear();
         auto old_ctx = ctx;
         {
             PE *pe = (PE *) ctx->file.data();
@@ -670,6 +670,14 @@ namespace clib {
                     vmm_unmap(HEAP_BASE + PAGE_SIZE * i);
                 }
             }
+            {
+                for (auto &a : ctx->allocation) {
+                    memory.free_array((byte *)a);
+                }
+            }
+            ctx->file.clear();
+            ctx->allocation.clear();
+            ctx->pool.reset();
         }
         ctx = old_ctx;
         available_tasks--;
