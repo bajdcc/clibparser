@@ -65,6 +65,7 @@ namespace clib {
     };
 
     enum sym_size_t {
+        x_load,
         x_size,
         x_inc,
     };
@@ -92,6 +93,7 @@ namespace clib {
         symbol_t get_base_type() const override;
         virtual ref clone() const;
         int ptr;
+        std::vector<int> matrix;
     };
 
     class type_base_t : public type_t {

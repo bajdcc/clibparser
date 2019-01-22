@@ -46,6 +46,13 @@ int fib(int i) {
 int fib2(int i) {
     return i > 2 ? fib(i - 1) + fib(i - 2) : 1;
 }
+int fib3(int i) {
+    int a[3], j;
+    a[0] = a[1] = 1;
+    for (j = 0; j < i; ++j)
+        a[2] = a[0] + a[1], a[0] = a[1], a[1] = a[3];
+    return a[0];
+}
 int sum(int i) {
     int s = 0;
     while (i > 0) {
@@ -82,6 +89,7 @@ int welcome() {
 enum TEST {
     TEST_IF,
     TEST_TRIOP,
+    TEST_ARRAY,
     TEST_WHILE,
     TEST_FOR,
     TEST_DO,
@@ -93,6 +101,9 @@ int test(int i) {
             break;
         case TEST_TRIOP:
             put_string("fib2(10):  "); put_int(fib(10));
+            break;
+        case TEST_ARRAY:
+            put_string("fib3(10):  "); put_int(fib(10));
             break;
         case TEST_WHILE:
             put_string("sum(100):  "); put_int(sum(100));
@@ -107,7 +118,7 @@ int test(int i) {
             put_string("undefined task");
             break;
     }
-    put_string("\n"); sleep(1000);
+    put_string("\n"); sleep(100);
 }
 int main(int argc, char **argv) {
     welcome();

@@ -105,7 +105,7 @@ namespace clib {
         return g_error;
     }
 
-    type_t::type_t(int ptr) : ptr(ptr) {}
+    type_t::type_t(int ptr) : ptr(ptr), matrix(0) {}
 
     symbol_t type_t::get_type() const {
         return s_type;
@@ -130,9 +130,24 @@ namespace clib {
                 return LEX_SIZE(type);
             return sizeof(void*);
         }
-        if (ptr > 0)
-            return sizeof(void *);
-        return LEX_SIZE(type);
+        if (t == x_load) {
+            if (ptr > 0)
+                return sizeof(void *);
+            return LEX_SIZE(type);
+        }
+        if (!matrix.empty()) {
+            auto s = 1;
+            for (auto &m : matrix) {
+                s *= m;
+            }
+            if (ptr - matrix.size() > 0)
+                return sizeof(void *) * s;
+            return LEX_SIZE(type) * s;
+        } else {
+            if (ptr > 0)
+                return sizeof(void *);
+            return LEX_SIZE(type);
+        }
     }
 
     symbol_t type_base_t::get_type() const {
@@ -146,14 +161,26 @@ namespace clib {
     string_t type_base_t::to_string() const {
         std::stringstream ss;
         ss << LEX_STRING(type);
-        for (int i = 0; i < ptr; ++i) {
-            ss << '*';
+        if (!matrix.empty()) {
+            for (int i = matrix.size(); i < ptr; ++i) {
+                ss << '*';
+            }
+            for (auto &m : matrix) {
+                ss << "[" << m << "]";
+            }
+        } else {
+            for (int i = 0; i < ptr; ++i) {
+                ss << '*';
+            }
         }
         return ss.str();
     }
 
     type_t::ref type_base_t::clone() const {
-        return std::make_shared<type_base_t>(type, ptr);
+        auto obj = std::make_shared<type_base_t>(type, ptr);
+        if (!matrix.empty())
+            obj->matrix = matrix;
+        return obj;
     }
 
     type_typedef_t::type_typedef_t(const sym_t::ref &refer, int ptr) : type_t(ptr), refer(refer) {}
@@ -178,7 +205,10 @@ namespace clib {
     }
 
     type_t::ref type_typedef_t::clone() const {
-        return std::make_shared<type_typedef_t>(refer.lock(), ptr);
+        auto obj = std::make_shared<type_typedef_t>(refer.lock(), ptr);
+        if (!matrix.empty())
+            obj->matrix = matrix;
+        return obj;
     }
 
     sym_id_t::sym_id_t(const type_t::ref &base, const string_t &id)
@@ -225,13 +255,13 @@ namespace clib {
         if (clazz == z_global_var) {
             gen.emit(IMM, DATA_BASE | addr);
             if (base->ptr == 0)
-                gen.emit(LOAD, base->size(x_size));
+                gen.emit(LOAD, base->size(x_load));
         } else if (clazz == z_local_var) {
             gen.emit(LEA, addr);
-            gen.emit(LOAD, base->size(x_size));
+            gen.emit(LOAD, base->size(x_load));
         } else if (clazz == z_param_var) {
             gen.emit(LEA, addr);
-            gen.emit(LOAD, base->size(x_size));
+            gen.emit(LOAD, base->size(x_load));
         }
         return g_ok;
     }
@@ -457,7 +487,7 @@ namespace clib {
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
                 gen.emit(OP_INS(op->data._op));
-                gen.emit(SAVE, exp->size(x_size));
+                gen.emit(SAVE, exp->size(x_load));
                 gen.emit(POP);
                 return g_ok;
             }
@@ -498,7 +528,7 @@ namespace clib {
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
                 gen.emit(OP_INS(op->data._op));
-                gen.emit(SAVE, exp->size(x_size));
+                gen.emit(SAVE, exp->size(x_load));
                 return g_ok;
             }
             case op_logical_not:
@@ -573,7 +603,7 @@ namespace clib {
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
                 gen.emit(OP_INS(op->data._op));
-                gen.emit(SAVE, exp->size(x_size));
+                gen.emit(SAVE, exp->size(x_load));
                 gen.emit(POP);
             }
                 break;
@@ -598,7 +628,7 @@ namespace clib {
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
                 gen.emit(OP_INS(op->data._op));
-                gen.emit(SAVE, exp->size(x_size));
+                gen.emit(SAVE, exp->size(x_load));
                 gen.emit(POP);
             }
                 break;
@@ -622,7 +652,7 @@ namespace clib {
     int sym_binop_t::size(sym_size_t t) const {
         if (t == x_inc)
             return 0;
-        return std::max(exp1->size(x_size), exp2->size(x_size));
+        return std::max(exp1->size(t), exp2->size(t));
     }
 
     string_t sym_binop_t::get_name() const {
@@ -640,11 +670,15 @@ namespace clib {
     gen_t sym_binop_t::gen_lvalue(igen &gen) {
         switch (op->data._op) {
             case op_lsquare: {
-                exp1->gen_rvalue(gen);
+                exp1->gen_lvalue(gen);
                 base = exp1->base->clone();
-                if (exp1->base->to_string().back() != '*')
-                    gen.error("invalid address by []");
+                auto s = exp1->base->to_string();
+                if (s.back() != '*' && s.back() != ']')
+                    gen.error("invalid address by []: " + s);
                 base->ptr--;
+                if (!base->matrix.empty()) {
+                    base->matrix.pop_back();
+                }
                 gen.emit(PUSH); // 压入数组地址
                 exp2->gen_rvalue(gen); // index
                 auto n = exp1->size(x_inc);
@@ -702,7 +736,7 @@ namespace clib {
                 base = exp1->base->clone();
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen);
-                gen.emit(SAVE, exp1->size(x_size));
+                gen.emit(SAVE, exp1->size(x_load));
             }
                 break;
             case op_plus_assign:
@@ -722,7 +756,7 @@ namespace clib {
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen);
                 gen.emit(OP_INS(op->data._op));
-                gen.emit(SAVE, exp1->size(x_size));
+                gen.emit(SAVE, exp1->size(x_load));
             }
                 break;
             case op_logical_and:
@@ -736,10 +770,11 @@ namespace clib {
             }
                 break;
             case op_lsquare: {
-                exp1->gen_rvalue(gen);
+                exp1->gen_lvalue(gen);
                 base = exp1->base->clone();
-                if (exp1->base->to_string().back() != '*')
-                    gen.error("invalid address by []");
+                auto s = exp1->base->to_string();
+                if (s.back() != '*' && s.back() != ']')
+                    gen.error("invalid address by []: " + s);
                 base->ptr--;
                 gen.emit(PUSH); // 压入数组地址
                 exp2->gen_rvalue(gen); // index
@@ -783,7 +818,7 @@ namespace clib {
     int sym_triop_t::size(sym_size_t t) const {
         if (t == x_inc)
             return 0;
-        return std::max(std::max(exp1->size(x_size), exp2->size(x_size)), exp3->size(x_size));
+        return std::max(std::max(exp1->size(t), exp2->size(t)), exp3->size(t));
     }
 
     string_t sym_triop_t::get_name() const {
@@ -894,6 +929,9 @@ namespace clib {
     gen_t sym_ctrl_t::gen_rvalue(igen &gen) {
         switch (op->data._keyword) {
             case k_return: {
+#if LOG_TYPE
+                std::cout << "[DEBUG] Return: exp= " << sym_to_string(exp) << std::endl;
+#endif
                 if (exp)
                     exp->gen_rvalue(gen);
                 gen.emit(LEV);
@@ -906,6 +944,9 @@ namespace clib {
                 break;
             case k_interrupt: {
                 auto number = std::dynamic_pointer_cast<sym_var_t>(exp);
+#if LOG_TYPE
+                std::cout << "[DEBUG] Interrupt: number= " << sym_to_string(exp) << std::endl;
+#endif
                 gen.emit(INTR, number->node->data._int);
             }
                 break;
@@ -1632,6 +1673,21 @@ namespace clib {
                     } else {
                         auto new_type = type->clone();
                         new_type->ptr = ptr;
+                        auto _a = ast->next;
+                        std::vector<int> matrix;
+                        while (_a != ast) {
+                            if (AST_IS_OP_N(_a, op_lsquare)) {
+                                matrix.push_back(_a->next->data._int);
+                                _a = _a->next;
+                            } else {
+                                error(_a, "not support: ", true);
+                            }
+                            _a = _a->next;
+                        }
+                        if (!matrix.empty()) {
+                            new_type->ptr += matrix.size();
+                            new_type->matrix = matrix;
+                        }
                         type_exp_t::ref init;
                         if (clazz != z_struct_var) {
                             auto t = tmp.back()[tmp_i++];
@@ -1701,13 +1757,12 @@ namespace clib {
                     func->clazz = z_function;
                     func->addr = text.size();
                     symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
-                    auto &tmps = tmp.back();
                     std::unordered_set<string_t> ids;
                     auto ptr = 0;
                     for (auto i = 2, j = 0; i < asts.size() && j < tmp.size(); ++i) {
                         auto &pa = asts[i];
                         if (AST_IS_ID(pa)) {
-                            const auto &pt = std::dynamic_pointer_cast<type_t>(tmps[j]);
+                            const auto &pt = std::dynamic_pointer_cast<type_t>(tmp.back()[j]);
                             pt->ptr = ptr;
                             auto &name = pa->data._string;
                             auto id = std::make_shared<sym_id_t>(pt, name);
@@ -1741,18 +1796,21 @@ namespace clib {
                         param->addr = func->ebp - param->addr;
                         param->addr_end = func->ebp - param->addr_end;
                     }
-                    tmps.clear();
+                    tmp.back().clear();
                     asts.clear();
 #if LOG_TYPE
                     std::cout << "[DEBUG] Func: " << ctx.lock()->to_string() << std::endl;
 #endif
                     if (has_impl) {
-                        tmps.push_back(func);
+                        tmp.back().push_back(func);
                         emit(ENT, 0);
                         func->entry = text.size() - 1;
                     } else {
                         ctx.reset();
                     }
+                } else if (AST_IS_OP_N(node->child->next, op_lsquare)) {
+                    if (asts.size() > 1)
+                        asts.erase(asts.begin() + 1, asts.end());
                 }
             }
                 break;

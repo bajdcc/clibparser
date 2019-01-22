@@ -325,7 +325,7 @@ namespace clib {
         directDeclarator
             = Identifier
               | ~_lparan_ + declarator + ~_rparan_
-              | directDeclarator + ((~_lsquare_ + *typeQualifierList + (assignmentExpression | _times_) + ~_rsquare_)
+              | directDeclarator + ((_lsquare_ + Integer + ~_rsquare_)
                                     | (_lparan_ + (parameterTypeList | *identifierList) + ~_rparan_));
         pointer = (_times_ | _bit_xor_) + (*typeQualifierList + *pointer);
         typeQualifierList = *typeQualifierList + typeQualifier;
