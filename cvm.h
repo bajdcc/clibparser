@@ -143,6 +143,7 @@ namespace clib {
         enum ctx_flag_t {
             CTX_VALID = 1 << 0,
             CTX_KERNEL = 1 << 1,
+            CTX_USER_MODE = 1 << 2,
         };
 
         enum ctx_state_t {

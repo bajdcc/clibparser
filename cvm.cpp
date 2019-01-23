@@ -26,6 +26,8 @@ namespace clib {
 
     uint32_t cvm::pmm_alloc() {
         auto ptr = (uint32_t) memory.alloc_array<byte>(PAGE_SIZE * 2);
+        if (!ptr)
+            error("alloc page failed");
         ctx->allocation.push_back(ptr);
         auto page = PAGE_ALIGN_UP(ptr);
         memset((void *) page, 0, PAGE_SIZE);
@@ -120,7 +122,7 @@ namespace clib {
         if (vmm_ismap(va, &pa)) {
             return (char *) pa + OFFSET_INDEX(va);
         }
-        vmm_map(va, pmm_alloc(), PTE_U | PTE_P | PTE_R);
+        //vmm_map(va, pmm_alloc(), PTE_U | PTE_P | PTE_R);
 #if 0
         printf("VMMSTR> Invalid VA: %08X\n", va);
 #endif
@@ -136,7 +138,7 @@ namespace clib {
         if (vmm_ismap(va, &pa)) {
             return *(T *) ((byte *) pa + OFFSET_INDEX(va));
         }
-        vmm_map(va, pmm_alloc(), PTE_U | PTE_P | PTE_R);
+        //vmm_map(va, pmm_alloc(), PTE_U | PTE_P | PTE_R);
 #if 0
         printf("VMMGET> Invalid VA: %08X\n", va);
 #endif
@@ -146,14 +148,18 @@ namespace clib {
 
     template<class T>
     T cvm::vmm_set(uint32_t va, T value) {
-        if (!(ctx->flag & CTX_KERNEL))
+        if (!(ctx->flag & CTX_KERNEL)) {
+            if ((ctx->flag & CTX_USER_MODE) && (va & 0xF0000000) == USER_BASE) {
+                error("code segment cannot be written");
+            }
             va |= ctx->mask;
+        }
         uint32_t pa;
         if (vmm_ismap(va, &pa)) {
             *(T *) ((byte *) pa + OFFSET_INDEX(va)) = value;
             return value;
         }
-        vmm_map(va, pmm_alloc(), PTE_U | PTE_P | PTE_R);
+        //vmm_map(va, pmm_alloc(), PTE_U | PTE_P | PTE_R);
 #if 0
         printf("VMMSET> Invalid VA: %08X\n", va);
 #endif
@@ -285,10 +291,13 @@ namespace clib {
     void cvm::exec(int cycle, int &cycles) {
         if (!ctx)
             error("no process!");
-        uint32_t args[6];
         for (auto i = 0; i < cycle; ++i) {
             i++;
             cycles++;
+            if ((ctx->pc & 0xF0000000) != USER_BASE) {
+                if (ctx->pc != 0xE0000FF8 && ctx->pc != 0xE0000FFC)
+                    error("only code segment can execute");
+            }
             auto op = vmm_get(ctx->pc); // get next operation code
             ctx->pc += INC_PTR;
 
@@ -591,7 +600,7 @@ namespace clib {
             for (uint32_t i = 0, start = 0; start < text_size; ++i, start += size) {
                 auto new_page = (uint32_t) pmm_alloc();
                 ctx->text_mem.push_back(new_page);
-                vmm_map(ctx->base + PAGE_SIZE * i, new_page, PTE_U | PTE_P | PTE_R); // 用户代码空间
+                vmm_map(ctx->base + PAGE_SIZE * i, new_page, PTE_U | PTE_P); // 用户代码空间
                 if (vmm_ismap(ctx->base + PAGE_SIZE * i, &pa)) {
                     auto s = start + size > text_size ? (text_size & (size - 1)) : size;
                     for (uint32_t j = 0; j < s; ++j) {
@@ -674,6 +683,7 @@ namespace clib {
             }
             vmm_pushstack(ctx->sp, tmp);
         }
+        ctx->flag |= CTX_USER_MODE;
         available_tasks++;
         auto pid = ctx->id;
         ctx = old_ctx;
