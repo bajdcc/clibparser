@@ -7,6 +7,10 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约9k。
 - 识别方式：**以下推自动机为基础，向看查看一个字符、带回溯的LR分析**。
 - 内存管理：自制内存池。
 
+**仿制了exec和fork调用，自动运行code文件夹下的代码。**
+
+![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/2.gif)
+
 ## 计划
 
 - 第一阶段：实现基本的C++编译器和虚拟机，支持控制流语句，模拟虚页机制。后续支持结构体、指针和汇编。
@@ -284,7 +288,7 @@ int main(int argc, char **argv) {
 - [ ] 操作系统
     - [x] 多任务机制
     - [x] 读取并执行C文件
-    - [x] exec、wait调用
+    - [x] exec、wait、fork调用
     - [ ] 共享代码区
     - [ ] 内核与用户态分离
     - [ ] 内存权限管理

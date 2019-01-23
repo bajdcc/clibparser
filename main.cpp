@@ -62,7 +62,7 @@ void display() {
     // 绘制文字
     draw_text(10, 20, "clibparser @bajdcc"); // 暂不支持中文
     draw_text(w - 110, 20, "FPS: %.1f", dt_inv);
-    draw_text(10, h - 20, "#clibos");
+    draw_text(10, h - 20, "#clibos v0.1");
     if (paused)
         draw_text(w / 2 - 30, 20, "PAUSED");
 

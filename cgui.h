@@ -35,6 +35,7 @@ namespace clib {
         void draw(bool paused);
         int compile(const string_t &path);
 
+        void put_string(const string_t &str);
         void put_char(char c);
         void put_int(int number);
 
@@ -65,6 +66,7 @@ namespace clib {
         std::unique_ptr<cvm> vm;
         std::unordered_map<string_t, std::vector<byte>> cache;
         bool running{false};
+        bool exited{false};;
         int cycle{ GUI_CYCLES };
         int ticks{ GUI_TICKS };
         int ptr_x{0};

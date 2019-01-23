@@ -492,6 +492,11 @@ namespace clib {
                             }
                         }
                             break;
+                        case 55: {
+                            ctx->pc += INC_PTR;
+                            ctx->ax = fork();
+                            return;
+                        }
                         case 100:
                             cgui::singleton().record((int) ctx->ax);
                             break;
@@ -577,7 +582,9 @@ namespace clib {
             auto text_size = pe->text_len / sizeof(int);
             auto text_start = (uint32_t *) (&pe->data + pe->data_len);
             for (uint32_t i = 0, start = 0; start < text_size; ++i, start += size) {
-                vmm_map(ctx->base + PAGE_SIZE * i, (uint32_t) pmm_alloc(), PTE_U | PTE_P | PTE_R); // 用户代码空间
+                auto new_page = (uint32_t) pmm_alloc();
+                ctx->text_mem.push_back(new_page);
+                vmm_map(ctx->base + PAGE_SIZE * i, new_page, PTE_U | PTE_P | PTE_R); // 用户代码空间
                 if (vmm_ismap(ctx->base + PAGE_SIZE * i, &pa)) {
                     auto s = start + size > text_size ? (text_size & (size - 1)) : size;
                     for (uint32_t j = 0; j < s; ++j) {
@@ -595,7 +602,9 @@ namespace clib {
             auto data_size = pe->data_len;
             auto data_start = (char *) &pe->data;
             for (uint32_t i = 0, start = 0; start < data_size; ++i, start += size) {
-                vmm_map(ctx->data + PAGE_SIZE * i, (uint32_t) pmm_alloc(), PTE_U | PTE_P | PTE_R); // 用户数据空间
+                auto new_page = (uint32_t) pmm_alloc();
+                ctx->data_mem.push_back(new_page);
+                vmm_map(ctx->data + PAGE_SIZE * i, new_page, PTE_U | PTE_P | PTE_R); // 用户数据空间
                 if (vmm_ismap(ctx->data + PAGE_SIZE * i, &pa)) {
                     auto s = start + size > data_size ? ((sint) data_size & (size - 1)) : size;
                     for (uint32_t j = 0; j < s; ++j) {
@@ -608,7 +617,11 @@ namespace clib {
             }
         }
         /* 映射4KB的栈空间 */
-        vmm_map(ctx->stack, (uint32_t) pmm_alloc(), PTE_U | PTE_P | PTE_R); // 用户栈空间
+        {
+            auto new_page = (uint32_t) pmm_alloc();
+            ctx->stack_mem.push_back(new_page);
+            vmm_map(ctx->stack, new_page, PTE_U | PTE_P | PTE_R); // 用户栈空间
+        }
         /* 映射16KB的堆空间 */
         {
             auto head = ctx->pool->alloc_array<byte>(PAGE_SIZE * (HEAP_SIZE + 2));
@@ -623,6 +636,8 @@ namespace clib {
 #endif
             memset(ctx->heapHead, 0, PAGE_SIZE * HEAP_SIZE);
             for (int i = 0; i < HEAP_SIZE; ++i) {
+                auto new_page = (uint32_t) ctx->heapHead + PAGE_SIZE * i;
+                ctx->heap_mem.push_back(new_page);
                 vmm_map(ctx->heap + PAGE_SIZE * i, (uint32_t) ctx->heapHead + PAGE_SIZE * i, PTE_U | PTE_P | PTE_R);
             }
         }
@@ -726,6 +741,10 @@ namespace clib {
                     parent.state = CTS_RUNNING;
                 ctx->parent = -1;
             }
+            ctx->data_mem.clear();
+            ctx->text_mem.clear();
+            ctx->stack_mem.clear();
+            ctx->heap_mem.clear();
         }
         ctx = old_ctx;
         available_tasks--;
@@ -740,6 +759,131 @@ namespace clib {
             printf("[SYSTEM] PROC | Exec: Parent= #%d, Child= #%d\n", ctx->id, pid);
 #endif
         }
+        return pid;
+    }
+
+    int cvm::fork() {
+        if (available_tasks >= TASK_NUM) {
+            error("max process num!");
+        }
+        auto old_ctx = ctx;
+        auto end = TASK_NUM + ids;
+        for (int i = ids; i < end; ++i) {
+            auto j = i % TASK_NUM;
+            if (!(tasks[j].flag & CTX_VALID)) {
+                tasks[j].flag |= CTX_VALID;
+                ctx = &tasks[j];
+                ids = (j + 1) % TASK_NUM;
+                ctx->id = i;
+                ctx->file = old_ctx->file;
+                break;
+            }
+        }
+#if LOG_SYSTEM
+        printf("[SYSTEM] PROC | Fork: Parent= #%d, Child= #%d\n", old_ctx->id, ctx->id);
+#endif
+        PE *pe = (PE *) ctx->file.data();
+        // TODO: VALID PE FILE
+        uint32_t pa;
+        ctx->poolsize = PAGE_SIZE;
+        ctx->mask = ((uint) (ctx->id << 16) & 0x00ff0000);
+        ctx->entry = old_ctx->entry;
+        ctx->stack = old_ctx->stack | ctx->mask;
+        ctx->data = old_ctx->data | ctx->mask;
+        ctx->base = old_ctx->base | ctx->mask;
+        ctx->heap = old_ctx->heap | ctx->mask;
+        ctx->pool = std::make_unique<memory_pool<HEAP_MEM>>();
+        ctx->flag |= CTX_KERNEL;
+        ctx->state = CTS_RUNNING;
+        /* 映射4KB的代码空间 */
+        {
+            auto size = PAGE_SIZE / sizeof(int);
+            auto text_size = pe->text_len / sizeof(int);
+            for (uint32_t i = 0, start = 0; start < text_size; ++i, start += size) {
+                auto new_page = (uint32_t) pmm_alloc();
+                std::copy((byte *)(old_ctx->text_mem[i]),
+                          (byte *)(old_ctx->text_mem[i]) + PAGE_SIZE,
+                          (byte *)new_page);
+                ctx->text_mem.push_back(new_page);
+                vmm_map(ctx->base + PAGE_SIZE * i, new_page, PTE_U | PTE_P | PTE_R); // 用户代码空间
+                if (!vmm_ismap(ctx->base + PAGE_SIZE * i, &pa)) {
+                    destroy(ctx->id);
+                    error("fork: text segment copy failed");
+                }
+            }
+        }
+        /* 映射4KB的数据空间 */
+        {
+            auto size = PAGE_SIZE;
+            auto data_size = pe->data_len;
+            auto data_start = (char *) &pe->data;
+            for (uint32_t i = 0, start = 0; start < data_size; ++i, start += size) {
+                auto new_page = (uint32_t) pmm_alloc();
+                ctx->data_mem.push_back(new_page);
+                std::copy((byte *)(old_ctx->data_mem[i]),
+                          (byte *)(old_ctx->data_mem[i]) + PAGE_SIZE,
+                          (byte *)new_page);
+                vmm_map(ctx->data + PAGE_SIZE * i, new_page, PTE_U | PTE_P | PTE_R); // 用户数据空间
+                if (!vmm_ismap(ctx->data + PAGE_SIZE * i, &pa)) {
+                    destroy(ctx->id);
+                    error("fork: data segment copy failed");
+                }
+            }
+        }
+        /* 映射4KB的栈空间 */
+        {
+            auto new_page = (uint32_t) pmm_alloc();
+            ctx->stack_mem.push_back(new_page);
+            std::copy((byte *)(old_ctx->stack_mem[0]),
+                      (byte *)(old_ctx->stack_mem[0]) + PAGE_SIZE,
+                      (byte *)new_page);
+            vmm_map(ctx->stack, new_page, PTE_U | PTE_P | PTE_R); // 用户栈空间
+            if (!vmm_ismap(ctx->stack, &pa)) {
+                destroy(ctx->id);
+                error("fork: stack segment copy failed");
+            }
+        }
+        /* 映射16KB的堆空间 */
+        {
+            auto head = ctx->pool->alloc_array<byte>(PAGE_SIZE * (HEAP_SIZE + 2));
+#if 0
+            printf("HEAP> ALLOC=%p\n", head);
+#endif
+            ctx->heapHead = head; // 得到内存池起始地址
+            ctx->pool->free_array(ctx->heapHead);
+            ctx->heapHead = (byte *) PAGE_ALIGN_UP((uint32_t) head);
+#if 0
+            printf("HEAP> HEAD=%p\n", heapHead);
+#endif
+            memset(ctx->heapHead, 0, PAGE_SIZE * HEAP_SIZE);
+            for (int i = 0; i < HEAP_SIZE; ++i) {
+                auto new_page = (uint32_t) ctx->heapHead + PAGE_SIZE * i;
+                ctx->heap_mem.push_back(new_page);
+                std::copy((byte *)(old_ctx->heap_mem[i]),
+                          (byte *)(old_ctx->heap_mem[i]) + PAGE_SIZE,
+                          (byte *)new_page);
+                vmm_map(ctx->heap + PAGE_SIZE * i, new_page, PTE_U | PTE_P | PTE_R);
+                if (!vmm_ismap(ctx->heap + PAGE_SIZE * i, &pa)) {
+                    destroy(ctx->id);
+                    error("fork: heap segment copy failed");
+                }
+            }
+        }
+        ctx->flag &= ~CTX_KERNEL;
+        {
+            ctx->sp = old_ctx->sp;
+            ctx->stack = old_ctx->stack;
+            ctx->data = old_ctx->data;
+            ctx->base = old_ctx->base;
+            ctx->heap = old_ctx->heap;
+            ctx->pc = old_ctx->pc;
+            ctx->ax = -1;
+            ctx->bp = old_ctx->bp;
+            ctx->log = old_ctx->log;
+        }
+        available_tasks++;
+        auto pid = ctx->id;
+        ctx = old_ctx;
         return pid;
     }
 }

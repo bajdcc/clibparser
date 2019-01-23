@@ -81,10 +81,14 @@ namespace clib {
 
     void cgui::tick() {
         auto c = 0;
+        if (exited)
+            return;
         if (running) {
             try {
                 if (!vm->run(cycle, c)) {
                     running = false;
+                    exited = true;
+                    put_string("\n[!] clibos exited.");
                     vm.reset();
                     gen.reset();
                 }
@@ -104,7 +108,15 @@ namespace clib {
         }
     }
 
+    void cgui::put_string(const string_t &str) {
+        for (auto &s : str) {
+            put_char(s);
+        }
+    }
+
     void cgui::put_char(char c) {
+        if (c == 0)
+            return;
         if (c == '\n') {
             if (ptr_y == GUI_ROWS - 1) {
                 new_line();
@@ -200,6 +212,10 @@ namespace clib {
 
     int cgui::compile(const string_t &path) {
         try {
+            auto c = cache.find(path);
+            if (c != cache.end()) {
+                return vm->load(c->second);
+            }
             auto code = load_file(path);
             gen.reset();
             auto root = p.parse(code, &gen);

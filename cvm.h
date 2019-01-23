@@ -127,6 +127,7 @@ namespace clib {
         void exec(int cycle, int &cycles);
         void destroy(int id);
         int exec_file(const string_t &path);
+        int fork();
 
     private:
         /* 内核页表 = PTE_SIZE*PAGE_SIZE */
@@ -173,6 +174,10 @@ namespace clib {
             bool log;
             std::vector<byte> file;
             std::vector<uint32_t> allocation;
+            std::vector<uint32_t> data_mem;
+            std::vector<uint32_t> text_mem;
+            std::vector<uint32_t> stack_mem;
+            std::vector<uint32_t> heap_mem;
             std::unique_ptr<memory_pool<HEAP_MEM>> pool;
             // SYSTEM CALL
             std::stringstream exec_path;
