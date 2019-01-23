@@ -275,6 +275,7 @@ int main(int argc, char **argv) {
     - [x] switch语句（default和case）
     - [x] break和continue
     - [x] 取址和解引用（及左值）
+    - [x] 强制类型转换
 - [x] 虚拟机
     - [x] 设计指令（寄存器式分配）
     - [x] 设计符号表
@@ -289,6 +290,7 @@ int main(int argc, char **argv) {
     - [x] 多任务机制
     - [x] 读取并执行C文件
     - [x] exec、wait、fork调用
+    - [x] 命令行参数
     - [ ] 共享代码区
     - [ ] 内核与用户态分离
     - [ ] 内存权限管理

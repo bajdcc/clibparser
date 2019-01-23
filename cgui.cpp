@@ -15,6 +15,9 @@
 
 #define ENTRY_FILE "/sys/entry"
 
+extern int g_argc;
+extern char **g_argv;
+
 namespace clib {
 
     cgui &cgui::singleton() {
@@ -101,7 +104,14 @@ namespace clib {
         } else {
             if (!vm) {
                 vm = std::make_unique<cvm>();
-                if (compile(ENTRY_FILE) != -1) {
+                std::vector<string_t> args;
+                if (g_argc > 0) {
+                    args.emplace_back(ENTRY_FILE);
+                    for (int i = 1; i < g_argc; ++i) {
+                        args.emplace_back(g_argv[i]);
+                    }
+                }
+                if (compile(ENTRY_FILE, args) != -1) {
                     running = true;
                 }
             }
@@ -210,11 +220,11 @@ namespace clib {
         return std::chrono::duration_cast<std::chrono::duration<decimal>>(now - record_now).count() > waiting_ms;
     }
 
-    int cgui::compile(const string_t &path) {
+    int cgui::compile(const string_t &path, const std::vector<string_t> &args) {
         try {
             auto c = cache.find(path);
             if (c != cache.end()) {
-                return vm->load(c->second);
+                return vm->load(c->second, args);
             }
             auto code = load_file(path);
             gen.reset();
@@ -225,7 +235,7 @@ namespace clib {
             gen.gen(root);
             auto file = gen.file();
             cache.insert(std::make_pair(path, file));
-            return vm->load(file);
+            return vm->load(file, args);
         } catch (const cexception &e) {
             gen.reset();
             std::cout << "COMPILE ERROR: " << e.msg << std::endl;

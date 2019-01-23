@@ -331,9 +331,11 @@ namespace clib {
         }
         for (auto i = 0; i < exps.size(); ++i) {
             exps[i]->gen_rvalue(gen);
-            if (exps[i]->base->to_string() != params[i]->base->to_string()) {
+            auto exp_type = exps[i]->base->to_string();
+            auto param_type = params[i]->base->to_string();
+            if (exp_type != param_type) {
                 gen.error("invoke: argument type not equal, required: " + params[i]->to_string() +
-                          ", but got: " + exps[i]->to_string() + ", func: " + to_string());
+                          ", but got: " + exp_type + ", func: " + to_string());
             }
             gen.emit(PUSH);
         }
@@ -439,6 +441,34 @@ namespace clib {
 
     gen_t sym_var_id_t::gen_invoke(igen &gen, sym_t::ref &list) {
         return id.lock()->gen_invoke(gen, list);
+    }
+
+    sym_cast_t::sym_cast_t(const type_exp_t::ref &exp, const type_t::ref &base) : type_exp_t(base), exp(exp) {}
+
+    symbol_t sym_cast_t::get_type() const {
+        return s_cast;
+    }
+
+    int sym_cast_t::size(sym_size_t t) const {
+        return base->size(t);
+    }
+
+    string_t sym_cast_t::get_name() const {
+        return exp->get_name();
+    }
+
+    string_t sym_cast_t::to_string() const {
+        std::stringstream ss;
+        ss << "(cast, " << base->to_string() << ", exp: " << exp->to_string() << ')';
+        return ss.str();
+    }
+
+    gen_t sym_cast_t::gen_lvalue(igen &gen) {
+        return exp->gen_lvalue(gen);
+    }
+
+    gen_t sym_cast_t::gen_rvalue(igen &gen) {
+        return exp->gen_rvalue(gen);
     }
 
     sym_unop_t::sym_unop_t(const type_exp_t::ref &exp, ast_node *op)
@@ -770,25 +800,8 @@ namespace clib {
             }
                 break;
             case op_lsquare: {
-                exp1->gen_lvalue(gen);
-                base = exp1->base->clone();
-                auto s = exp1->base->to_string();
-                if (s.back() != '*' && s.back() != ']')
-                    gen.error("invalid address by []: " + s);
-                base->ptr--;
-                gen.emit(PUSH); // 压入数组地址
-                exp2->gen_rvalue(gen); // index
-                auto n = exp1->size(x_inc);
-                if (n > 1) {
-                    gen.emit(PUSH);
-                    gen.emit(IMM, n);
-                    gen.emit(MUL);
-                    gen.emit(ADD);
-                    gen.emit(LOAD, n);
-                } else {
-                    gen.emit(ADD);
-                    gen.emit(LOAD, n);
-                }
+                gen_lvalue(gen);
+                gen.emit(LOAD, base->size(x_load));
             }
                 break;
             case op_lparan: {
@@ -1030,6 +1043,7 @@ namespace clib {
 #endif
         text.push_back(i);
         text.push_back(d);
+        text.push_back(e);
     }
 
     void cgen::emit(keyword_t k) {
@@ -1450,7 +1464,14 @@ namespace clib {
                 break;
             case c_unaryOperator:
                 break;
-            case c_castExpression:
+            case c_castExpression: {
+                assert(tmp.back().front()->get_base_type() == s_type);
+                auto type = std::dynamic_pointer_cast<type_t>(tmp.back().front());
+                auto exp = to_exp(tmp.back().back());
+                auto cast = std::make_shared<sym_cast_t>(exp, type);
+                tmp.back().clear();
+                tmp.back().push_back(cast);
+            }
                 break;
             case c_multiplicativeExpression:
             case c_additiveExpression:
@@ -1833,7 +1854,17 @@ namespace clib {
                 break;
             case c_identifierList:
                 break;
-            case c_typeName:
+            case c_typeName: {
+                if (!asts.empty()) {
+                    auto type = std::dynamic_pointer_cast<type_t>(tmp.back().front());
+                    for (auto &a : asts) {
+                        if (AST_IS_OP_N(a, op_times)) {
+                            type->ptr++;
+                        }
+                    }
+                    asts.clear();
+                }
+            }
                 break;
             case c_abstractDeclarator:
                 break;

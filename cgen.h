@@ -25,6 +25,7 @@ namespace clib {
         s_var,
         s_var_id,
         s_expression,
+        s_cast,
         s_unop,
         s_sinop,
         s_binop,
@@ -196,6 +197,19 @@ namespace clib {
         gen_t gen_rvalue(igen &gen) override;
         gen_t gen_invoke(igen &gen, sym_t::ref &list) override;
         sym_t::weak_ref id;
+    };
+
+    class sym_cast_t : public type_exp_t {
+    public:
+        using ref = std::shared_ptr<sym_cast_t>;
+        explicit sym_cast_t(const type_exp_t::ref &exp, const type_t::ref &base);
+        symbol_t get_type() const override;
+        int size(sym_size_t t) const override;
+        string_t get_name() const override;
+        string_t to_string() const override;
+        gen_t gen_lvalue(igen &gen) override;
+        gen_t gen_rvalue(igen &gen) override;
+        type_exp_t::ref exp;
     };
 
     class sym_unop_t : public type_exp_t {

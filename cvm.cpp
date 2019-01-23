@@ -161,10 +161,10 @@ namespace clib {
         return vmm_set(va, value);
     }
 
-    void cvm::vmm_setstr(uint32_t va, const char *value) {
-        auto len = strlen(value);
+    void cvm::vmm_setstr(uint32_t va, const string_t &str) {
+        auto len = str.length();
         for (uint32_t i = 0; i < len; i++) {
-            vmm_set(va + i, value[i]);
+            vmm_set(va + i, str[i]);
         }
         vmm_set(va + len, '\0');
     }
@@ -308,6 +308,13 @@ namespace clib {
             switch (op) {
                 case IMM: {
                     ctx->ax = vmm_get(ctx->pc);
+                    ctx->pc += INC_PTR;
+                } /* load immediate value to ctx->ax */
+                    break;
+                case IMX: {
+                    ctx->ax = vmm_get(ctx->pc);
+                    ctx->pc += INC_PTR;
+                    ctx->bx = vmm_get(ctx->pc);
                     ctx->pc += INC_PTR;
                 } /* load immediate value to ctx->ax */
                     break;
@@ -543,7 +550,7 @@ namespace clib {
         throw cexception(ss.str());
     }
 
-    int cvm::load(const std::vector<byte> &file) {
+    int cvm::load(const std::vector<byte> &file, const std::vector<string_t> &args) {
         if (available_tasks >= TASK_NUM) {
             error("max process num!");
         }
@@ -643,31 +650,29 @@ namespace clib {
         }
         ctx->flag &= ~CTX_KERNEL;
         {
-            ctx->sp = ctx->stack + ctx->poolsize; // 4KB / sizeof(int) = 1024
-            {
-                auto argvs = vmm_malloc((uint32_t) g_argc * INC_PTR);
-                for (auto i = 0; i < g_argc; i++) {
-                    auto str = vmm_malloc(256);
-                    vmm_setstr(str, g_argv[i]);
-                    vmm_set(argvs + INC_PTR * i, str);
-                }
-
-                vmm_pushstack(ctx->sp, EXIT);
-                vmm_pushstack(ctx->sp, PUSH);
-                auto tmp = ctx->sp;
-                vmm_pushstack(ctx->sp, g_argc);
-                vmm_pushstack(ctx->sp, argvs);
-                vmm_pushstack(ctx->sp, tmp);
-            }
-
             ctx->stack = STACK_BASE;
             ctx->data = DATA_BASE;
             ctx->base = USER_BASE;
             ctx->heap = HEAP_BASE;
+            ctx->sp = ctx->stack + ctx->poolsize; // 4KB / sizeof(int) = 1024
             ctx->pc = ctx->base | (ctx->entry * INC_PTR);
             ctx->ax = 0;
+            ctx->bx = 0;
             ctx->bp = 0;
             ctx->log = true;
+
+            auto _argc = args.size();
+            assert(_argc > 0);
+            vmm_pushstack(ctx->sp, EXIT);
+            vmm_pushstack(ctx->sp, PUSH);
+            auto tmp = ctx->sp;
+            vmm_pushstack(ctx->sp, _argc);
+            for (auto i = 0; i < _argc; i++) {
+                auto str = vmm_malloc(args[i].length() + 1);
+                vmm_setstr(str, args[i]);
+                vmm_pushstack(ctx->sp, str);
+            }
+            vmm_pushstack(ctx->sp, tmp);
         }
         available_tasks++;
         auto pid = ctx->id;
@@ -750,8 +755,15 @@ namespace clib {
         available_tasks--;
     }
 
+    string_t get_args(const string_t &path, std::vector<string_t> &args) {
+        args.push_back(path);
+        return path;
+    }
+
     int cvm::exec_file(const string_t &path) {
-        auto pid = cgui::singleton().compile(path);
+        std::vector<string_t> args;
+        auto file = get_args(path, args);
+        auto pid = cgui::singleton().compile(file, args);
         if (pid != -1) { // SUCCESS
             ctx->child.insert(pid);
             tasks[pid].parent = ctx->id;
@@ -878,6 +890,7 @@ namespace clib {
             ctx->heap = old_ctx->heap;
             ctx->pc = old_ctx->pc;
             ctx->ax = -1;
+            ctx->bx = 0;
             ctx->bp = old_ctx->bp;
             ctx->log = old_ctx->log;
         }

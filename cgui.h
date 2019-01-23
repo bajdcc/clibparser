@@ -33,7 +33,7 @@ namespace clib {
         cgui &operator=(const cgui &) = delete;
 
         void draw(bool paused);
-        int compile(const string_t &path);
+        int compile(const string_t &path, const std::vector<string_t> &args);
 
         void put_string(const string_t &str);
         void put_char(char c);

@@ -92,7 +92,7 @@ namespace clib {
         cvm();
         ~cvm();
 
-        int load(const std::vector<byte> &file);
+        int load(const std::vector<byte> &file, const std::vector<string_t> &args);
         bool run(int cycle, int &cycles);
 
     private:
@@ -112,7 +112,7 @@ namespace clib {
         char *vmm_getstr(uint32_t va);
         template<class T = int>
         T vmm_set(uint32_t va, T);
-        void vmm_setstr(uint32_t va, const char *value);
+        void vmm_setstr(uint32_t va, const string_t &str);
         uint32_t vmm_malloc(uint32_t size);
         uint32_t vmm_memset(uint32_t va, uint32_t value, uint32_t count);
         uint32_t vmm_memcmp(uint32_t src, uint32_t dst, uint32_t count);
@@ -169,6 +169,7 @@ namespace clib {
             byte *heapHead;
             uint pc;
             int ax;
+            int bx;
             uint bp;
             uint sp;
             bool log;

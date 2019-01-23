@@ -314,7 +314,7 @@ namespace clib {
         structOrUnion = _struct_ | _union_;
         structDeclarationList = *structDeclarationList + structDeclaration;
         structDeclaration = specifierQualifierList + *structDeclaratorList + ~_semi_;
-        specifierQualifierList = (typeSpecifier | typeQualifier) + *specifierQualifierList;
+        specifierQualifierList = *specifierQualifierList + (typeSpecifier | typeQualifier);
         structDeclaratorList = *(structDeclaratorList + ~_comma_) + structDeclarator;
         structDeclarator = declarator | *declarator + ~_assign_ + constantExpression;
         enumSpecifier = _enum_ + ((*Identifier + _lbrace_ + enumeratorList + *~_comma_ + ~_rbrace_) | Identifier);
