@@ -56,6 +56,7 @@ namespace clib {
         x_load,
         x_size,
         x_inc,
+        x_matrix,
     };
 
     class sym_t {
@@ -363,7 +364,6 @@ namespace clib {
         std::vector<std::vector<sym_t::ref>> tmp;
         std::vector<cycle_t> cycle;
         std::vector<std::vector<switch_t>> cases;
-        std::unique_ptr<cvm> vm;
         sym_t::weak_ref ctx;
     };
 }

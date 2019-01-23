@@ -130,6 +130,12 @@ namespace clib {
                 return LEX_SIZE(type);
             return sizeof(void*);
         }
+        if (t == x_matrix) {
+            // TODO: Fix bug, ID Assignment L-Value
+            if (ptr > 1)
+                return ptr;
+            return matrix.size();
+        }
         if (t == x_load) {
             if (ptr > 0)
                 return sizeof(void *);
@@ -242,7 +248,7 @@ namespace clib {
 
     gen_t sym_id_t::gen_lvalue(igen &gen) {
         if (clazz == z_global_var) {
-            gen.emit(IMM, DATA_BASE | addr);
+            gen.error("global id cannot be modified");
         } else if (clazz == z_local_var) {
             gen.emit(LEA, addr);
         } else if (clazz == z_param_var) {
@@ -535,6 +541,10 @@ namespace clib {
     }
 
     gen_t sym_unop_t::gen_rvalue(igen &gen) {
+        if (AST_IS_KEYWORD_N(op, k_sizeof)) {
+            gen.emit(IMM, exp->size(x_size));
+            return g_ok;
+        }
         switch (op->data._op) {
             case op_plus:
                 exp->gen_rvalue(gen);
@@ -701,6 +711,8 @@ namespace clib {
         switch (op->data._op) {
             case op_lsquare: {
                 exp1->gen_lvalue(gen);
+                if (exp1->size(x_matrix) == 0)
+                    gen.emit(LOAD, exp1->size(x_size));
                 base = exp1->base->clone();
                 auto s = exp1->base->to_string();
                 if (s.back() != '*' && s.back() != ']')
@@ -987,6 +999,11 @@ namespace clib {
         tmp.emplace_back();
         ast.clear();
         ast.emplace_back();
+        data.clear();
+        text.clear();
+        cases.clear();
+        ctx.reset();
+        cycle.clear();
     }
 
     std::vector<byte> cgen::file() const {
@@ -1457,6 +1474,12 @@ namespace clib {
                             error("invalid unary exp: op");
                             break;
                     }
+                } else if (AST_IS_KEYWORD_N(op, k_sizeof)) {
+                    auto exp = to_exp(tmp.back().front());
+                    auto s = std::make_shared<sym_unop_t>(exp, op);
+                    tmp.back().clear();
+                    tmp.back().push_back(s);
+                    asts.clear();
                 } else {
                     error("invalid unary exp: coll");
                 }

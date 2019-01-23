@@ -187,6 +187,13 @@ namespace clib {
         context_t *ctx{nullptr};
         int available_tasks{0};
         std::array<context_t, TASK_NUM> tasks;
+        struct {
+            int input_lock{-1};
+            std::vector<int> input_waiting_list;
+            std::string input_content;
+            bool input_success{false};
+            int input_read_ptr{-1};
+        } global_state;
     };
 }
 

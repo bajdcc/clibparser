@@ -489,6 +489,49 @@ namespace clib {
                         case 1:
                             cgui::singleton().put_int((int) ctx->ax);
                             break;
+                        case 10: {
+                            if (global_state.input_lock == -1) {
+                                global_state.input_lock = ctx->id;
+                                ctx->pc += INC_PTR;
+                                // TODO: Add UI Input
+                                global_state.input_read_ptr = 0;
+                                global_state.input_success = true;
+                                global_state.input_content = "bajdcc";
+                            } else {
+                                global_state.input_waiting_list.push_back(ctx->id);
+                                ctx->state = CTS_WAIT;
+                                ctx->pc -= INC_PTR;
+                            }
+                            return;
+                        }
+                        case 11: {
+                            if (global_state.input_lock == ctx->id) {
+                                if (global_state.input_success) {
+                                    if (global_state.input_read_ptr >= global_state.input_content.length()) {
+                                        ctx->ax = -1;
+                                        ctx->pc += INC_PTR;
+                                        // INPUT COMPLETE
+                                        for (auto &_id : global_state.input_waiting_list) {
+                                            if (tasks[_id].flag & CTX_VALID) {
+                                                assert(tasks[_id].state == CTS_WAIT);
+                                                tasks[_id].state = CTS_RUNNING;
+                                            }
+                                        }
+                                        global_state.input_lock = -1;
+                                        global_state.input_waiting_list.clear();
+                                        global_state.input_read_ptr = -1;
+                                        global_state.input_content.clear();
+                                        return;
+                                    } else {
+                                        ctx->ax = global_state.input_content[global_state.input_read_ptr++];
+                                        break;
+                                    }
+                                }
+                            }
+                            ctx->ax = -1;
+                            ctx->pc += INC_PTR;
+                            return;
+                        }
                         case 50:
                             if (ctx->ax)
                                 ctx->exec_path << (char) ctx->ax;

@@ -271,6 +271,7 @@ int main(int argc, char **argv) {
     - [x] 返回语句
     - [x] if语句
     - [x] for语句
+    - [x] sizeof
     - [x] while语句和do..while语句
     - [x] switch语句（default和case）
     - [x] break和continue
@@ -293,6 +294,7 @@ int main(int argc, char **argv) {
     - [x] 命令行参数
     - [x] 用户态禁止修改代码段
     - [x] 只有代码段可以执行指令
+    - [x] 键盘输入接口
     - [ ] 共享代码区
     - [ ] 内核与用户态分离
     - [ ] 内存权限管理
@@ -302,6 +304,7 @@ int main(int argc, char **argv) {
     - [x] 用OpenGL创建窗口
     - [x] 实现制作台输出接口
     - [x] 延时功能
+    - [ ] 键盘输入（任务独占）
 
 1. 将文法树转换表（完成）
 2. 根据PDA表生成AST（完成）
@@ -318,6 +321,8 @@ int main(int argc, char **argv) {
 - [x] LR分析阶段提供语义分析接口
 - [x] 美化表达式树（减少深度）
 - [x] 解决了字符串转义的问题
+- [ ] 指针解引用的问题
+- [ ] 用户键盘输入交互功能
 
 ## 参考
 
