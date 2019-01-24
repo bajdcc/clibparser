@@ -24,6 +24,8 @@ namespace clib {
 #define VMM_ARG(s, p) ((s) + p * INC_PTR)
 #define VMM_ARGS(t, n) vmm_get(t - (n) * INC_PTR)
 
+    cvm::global_state_t cvm::global_state;
+
     uint32_t cvm::pmm_alloc() {
         auto ptr = (uint32_t) memory.alloc_array<byte>(PAGE_SIZE * 2);
         if (!ptr)
@@ -509,10 +511,7 @@ namespace clib {
                             if (global_state.input_lock == -1) {
                                 global_state.input_lock = ctx->id;
                                 ctx->pc += INC_PTR;
-                                // TODO: Add UI Input
-                                global_state.input_read_ptr = 0;
-                                global_state.input_success = true;
-                                global_state.input_content = "bajdcc";
+                                cgui::singleton().input_enter();
                             } else {
                                 global_state.input_waiting_list.push_back(ctx->id);
                                 ctx->state = CTS_WAIT;
@@ -542,6 +541,9 @@ namespace clib {
                                         ctx->ax = global_state.input_content[global_state.input_read_ptr++];
                                         break;
                                     }
+                                } else {
+                                    ctx->pc -= INC_PTR;
+                                    return;
                                 }
                             }
                             ctx->ax = -1;

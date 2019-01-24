@@ -10,7 +10,7 @@ add_executable(clibparser main.cpp
         cexception.h cexception.cpp
         clexer.h clexer.cpp
         cparser.h cparser.cpp
-        memory.h memory_gc.h
+        memory.h
         types.h types.cpp
         cunit.h cunit.cpp
         cgen.h cgen.cpp
@@ -22,7 +22,7 @@ add_executable(clibparser-test test.cpp
         cexception.h cexception.cpp
         clexer.h clexer.cpp
         cparser.h cparser.cpp
-        memory.h memory_gc.h
+        memory.h
         types.h types.cpp
         cunit.h cunit.cpp
         cgen.h cgen.cpp

@@ -79,19 +79,14 @@ void reshape(int width, int height) {
 }
 
 void keyboard(unsigned char key, int x, int y) {
-    if (key >= '0' && key <= '9') {
-    } else {
-        switch (key) {
-            case 27:
-                glutLeaveMainLoop(); // 按ESC退出
-                break;
-            case ' ':
-                paused = !paused;
-                break;
-            default:
-                break;
-        }
+    switch (key) {
+        case 27:
+            glutLeaveMainLoop(); // 按ESC退出
+            return;
+        default:
+            break;
     }
+    clib::cgui::singleton().input(key);
 }
 
 void mouse(int button, int state, int x, int y) {

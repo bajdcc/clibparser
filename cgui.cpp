@@ -264,4 +264,31 @@ namespace clib {
             return -1;
         }
     }
+
+    void cgui::input_enter() {
+        input_state = true;
+        input_string.clear();
+        ptr_mx = ptr_x;
+        ptr_my = ptr_y;
+    }
+
+    void cgui::input(unsigned char c) {
+        if (!input_state)
+            return;
+        if (c == '\0') {
+            return;
+        }
+        if (c == '\b') {
+            if (!input_string.empty())
+                input_string.pop_back();
+            return;
+        }
+        if (c == '\r') {
+            cvm::global_state.input_content = string_t(input_string.begin(), input_string.end());
+            cvm::global_state.input_read_ptr = 0;
+            cvm::global_state.input_success = true;
+            return;
+        }
+        input_string.push_back(c);
+    }
 }

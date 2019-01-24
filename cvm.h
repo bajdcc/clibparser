@@ -190,7 +190,9 @@ namespace clib {
         context_t *ctx{nullptr};
         int available_tasks{0};
         std::array<context_t, TASK_NUM> tasks;
-        struct {
+
+    public:
+        static struct global_state_t {
             int input_lock{-1};
             std::vector<int> input_waiting_list;
             std::string input_content;

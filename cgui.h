@@ -42,6 +42,9 @@ namespace clib {
         void set_ticks(int ticks);
         void resize(int rows, int cols);
 
+        void input_enter();
+        void input(unsigned char c);
+
     private:
         void tick();
         void draw_text();
@@ -73,6 +76,8 @@ namespace clib {
         int rows{GUI_ROWS};
         int cols{GUI_COLS};
         int size{GUI_SIZE};
+        bool input_state{false};
+        std::vector<char> input_string;
     };
 }
 
