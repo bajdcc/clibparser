@@ -21,6 +21,27 @@ int input(char *text, int len) {
     text[i++] = '\0';
     return i - 1;
 }
+int strlen(char *text) {
+    int i = 0;
+    while (*text++)
+        i++;
+    return i;
+}
+int sleep(int ms) {
+    ms;
+    interrupt 100;
+    interrupt 101;
+}
+int wait(int second) {
+    while (second > 0) {
+        put_string("Waiting... ");
+        put_int(second--);
+        put_string("s");
+        put_string("\r");
+        sleep(1000);
+    }
+    put_string("\n");
+}
 int main(int argc, char **argv) {
     int i;
     put_string("========== [#3 TEST INPUT] ==========\n");
@@ -36,5 +57,9 @@ int main(int argc, char **argv) {
     put_string("Output: ");
     put_string((char *) &text);
     put_string("\n");
+    put_string("Length: ");
+    put_int(strlen((char *) &text));
+    put_string("\n");
+    wait(3);
     return 0;
 }
