@@ -20,6 +20,10 @@ extern char **g_argv;
 
 namespace clib {
 
+    cgui::cgui() {
+        buffer.resize(GUI_SIZE);
+    }
+
     cgui &cgui::singleton() {
         static clib::cgui gui;
         return gui;
@@ -58,8 +62,8 @@ namespace clib {
         glLoadIdentity();
         int w = glutGet(GLUT_WINDOW_WIDTH);
         int h = glutGet(GLUT_WINDOW_HEIGHT);
-        int width = GUI_COLS * GUI_FONT_W;
-        int height = GUI_ROWS * GUI_FONT_H;
+        int width = cols * GUI_FONT_W;
+        int height = rows * GUI_FONT_H;
         gluOrtho2D(0, w, h, 0);
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -69,10 +73,10 @@ namespace clib {
         int x = std::max((w - width) / 2, 0);
         int y = std::max((h - height) / 2, 0);
 
-        for (auto i = 0; i < GUI_ROWS; ++i) {
+        for (auto i = 0; i < rows; ++i) {
             glRasterPos2i(x, y);
-            for (auto j = 0; j < GUI_COLS; ++j) {
-                glutBitmapCharacter(GUI_FONT, buffer[i][j]);
+            for (auto j = 0; j < cols; ++j) {
+                glutBitmapCharacter(GUI_FONT, buffer[i * cols + j]);
             }
             y += GUI_FONT_H;
         }
@@ -128,14 +132,14 @@ namespace clib {
         if (c == 0)
             return;
         if (c == '\n') {
-            if (ptr_y == GUI_ROWS - 1) {
+            if (ptr_y == rows - 1) {
                 new_line();
             } else {
                 ptr_x = 0;
                 ptr_y++;
             }
         } else if (c == '\b') {
-            if (ptr_mx + ptr_my * GUI_COLS < ptr_x + ptr_y * GUI_COLS) {
+            if (ptr_mx + ptr_my * cols < ptr_x + ptr_y * cols) {
                 if (ptr_y == 0) {
                     if (ptr_x != 0) {
                         draw_char('\u0000');
@@ -147,7 +151,7 @@ namespace clib {
                         ptr_x--;
                     } else {
                         draw_char('\u0000');
-                        ptr_x = GUI_COLS - 1;
+                        ptr_x = cols - 1;
                         ptr_y--;
                     }
                 }
@@ -161,8 +165,8 @@ namespace clib {
             ptr_x = 0;
         } else if (c == '\r') {
             ptr_x = 0;
-        } else if (ptr_x == GUI_COLS - 1) {
-            if (ptr_y == GUI_ROWS - 1) {
+        } else if (ptr_x == cols - 1) {
+            if (ptr_y == rows - 1) {
                 draw_char(c);
                 new_line();
             } else {
@@ -186,14 +190,18 @@ namespace clib {
 
     void cgui::new_line() {
         ptr_x = 0;
-        for (int i = 0; i < GUI_ROWS - 1; ++i) {
-            std::copy(buffer[i + 1].begin(), buffer[i + 1].end(), buffer[i].begin());
+        for (int i = 0; i < rows - 1; ++i) {
+            std::copy(buffer.begin() + (cols * (i + 1)),
+                      buffer.begin() + (cols * (i + 2) - 1),
+                      buffer.begin() + (cols * (i)));
         }
-        std::fill(buffer[GUI_ROWS - 1].begin(), buffer[GUI_ROWS - 1].end(), 0);
+        std::fill(buffer.begin() + (cols * (rows - 1)),
+                  buffer.begin() + (cols * (rows) - 1),
+                  0);
     }
 
     void cgui::draw_char(const char &c) {
-        buffer[ptr_y][ptr_x] = c;
+        buffer[ptr_y * cols + ptr_x] = c;
     }
 
     void cgui::error(const string_t &str) {
@@ -208,6 +216,30 @@ namespace clib {
 
     void cgui::set_ticks(int ticks) {
         this->ticks = ticks;
+    }
+
+    void cgui::resize(int r, int c) {
+        auto old_rows = rows;
+        auto old_cols = cols;
+        rows = std::max(10, std::min(r, 60));
+        cols = std::max(20, std::min(c, 200));
+        printf("[SYSTEM] GUI  | Resize: from (%d, %d) to (%d, %d)\n", old_rows, old_cols, rows, cols);
+        size = rows * cols;
+        auto old_buffer = buffer;
+        buffer.resize((uint) size);
+        std::fill(buffer.begin(), buffer.end(), 0);
+        auto min_rows = std::min(old_rows, rows);
+        auto min_cols = std::min(old_cols, cols);
+        auto delta_rows = old_rows - min_rows;
+        for (int i = 0; i < min_rows; ++i) {
+            for (int j = 0; j < min_cols; ++j) {
+                buffer[i * cols + j] = old_buffer[(delta_rows + i) * old_cols + j];
+            }
+        }
+        ptr_x = std::min(ptr_x, cols);
+        ptr_y = std::min(ptr_y, rows);
+        ptr_mx = std::min(ptr_mx, cols);
+        ptr_my = std::min(ptr_my, rows);
     }
 
     void cgui::record(int ms) {

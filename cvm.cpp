@@ -484,10 +484,26 @@ namespace clib {
                 case INTR: { // 中断调用，以寄存器ax传参
                     switch (vmm_get(ctx->pc)) {
                         case 0:
-                            cgui::singleton().put_char((char) ctx->ax);
+                            if (global_state.input_lock == -1) {
+                                cgui::singleton().put_char((char) ctx->ax);
+                            } else {
+                                if (global_state.input_lock != ctx->id)
+                                    global_state.input_waiting_list.push_back(ctx->id);
+                                ctx->state = CTS_WAIT;
+                                ctx->pc -= INC_PTR;
+                                return;
+                            }
                             break;
                         case 1:
-                            cgui::singleton().put_int((int) ctx->ax);
+                            if (global_state.input_lock == -1) {
+                                cgui::singleton().put_int((int) ctx->ax);
+                            } else {
+                                if (global_state.input_lock != ctx->id)
+                                    global_state.input_waiting_list.push_back(ctx->id);
+                                ctx->state = CTS_WAIT;
+                                ctx->pc -= INC_PTR;
+                                return;
+                            }
                             break;
                         case 10: {
                             if (global_state.input_lock == -1) {
@@ -531,6 +547,18 @@ namespace clib {
                             ctx->ax = -1;
                             ctx->pc += INC_PTR;
                             return;
+                        }
+                        case 20: {
+                            if (global_state.input_lock == -1) {
+                                cgui::singleton().resize(ctx->ax >> 16, ctx->ax & 0xFFFF);
+                            } else {
+                                if (global_state.input_lock != ctx->id)
+                                    global_state.input_waiting_list.push_back(ctx->id);
+                                ctx->state = CTS_WAIT;
+                                ctx->pc -= INC_PTR;
+                                return;
+                            }
+                            break;
                         }
                         case 50:
                             if (ctx->ax)

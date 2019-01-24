@@ -26,7 +26,7 @@ namespace clib {
 
     class cgui {
     public:
-        cgui() = default;
+        cgui();
         ~cgui() = default;
 
         cgui(const cgui &) = delete;
@@ -41,6 +41,7 @@ namespace clib {
 
         void set_cycle(int cycle);
         void set_ticks(int ticks);
+        void resize(int rows, int cols);
 
         void record(int ms);
         bool reach() const;
@@ -60,7 +61,7 @@ namespace clib {
         static string_t load_file(const string_t &name);
 
     private:
-        std::array<std::array<char, GUI_COLS>, GUI_ROWS> buffer;
+        std::vector<char> buffer;
         cgen gen;
         cparser p;
         std::unique_ptr<cvm> vm;
@@ -73,6 +74,9 @@ namespace clib {
         int ptr_y{0};
         int ptr_mx{0};
         int ptr_my{0};
+        int rows{GUI_ROWS};
+        int cols{GUI_COLS};
+        int size{GUI_SIZE};
         std::chrono::system_clock::time_point record_now;
         decimal waiting_ms{0};
     };
