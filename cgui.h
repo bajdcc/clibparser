@@ -8,7 +8,6 @@
 
 #include <array>
 #include <deque>
-#include <chrono>
 #include "types.h"
 #include "cparser.h"
 #include "cgen.h"
@@ -43,9 +42,6 @@ namespace clib {
         void set_ticks(int ticks);
         void resize(int rows, int cols);
 
-        void record(int ms);
-        bool reach() const;
-
     private:
         void tick();
         void draw_text();
@@ -77,8 +73,6 @@ namespace clib {
         int rows{GUI_ROWS};
         int cols{GUI_COLS};
         int size{GUI_SIZE};
-        std::chrono::system_clock::time_point record_now;
-        decimal waiting_ms{0};
     };
 }
 

@@ -242,16 +242,6 @@ namespace clib {
         ptr_my = std::min(ptr_my, rows);
     }
 
-    void cgui::record(int ms) {
-        record_now = std::chrono::high_resolution_clock::now();
-        waiting_ms = ms * 0.001;
-    }
-
-    bool cgui::reach() const {
-        auto now = std::chrono::high_resolution_clock::now();
-        return std::chrono::duration_cast<std::chrono::duration<decimal>>(now - record_now).count() > waiting_ms;
-    }
-
     int cgui::compile(const string_t &path, const std::vector<string_t> &args) {
         try {
             auto c = cache.find(path);

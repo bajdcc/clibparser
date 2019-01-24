@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_set>
+#include <chrono>
 #include "types.h"
 #include "memory.h"
 
@@ -183,6 +184,8 @@ namespace clib {
             std::unique_ptr<memory_pool<HEAP_MEM>> pool;
             // SYSTEM CALL
             std::stringstream exec_path;
+            std::chrono::system_clock::time_point record_now;
+            decimal waiting_ms{0};
         };
         context_t *ctx{nullptr};
         int available_tasks{0};

@@ -585,13 +585,17 @@ namespace clib {
                             return;
                         }
                         case 100:
-                            cgui::singleton().record((int) ctx->ax);
+                            ctx->record_now = std::chrono::high_resolution_clock::now();
+                            ctx->waiting_ms = ctx->ax * 0.001;
                             break;
-                        case 101:
-                            if (!cgui::singleton().reach()) {
+                        case 101: {
+                            auto now = std::chrono::high_resolution_clock::now();
+                            if (std::chrono::duration_cast<std::chrono::duration<decimal>>(
+                                    now - ctx->record_now).count() <= ctx->waiting_ms) {
                                 ctx->pc -= INC_PTR;
                                 return;
                             }
+                        }
                             break;
                         default:
                             printf("unknown interrupt:%d\n", ctx->ax);
