@@ -76,9 +76,33 @@ namespace clib {
         for (auto i = 0; i < rows; ++i) {
             glRasterPos2i(x, y);
             for (auto j = 0; j < cols; ++j) {
-                glutBitmapCharacter(GUI_FONT, buffer[i * cols + j]);
+                if (buffer[i * cols + j] == '\0')
+                    glutBitmapCharacter(GUI_FONT, ' ');
+                else
+                    glutBitmapCharacter(GUI_FONT, buffer[i * cols + j]);
             }
             y += GUI_FONT_H;
+        }
+
+        if (input_state) {
+            input_ticks++;
+            if (input_ticks > GUI_INPUT_CARET) {
+                input_caret = !input_caret;
+                input_ticks = 0;
+            }
+            if (input_caret) {
+                if (ptr_x <= cols - 1) {
+                    int _x = std::max((w - width) / 2, 0) + ptr_x * GUI_FONT_W;
+                    int _y = std::max((h - height) / 2, 0) + ptr_y * GUI_FONT_H;
+                    glRasterPos2i(_x, _y);
+                    glutBitmapCharacter(GUI_FONT, '_');
+                } else if (ptr_y < rows - 1) {
+                    int _x = std::max((w - width) / 2, 0);
+                    int _y = std::max((h - height) / 2, 0) + (ptr_y + 1) * GUI_FONT_H;
+                    glRasterPos2i(_x, _y);
+                    glutBitmapCharacter(GUI_FONT, '_');
+                }
+            }
         }
 
         glPopMatrix();
@@ -192,11 +216,11 @@ namespace clib {
         ptr_x = 0;
         for (int i = 0; i < rows - 1; ++i) {
             std::copy(buffer.begin() + (cols * (i + 1)),
-                      buffer.begin() + (cols * (i + 2) - 1),
+                      buffer.begin() + (cols * (i + 2)),
                       buffer.begin() + (cols * (i)));
         }
         std::fill(buffer.begin() + (cols * (rows - 1)),
-                  buffer.begin() + (cols * (rows) - 1),
+                  buffer.begin() + (cols * (rows)),
                   0);
     }
 
@@ -265,11 +289,19 @@ namespace clib {
         }
     }
 
-    void cgui::input_enter() {
-        input_state = true;
+    void cgui::input_set(bool valid) {
+        if (valid) {
+            input_state = true;
+            ptr_mx = ptr_x;
+            ptr_my = ptr_y;
+        } else {
+            input_state = false;
+            ptr_mx = -1;
+            ptr_my = -1;
+        }
+        input_ticks = 0;
+        input_caret = false;
         input_string.clear();
-        ptr_mx = ptr_x;
-        ptr_my = ptr_y;
     }
 
     void cgui::input(unsigned char c) {
@@ -279,16 +311,20 @@ namespace clib {
             return;
         }
         if (c == '\b') {
-            if (!input_string.empty())
+            if (!input_string.empty()) {
+                put_char('\b');
                 input_string.pop_back();
+            }
             return;
         }
         if (c == '\r') {
+            put_char('\n');
             cvm::global_state.input_content = string_t(input_string.begin(), input_string.end());
             cvm::global_state.input_read_ptr = 0;
             cvm::global_state.input_success = true;
             return;
         }
+        put_char(c);
         input_string.push_back(c);
     }
 }

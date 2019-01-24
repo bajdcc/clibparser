@@ -17,6 +17,7 @@ int input(char *text, int len) {
     interrupt 10;
     for (i = 0; i < len && ((c = input_char()) != -1); ++i)
         text[i] = c;
+    interrupt 12;
     text[i++] = '\0';
     return i - 1;
 }

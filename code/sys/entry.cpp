@@ -3,6 +3,7 @@ enum INTR_TABLE {
     INTR_PUT_NUMBER = 1,
     INTR_INPUT_LOCK = 10,
     INTR_INPUT_CHAR = 11,
+    INTR_INPUT_STOP = 12,
     INTR_RESIZE = 20,
     INTR_PUT_EXEC_CHAR = 50,
     INTR_PUT_EXEC_FILE = 51,
@@ -57,6 +58,6 @@ int main(int argc, char **argv) {
     exec("/usr/test_rec");    wait();
     exec("/usr/test_fork");   wait();
     exec("/usr/test_input");  wait();
-    exec("/usr/test_resize"); wait();
+    //exec("/usr/test_resize"); wait();
     return 0;
 }

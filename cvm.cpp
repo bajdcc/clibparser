@@ -511,7 +511,7 @@ namespace clib {
                             if (global_state.input_lock == -1) {
                                 global_state.input_lock = ctx->id;
                                 ctx->pc += INC_PTR;
-                                cgui::singleton().input_enter();
+                                cgui::singleton().input_set(true);
                             } else {
                                 global_state.input_waiting_list.push_back(ctx->id);
                                 ctx->state = CTS_WAIT;
@@ -536,6 +536,8 @@ namespace clib {
                                         global_state.input_waiting_list.clear();
                                         global_state.input_read_ptr = -1;
                                         global_state.input_content.clear();
+                                        global_state.input_success = false;
+                                        cgui::singleton().input_set(false);
                                         return;
                                     } else {
                                         ctx->ax = global_state.input_content[global_state.input_read_ptr++];
@@ -550,6 +552,26 @@ namespace clib {
                             ctx->pc += INC_PTR;
                             return;
                         }
+                        case 12: {
+                            if (global_state.input_lock == ctx->id) {
+                                if (global_state.input_success) {
+                                    // INPUT INTERRUPT
+                                    for (auto &_id : global_state.input_waiting_list) {
+                                        if (tasks[_id].flag & CTX_VALID) {
+                                            assert(tasks[_id].state == CTS_WAIT);
+                                            tasks[_id].state = CTS_RUNNING;
+                                        }
+                                    }
+                                    global_state.input_lock = -1;
+                                    global_state.input_waiting_list.clear();
+                                    global_state.input_read_ptr = -1;
+                                    global_state.input_content.clear();
+                                    global_state.input_success = false;
+                                    cgui::singleton().input_set(false);
+                                }
+                            }
+                        }
+                            break;
                         case 20: {
                             if (global_state.input_lock == -1) {
                                 cgui::singleton().resize(ctx->ax >> 16, ctx->ax & 0xFFFF);

@@ -20,6 +20,7 @@
 #define GUI_SIZE (GUI_ROWS * GUI_COLS)
 #define GUI_CYCLES 1000
 #define GUI_TICKS 1
+#define GUI_INPUT_CARET 15
 
 namespace clib {
 
@@ -42,7 +43,7 @@ namespace clib {
         void set_ticks(int ticks);
         void resize(int rows, int cols);
 
-        void input_enter();
+        void input_set(bool valid);
         void input(unsigned char c);
 
     private:
@@ -77,6 +78,8 @@ namespace clib {
         int cols{GUI_COLS};
         int size{GUI_SIZE};
         bool input_state{false};
+        int input_ticks{0};
+        bool input_caret{false};
         std::vector<char> input_string;
     };
 }
