@@ -174,7 +174,7 @@ namespace clib {
             int bx;
             uint bp;
             uint sp;
-            bool log;
+            bool debug;
             std::vector<byte> file;
             std::vector<uint32_t> allocation;
             std::vector<uint32_t> data_mem;

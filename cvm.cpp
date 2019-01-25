@@ -306,7 +306,7 @@ namespace clib {
 #if LOG_INS
             assert(op <= EXIT);
             // print debug info
-            {
+            if (ctx->debug) {
                 printf("%04d> [%08X] %02d %.4s", i, ctx->pc, op, INS_STRING((ins_t) op).c_str());
                 if (op == PUSH)
                     printf(" %08X\n", (uint32_t) ctx->ax);
@@ -507,6 +507,9 @@ namespace clib {
                                 return;
                             }
                             break;
+                        case 3:
+                            ctx->debug = !ctx->debug;
+                            break;
                         case 10: {
                             if (global_state.input_lock == -1) {
                                 global_state.input_lock = ctx->id;
@@ -640,7 +643,7 @@ namespace clib {
             }
 
 #if LOG_STACK
-            if (ctx->log) {
+            if (ctx->debug) {
                 printf("\n---------------- STACK BEGIN <<<< \n");
                 printf("AX: %08X BP: %08X SP: %08X PC: %08X\n", ctx->ax, ctx->bp, ctx->sp, ctx->pc);
                 for (uint32_t j = ctx->sp; j < STACK_BASE + PAGE_SIZE; j += 4) {
@@ -765,22 +768,24 @@ namespace clib {
             ctx->ax = 0;
             ctx->bx = 0;
             ctx->bp = 0;
-            ctx->log = true;
 
             auto _argc = args.size();
             assert(_argc > 0);
             vmm_pushstack(ctx->sp, EXIT);
             vmm_pushstack(ctx->sp, PUSH);
             auto tmp = ctx->sp;
+            auto argvs = vmm_malloc(_argc * INC_PTR);
             vmm_pushstack(ctx->sp, _argc);
+            vmm_pushstack(ctx->sp, argvs);
             for (auto i = 0; i < _argc; i++) {
                 auto str = vmm_malloc(args[i].length() + 1);
                 vmm_setstr(str, args[i]);
-                vmm_pushstack(ctx->sp, str);
+                vmm_set(argvs + INC_PTR * i, str);
             }
             vmm_pushstack(ctx->sp, tmp);
         }
         ctx->flag |= CTX_USER_MODE;
+        ctx->debug = false;
         available_tasks++;
         auto pid = ctx->id;
         ctx = old_ctx;
@@ -863,8 +868,12 @@ namespace clib {
     }
 
     string_t get_args(const string_t &path, std::vector<string_t> &args) {
-        args.push_back(path);
-        return path;
+        std::stringstream ss(path);
+        string_t temp;
+        while (std::getline(ss, temp, ' ')) {
+            args.push_back(temp);
+        }
+        return args.front();
     }
 
     int cvm::exec_file(const string_t &path) {
@@ -999,7 +1008,7 @@ namespace clib {
             ctx->ax = -1;
             ctx->bx = 0;
             ctx->bp = old_ctx->bp;
-            ctx->log = old_ctx->log;
+            ctx->debug = old_ctx->debug;
         }
         available_tasks++;
         auto pid = ctx->id;

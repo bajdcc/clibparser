@@ -132,8 +132,6 @@ namespace clib {
         }
         if (t == x_matrix) {
             // TODO: Fix bug, ID Assignment L-Value
-            if (ptr > 1)
-                return ptr;
             return matrix.size();
         }
         if (t == x_load) {
