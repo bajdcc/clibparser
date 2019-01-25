@@ -42,6 +42,10 @@ int wait(int second) {
     }
     put_string("\n");
 }
+char *malloc(int size) {
+    size;
+    interrupt 30;
+}
 int main(int argc, char **argv) {
     int i;
     put_string("========== [#3 TEST INPUT] ==========\n");
@@ -52,7 +56,7 @@ int main(int argc, char **argv) {
     }
     put_string("\n");
     put_string("Input: ");
-    char text[100];
+    char *text = malloc(100);
     input((char *) &text, 100);
     put_string("Output: ");
     put_string((char *) &text);

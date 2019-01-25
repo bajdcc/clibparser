@@ -18,6 +18,7 @@ namespace clib {
         ex_vm,
         ex_gen,
         ex_gui,
+        ex_mem,
     };
 
     const string_t &ex_str(ex_t);

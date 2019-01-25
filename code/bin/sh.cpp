@@ -56,9 +56,13 @@ int sleep(int ms) {
 int wait() {
     interrupt 52;
 }
+char *malloc(int size) {
+    size;
+    interrupt 30;
+}
 int main(int argc, char **argv) {
     int i;
-    char text[100];
+    char *text = malloc(100);
     while (true) {
         put_string("$ ");
         input((char *) &text, 100);

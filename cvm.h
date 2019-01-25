@@ -12,6 +12,7 @@
 #include <chrono>
 #include "types.h"
 #include "memory.h"
+#include "cmem.h"
 
 namespace clib {
 
@@ -88,13 +89,18 @@ namespace clib {
 
 #define TASK_NUM 128
 
-    class cvm {
+    class cvm : public imem {
     public:
         cvm();
         ~cvm();
 
+        cvm(const cvm &) = delete;
+        cvm &operator=(const cvm &) = delete;
+
         int load(const std::vector<byte> &file, const std::vector<string_t> &args);
         bool run(int cycle, int &cycles);
+
+        void map_page(uint32_t addr, uint32_t id) override;
 
     private:
         // 申请页框
@@ -168,7 +174,6 @@ namespace clib {
             uint data;
             uint base;
             uint heap;
-            byte *heapHead;
             uint pc;
             int ax;
             int bx;
@@ -180,8 +185,7 @@ namespace clib {
             std::vector<uint32_t> data_mem;
             std::vector<uint32_t> text_mem;
             std::vector<uint32_t> stack_mem;
-            std::vector<uint32_t> heap_mem;
-            std::unique_ptr<memory_pool<HEAP_MEM>> pool;
+            std::unique_ptr<cmem> pool;
             // SYSTEM CALL
             std::stringstream exec_path;
             std::chrono::system_clock::time_point record_now;

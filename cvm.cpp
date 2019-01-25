@@ -177,35 +177,12 @@ namespace clib {
         vmm_set(va + len, '\0');
     }
 
-    uint32_t vmm_pa2va(uint32_t base, uint32_t size, uint32_t pa) {
+    uint32_t vmm_pa2va(uint32_t base, uint32_t pa) {
         return base + (pa & (SEGMENT_MASK));
     }
 
     uint32_t cvm::vmm_malloc(uint32_t size) {
-#if 0
-        printf("MALLOC> Available: %08X\n", heap.available() * 0x10);
-#endif
-        auto ptr = ctx->pool->alloc_array<byte>(size);
-        if (ptr == nullptr) {
-            printf("out of memory");
-            exit(-1);
-        }
-        if (ptr < ctx->heapHead) {
-            ctx->pool->alloc_array<byte>(ctx->heapHead - ptr);
-#if 0
-            printf("MALLOC> Skip %08X bytes\n", heapHead - ptr);
-#endif
-            return vmm_malloc(size);
-        }
-        if (ptr + size >= ctx->heapHead + HEAP_SIZE * PAGE_SIZE) {
-            printf("out of memory");
-            exit(-1);
-        }
-        auto va = vmm_pa2va(HEAP_BASE, HEAP_SIZE, ((uint32_t) ptr - (uint32_t) ctx->heapHead));
-#if 0
-        printf("MALLOC> V=%08X P=%p> %08X bytes\n", va, ptr, size);
-#endif
-        return va;
+        return vmm_pa2va(ctx->heap, ctx->pool->alloc(size));
     }
 
     uint32_t cvm::vmm_memset(uint32_t va, uint32_t value, uint32_t count) {
@@ -587,6 +564,9 @@ namespace clib {
                             }
                             break;
                         }
+                        case 30:
+                            ctx->ax = ctx->pool->alloc((uint32_t) ctx->ax);
+                            break;
                         case 50:
                             if (ctx->ax)
                                 ctx->exec_path << (char) ctx->ax;
@@ -689,7 +669,7 @@ namespace clib {
         ctx->data = DATA_BASE | ctx->mask;
         ctx->base = USER_BASE | ctx->mask;
         ctx->heap = HEAP_BASE | ctx->mask;
-        ctx->pool = std::make_unique<memory_pool<HEAP_MEM>>();
+        ctx->pool = std::make_unique<cmem>(this);
         ctx->flag |= CTX_KERNEL;
         ctx->state = CTS_RUNNING;
         /* 映射4KB的代码空间 */
@@ -737,25 +717,6 @@ namespace clib {
             auto new_page = (uint32_t) pmm_alloc();
             ctx->stack_mem.push_back(new_page);
             vmm_map(ctx->stack, new_page, PTE_U | PTE_P | PTE_R); // 用户栈空间
-        }
-        /* 映射16KB的堆空间 */
-        {
-            auto head = ctx->pool->alloc_array<byte>(PAGE_SIZE * (HEAP_SIZE + 2));
-#if 0
-            printf("HEAP> ALLOC=%p\n", head);
-#endif
-            ctx->heapHead = head; // 得到内存池起始地址
-            ctx->pool->free_array(ctx->heapHead);
-            ctx->heapHead = (byte *) PAGE_ALIGN_UP((uint32_t) head);
-#if 0
-            printf("HEAP> HEAD=%p\n", heapHead);
-#endif
-            memset(ctx->heapHead, 0, PAGE_SIZE * HEAP_SIZE);
-            for (int i = 0; i < HEAP_SIZE; ++i) {
-                auto new_page = (uint32_t) ctx->heapHead + PAGE_SIZE * i;
-                ctx->heap_mem.push_back(new_page);
-                vmm_map(ctx->heap + PAGE_SIZE * i, (uint32_t) ctx->heapHead + PAGE_SIZE * i, PTE_U | PTE_P | PTE_R);
-            }
         }
         ctx->flag &= ~CTX_KERNEL;
         {
@@ -834,7 +795,7 @@ namespace clib {
             vmm_unmap(ctx->stack); // 用户栈空间
             /* 映射16KB的堆空间 */
             {
-                for (int i = 0; i < HEAP_SIZE; ++i) {
+                for (int i = 0; i < ctx->pool->page_size(); ++i) {
                     vmm_unmap(HEAP_BASE + PAGE_SIZE * i);
                 }
             }
@@ -861,7 +822,6 @@ namespace clib {
             ctx->data_mem.clear();
             ctx->text_mem.clear();
             ctx->stack_mem.clear();
-            ctx->heap_mem.clear();
         }
         ctx = old_ctx;
         available_tasks--;
@@ -920,7 +880,7 @@ namespace clib {
         ctx->data = old_ctx->data | ctx->mask;
         ctx->base = old_ctx->base | ctx->mask;
         ctx->heap = old_ctx->heap | ctx->mask;
-        ctx->pool = std::make_unique<memory_pool<HEAP_MEM>>();
+        ctx->pool = std::make_unique<cmem>(this);
         ctx->flag |= CTX_KERNEL;
         ctx->state = CTS_RUNNING;
         /* 映射4KB的代码空间 */
@@ -971,31 +931,9 @@ namespace clib {
                 error("fork: stack segment copy failed");
             }
         }
-        /* 映射16KB的堆空间 */
+        /* 映射堆空间 */
         {
-            auto head = ctx->pool->alloc_array<byte>(PAGE_SIZE * (HEAP_SIZE + 2));
-#if 0
-            printf("HEAP> ALLOC=%p\n", head);
-#endif
-            ctx->heapHead = head; // 得到内存池起始地址
-            ctx->pool->free_array(ctx->heapHead);
-            ctx->heapHead = (byte *) PAGE_ALIGN_UP((uint32_t) head);
-#if 0
-            printf("HEAP> HEAD=%p\n", heapHead);
-#endif
-            memset(ctx->heapHead, 0, PAGE_SIZE * HEAP_SIZE);
-            for (int i = 0; i < HEAP_SIZE; ++i) {
-                auto new_page = (uint32_t) ctx->heapHead + PAGE_SIZE * i;
-                ctx->heap_mem.push_back(new_page);
-                std::copy((byte *)(old_ctx->heap_mem[i]),
-                          (byte *)(old_ctx->heap_mem[i]) + PAGE_SIZE,
-                          (byte *)new_page);
-                vmm_map(ctx->heap + PAGE_SIZE * i, new_page, PTE_U | PTE_P | PTE_R);
-                if (!vmm_ismap(ctx->heap + PAGE_SIZE * i, &pa)) {
-                    destroy(ctx->id);
-                    error("fork: heap segment copy failed");
-                }
-            }
+            ctx->pool->copy_from(*old_ctx->pool);
         }
         ctx->flag &= ~CTX_KERNEL;
         {
@@ -1014,5 +952,15 @@ namespace clib {
         auto pid = ctx->id;
         ctx = old_ctx;
         return pid;
+    }
+
+    void cvm::map_page(uint32_t addr, uint32_t id) {
+        uint32_t pa;
+        auto va = (ctx->heap | ctx->mask) | (PAGE_SIZE * id);
+        vmm_map(va, addr, PTE_U | PTE_P | PTE_R);
+        if (!vmm_ismap(va, &pa)) {
+            destroy(ctx->id);
+            error("heap alloc: alloc page failed");
+        }
     }
 }
