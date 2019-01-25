@@ -130,7 +130,7 @@ namespace clib {
                     gen.reset();
                 }
             } catch (const cexception &e) {
-                std::cout << "RUNTIME ERROR: " << e.message() << std::endl;
+                std::cout << "[SYSTEM] ERR  | RUNTIME ERROR: " << e.message() << std::endl;
                 vm.reset();
                 gen.reset();
                 running = false;
@@ -172,17 +172,17 @@ namespace clib {
             if (ptr_mx + ptr_my * cols < ptr_x + ptr_y * cols) {
                 if (ptr_y == 0) {
                     if (ptr_x != 0) {
-                        draw_char('\u0000');
                         ptr_x--;
+                        draw_char('\u0000');
                     }
                 } else {
                     if (ptr_x != 0) {
-                        draw_char('\u0000');
                         ptr_x--;
-                    } else {
                         draw_char('\u0000');
+                    } else {
                         ptr_x = cols - 1;
                         ptr_y--;
+                        draw_char('\u0000');
                     }
                 }
             }
@@ -298,7 +298,7 @@ namespace clib {
             return vm->load(file, args);
         } catch (const cexception &e) {
             gen.reset();
-            std::cout << "PATH: " << path << ", ";
+            std::cout << "[SYSTEM] ERR  | PATH: " << path << ", ";
             std::cout << e.message() << std::endl;
             return fail_errno;
         }
