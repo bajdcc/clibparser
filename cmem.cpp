@@ -27,7 +27,7 @@ namespace clib {
                 available_size -= size;
                 memory_free.erase(free_addr);
                 memory_used.insert(std::make_pair(free_addr, size));
-                if (size > free_size)
+                if (size < free_size)
                     memory_free.insert(std::make_pair(free_addr + size, size - free_size));
                 return free_addr;
             }

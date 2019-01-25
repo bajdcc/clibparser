@@ -162,7 +162,7 @@ namespace clib {
             return value;
         }
         //vmm_map(va, pmm_alloc(), PTE_U | PTE_P | PTE_R);
-#if 0
+#if 1
         printf("VMMSET> Invalid VA: %08X\n", va);
 #endif
         error("vmm::set error");
@@ -565,7 +565,7 @@ namespace clib {
                             break;
                         }
                         case 30:
-                            ctx->ax = ctx->pool->alloc((uint32_t) ctx->ax);
+                            ctx->ax = vmm_malloc((uint32_t) ctx->ax);
                             break;
                         case 50:
                             if (ctx->ax)

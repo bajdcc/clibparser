@@ -65,16 +65,16 @@ int main(int argc, char **argv) {
     char *text = malloc(100);
     while (true) {
         put_string("$ ");
-        input((char *) &text, 100);
-        if (strlen((char *) &text) == 0)
+        input(text, 100);
+        if (strlen(text) == 0)
             continue;
-        if (strcmp((char *) &text, "exit") == 0)
+        if (strcmp(text, "exit") == 0)
             break;
-        if (strncmp((char *) &text, "/sys/", 5) == 0) {
+        if (strncmp(text, "/sys/", 5) == 0) {
             put_string("[ERROR] Cannot execute system programs!\n");
             continue;
         }
-        switch (exec((char *) &text)) {
+        switch (exec(text)) {
             case -1:
                 put_string("[ERROR] File not exists.\n");
                 break;
