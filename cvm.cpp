@@ -653,9 +653,7 @@ namespace clib {
     }
 
     void cvm::error(const string_t &str) {
-        std::stringstream ss;
-        ss << "VM ERROR: " << str;
-        throw cexception(ss.str());
+        throw cexception(ex_vm, str);
     }
 
     int cvm::load(const std::vector<byte> &file, const std::vector<string_t> &args) {
@@ -873,7 +871,7 @@ namespace clib {
         std::vector<string_t> args;
         auto file = get_args(path, args);
         auto pid = cgui::singleton().compile(file, args);
-        if (pid != -1) { // SUCCESS
+        if (pid >= 0) { // SUCCESS
             ctx->child.insert(pid);
             tasks[pid].parent = ctx->id;
 #if LOG_SYSTEM

@@ -259,7 +259,7 @@ namespace clib {
                             | String
                             | ~_lparan_ + expression + ~_rparan_;
         constant = Char | UnsignedChar | Short | UnsignedShort | Integer | UnsignedInteger |
-                   Long | UnsignedLong | Float | Double;
+                   Long | UnsignedLong | Float | Double | _true_ | _false_;
         postfixExpression = primaryExpression
                             | ~_lparan_ + typeName + ~_rparan_ + ~_lbrace_ + initializerList + *~_comma_ + ~_rbrace_
                             | postfixExpression + (_lsquare_ + expression + ~_rsquare_
@@ -867,7 +867,7 @@ namespace clib {
         std::stringstream ss;
         ss << '[' << std::setfill('0') << std::setw(4) << lexer->get_line();
         ss << ':' << std::setfill('0') << std::setw(3) << lexer->get_column();
-        ss << ']' << " PARSER ERROR: " << info;
-        throw cexception(ss.str());
+        ss << ']' << ' ' << info;
+        throw cexception(ex_parser, ss.str());
     }
 }

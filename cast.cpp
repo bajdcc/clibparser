@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <iomanip>
+#include "cexception.h"
 #include "cast.h"
 
 namespace clib {
@@ -18,14 +19,17 @@ namespace clib {
         current = root;
     }
 
+    void cast::error(const string_t &str) {
+        throw cexception(ex_ast, str);
+    }
+
     ast_node *cast::get_root() const {
         return root;
     }
 
     ast_node *cast::new_node(ast_t type) {
         if (nodes.available() < 64) {
-            printf("AST ERROR: 'nodes' out of memory\n");
-            throw std::exception();
+            error("'nodes' out of memory");
         }
         auto node = nodes.alloc<ast_node>();
         memset(node, 0, sizeof(ast_node));
@@ -137,8 +141,7 @@ namespace clib {
 
     void cast::set_str(ast_node *node, const string_t &str) {
         if (strings.available() < 64) {
-            printf("AST ERROR: 'strings' out of memory\n");
-            throw std::exception();
+            error("'strings' out of memory");
         }
         auto len = str.length();
         auto s = strings.alloc_array<char>(len + 1);

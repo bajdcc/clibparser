@@ -50,14 +50,11 @@ int welcome() {
     put_string("   \\ \\_______\\ \\__\\ \\__\\ \\________\\ \\_______\\ \\_______\\ \\_______\\\n");
     put_string("    \\|_______|\\|__|\\|__|\\|________|\\|_______|\\|_______|\\|_______|\n");
     put_string("\n\n");
-    put_string("Welcome to @clibos system by bajdcc!");
-    put_string("\n\n");
+    put_string("Welcome to @clibos system by bajdcc!\n\n");
+    put_string("# Type \"help\" for help.\n\n");
 }
 int main(int argc, char **argv) {
     welcome();
-    exec("/usr/test_rec");    wait();
-    exec("/usr/test_fork");   wait();
-    exec("/usr/test_input");  wait();
-    exec("/usr/test_resize"); wait();
+    exec("sh"); wait();
     return 0;
 }

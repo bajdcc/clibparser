@@ -411,6 +411,15 @@ namespace clib {
             case ast_string:
                 gen.emit(IMM, DATA_BASE | gen.load_string(node->data._string));
                 break;
+            case ast_keyword: {
+                if (AST_IS_KEYWORD_K(node, k_true))
+                    gen.emit(IMM, 1);
+                else if (AST_IS_KEYWORD_K(node, k_false))
+                    gen.emit(IMM, 0);
+                else
+                    gen.error("sym_var_t::gen_rvalue unsupported keyword type");
+            }
+                break;
             default:
                 gen.error("sym_var_t::gen_rvalue unsupported type");
                 break;
@@ -1807,6 +1816,14 @@ namespace clib {
                     ctx = func;
                     func->clazz = z_function;
                     func->addr = text.size();
+                    {
+                        auto f = symbols[0].find(func->get_name());
+                        if (f != symbols[0].end()) {
+                            if (f->second->get_type() == s_function) {
+                                error(nodes[0], "conflict id with function: " + func->to_string());
+                            }
+                        }
+                    }
                     symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
                     std::unordered_set<string_t> ids;
                     auto ptr = 0;
@@ -1829,7 +1846,7 @@ namespace clib {
                                 auto f = symbols[0].find(pa->data._string);
                                 if (f != symbols[0].end()) {
                                     if (f->second->get_type() == s_function) {
-                                        error(id, "conflict id with function: " + id->to_string());
+                                        error(id, "conflict argument in function: " + id->to_string());
                                     }
                                 }
                             }
@@ -2172,24 +2189,22 @@ namespace clib {
     }
 
     void cgen::error(const string_t &str) const {
-        std::stringstream ss;
-        ss << "GEN ERROR: " << str;
-        throw cexception(ss.str());
+        throw cexception(ex_gen, str);
     }
 
     void cgen::error(ast_node *node, const string_t &str, bool info) const {
         std::stringstream ss;
-        ss << "GEN ERROR: " << "[" << node->line << ":" << node->column << "] " << str;
+        ss << "[" << node->line << ":" << node->column << "] " << str;
         if (info) {
             cast::print(node, 0, ss);
         }
-        throw cexception(ss.str());
+        error(ss.str());
     }
 
     void cgen::error(sym_t::ref s, const string_t &str) const {
         std::stringstream ss;
-        ss << "GEN ERROR: " << "[" << s->line << ":" << s->column << "] " << str;
-        throw cexception(ss.str());
+        ss << "[" << s->line << ":" << s->column << "] " << str;
+        error(ss.str());
     }
 
     type_exp_t::ref cgen::to_exp(sym_t::ref s) {
@@ -2364,8 +2379,15 @@ namespace clib {
             DEF_LEX(float);
             DEF_LEX(double);
 #undef DEF_LEX
+            case ast_keyword: {
+                if (AST_IS_KEYWORD_K(node, k_true) || AST_IS_KEYWORD_K(node, k_false))
+                    t = std::make_shared<type_base_t>(l_int, 0);
+                else
+                    error(node, "invalid var keyword type: ", true);
+            }
+                break;
             default:
-                assert(!"invalid var type");
+                error(node, "invalid var type: ", true);
                 break;
         }
         return std::make_shared<sym_var_t>(t, node);

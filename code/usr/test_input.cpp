@@ -60,6 +60,6 @@ int main(int argc, char **argv) {
     put_string("Length: ");
     put_int(strlen((char *) &text));
     put_string("\n");
-    wait(3);
+    wait(1);
     return 0;
 }

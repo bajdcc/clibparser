@@ -655,7 +655,10 @@ LEX_T(t) clexer::get_store_##t(int index) const \
                 } else {
                     auto j = i - 2;
                     for (; j > 0 && str[j] == '\\'; --j);
-                    if ((i - j) % 2 != 0) {
+                    if (j == i - 2) {
+                        i++;
+                        continue;
+                    } else if ((i - j) % 2 == 0) {
                         break;
                     } else {
                         return record_error(e_invalid_string, i - index + 1);

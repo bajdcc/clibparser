@@ -30,19 +30,25 @@ namespace clib {
     }
 
     string_t cgui::load_file(const string_t &name) {
-        static string_t pattern{ R"(/([A-Za-z0-9_]+)/([A-Za-z0-9_.]+))" };
-        static std::regex re(pattern);
+        static string_t pat_path{ R"((/[A-Za-z0-9_]+)+)" };
+        static std::regex re_path(pat_path);
+        static string_t pat_bin{ R"([A-Za-z0-9_]+)" };
+        static std::regex re_bin(pat_bin);
         std::smatch res;
-        if (std::regex_match(name, res, re)) {
-            auto dir = res[1].str();
-            auto file = res[2].str();
-            auto path = "../code/" + dir + "/" + file + ".cpp";
-            std::ifstream t(path);
-            if (t) {
-                std::stringstream buffer;
-                buffer << t.rdbuf();
-                return buffer.str();
-            }
+        string_t path;
+        if (std::regex_match(name, res, re_path)) {
+            path = "../code" + res[0].str() + ".cpp";
+
+        } else if (std::regex_match(name, res, re_bin)) {
+            path = "../code/bin/" + res[0].str() + ".cpp";
+        }
+        if (path.empty())
+            error("file not exists: " + name);
+        std::ifstream t(path);
+        if (t) {
+            std::stringstream buffer;
+            buffer << t.rdbuf();
+            return buffer.str();
         }
         error("file not exists: " + name);
     }
@@ -124,7 +130,7 @@ namespace clib {
                     gen.reset();
                 }
             } catch (const cexception &e) {
-                std::cout << "RUNTIME ERROR: " << e.msg << std::endl;
+                std::cout << "RUNTIME ERROR: " << e.message() << std::endl;
                 vm.reset();
                 gen.reset();
                 running = false;
@@ -189,6 +195,12 @@ namespace clib {
             ptr_x = 0;
         } else if (c == '\r') {
             ptr_x = 0;
+        } else if (c == '\f') {
+            ptr_x = 0;
+            ptr_y = 0;
+            ptr_mx = 0;
+            ptr_my = 0;
+            std::fill(buffer.begin(), buffer.end(), 0);
         } else if (ptr_x == cols - 1) {
             if (ptr_y == rows - 1) {
                 draw_char(c);
@@ -229,9 +241,7 @@ namespace clib {
     }
 
     void cgui::error(const string_t &str) {
-        std::stringstream ss;
-        ss << "GUI ERROR: " << str;
-        throw cexception(ss.str());
+        throw cexception(ex_gui, str);
     }
 
     void cgui::set_cycle(int cycle) {
@@ -267,12 +277,16 @@ namespace clib {
     }
 
     int cgui::compile(const string_t &path, const std::vector<string_t> &args) {
+        if (path.empty())
+            return -1;
+        auto fail_errno = -1;
         try {
             auto c = cache.find(path);
             if (c != cache.end()) {
                 return vm->load(c->second, args);
             }
             auto code = load_file(path);
+            fail_errno = -2;
             gen.reset();
             auto root = p.parse(code, &gen);
 #if LOG_AST
@@ -284,8 +298,9 @@ namespace clib {
             return vm->load(file, args);
         } catch (const cexception &e) {
             gen.reset();
-            std::cout << "COMPILE ERROR: " << e.msg << std::endl;
-            return -1;
+            std::cout << "PATH: " << path << ", ";
+            std::cout << e.message() << std::endl;
+            return fail_errno;
         }
     }
 

@@ -212,6 +212,9 @@ namespace clib {
         static nga_edge *conv_nga(unit *u);
         nga_status *delete_epsilon(nga_edge *edge);
 
+        void error(const string_t &);
+        string_t print_unit(unit *);
+
     private:
         const char *str(const string_t &s);
 

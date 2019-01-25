@@ -389,9 +389,7 @@ namespace clib {
         for (auto &rule : rules) {
             nga_rule &r = rule.second;
             if (get_first_set(to_rule(r.u)->child, r)) {
-                print(r.u, nullptr, std::cout);
-                std::cout << std::endl;
-                throw cexception("generate epsilon");
+                error("generate epsilon: " + print_unit(r.u));
             }
         }
         auto size = rules.size();
@@ -439,9 +437,7 @@ namespace clib {
             }
             for (auto i = 0; i < size; ++i) {
                 if (rules_list[i]->recursive > 1) {
-                    print(rules_list[i]->u, nullptr, std::cout);
-                    std::cout << std::endl;
-                    throw cexception("indirect left recursion");
+                    error("indirect left recursion: " + print_unit(rules_list[i]->u));
                 }
             }
         }
@@ -465,7 +461,7 @@ namespace clib {
                     }
                 }
                 if (indep == -1) {
-                    throw cexception("missing most independent rule");
+                    error("missing most independent rule");
                 }
                 for (auto &r : rules_list[indep]->rulesFirstset) {
                     auto &a =  rules_list[indep]->tokensFirstset;
@@ -488,9 +484,7 @@ namespace clib {
             }
             for (auto i = 0; i < size; ++i) {
                 if (rules_list[i]->tokensFirstset.empty()) {
-                    print(rules_list[i]->u, nullptr, std::cout);
-                    std::cout << std::endl;
-                    throw cexception("empty first set");
+                    error("empty first set: " + print_unit(rules_list[i]->u));
                 }
             }
         }
@@ -648,7 +642,7 @@ namespace clib {
 
     void cunit::remove_edge(nga_edge_list *&list, nga_edge_list *edge) {
         if (list == nullptr) {
-            throw cexception("remove from empty edge list");
+            error("remove from empty edge list");
         } else if (list->next == list) {
             assert(list->edge == edge->edge);
             list = nullptr;
@@ -670,7 +664,7 @@ namespace clib {
                     }
                     node = node->next;
                 }
-                throw cexception("remove nothing from edge list");
+                error("remove nothing from edge list");
             }
         }
     }
@@ -852,6 +846,16 @@ namespace clib {
         return v;
     }
 
+    string_t cunit::print_unit(unit *u) {
+        std::stringstream ss;
+        print(u, nullptr, ss);
+        return ss.str();
+    }
+
+    void cunit::error(const string_t &str) {
+        throw cexception(ex_unit, str);
+    }
+
     nga_status *cunit::delete_epsilon(nga_edge *edge) {
         edge->end->final = true;
         auto nga_status_list = get_closure(edge->begin, [](auto it) { return true; });
@@ -1025,9 +1029,7 @@ namespace clib {
                                     auto _r = rules_list[ids[to_ref(_d)->child]]->tokensFirstset;
                                     res.insert(_r.begin(), _r.end());
                                 } else {
-                                    print(_d, nullptr, std::cout);
-                                    std::cout << std::endl;
-                                    throw cexception("invalid edge type");
+                                    error("invalid edge type: " + print_unit(_d));
                                 }
                             }
                             LA.insert(std::make_pair(&edge, res));

@@ -123,6 +123,8 @@ namespace clib {
     private:
         void init();
 
+        void error(const string_t &);
+
     private:
         memory_pool<AST_NODE_MEM> nodes; // 全局AST结点内存管理
         memory_pool<AST_STR_MEM> strings; // 全局字符串管理
