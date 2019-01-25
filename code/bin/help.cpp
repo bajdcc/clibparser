@@ -14,6 +14,7 @@ int main(int argc, char **argv) {
     put_string("\nDIR ==> /bin\n");
     put_string("    help            - command help\n");
     put_string("    sh              - shell\n");
+    put_string("    echo            - echo\n");
     put_string("\nDIR ==> /usr\n");
     put_string("    test            - test all cases\n");
     put_string("    test_rec        - test recursion\n");
