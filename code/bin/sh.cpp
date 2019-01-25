@@ -35,7 +35,13 @@ int strcmp(char *a, char *b) {
     return *a - *b;
 }
 int strncmp(char *a, char *b, int n) {
-    while(n-- && *a && *b && (*a++ == *b++));
+    while(n-- && *a && *b) {
+        if (*a != *b) {
+            return *a - *b;
+        } else {
+            a++, b++;
+        }
+    }
     if (n < 0)
         return 0;
     return *a - *b;
