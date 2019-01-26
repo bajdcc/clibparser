@@ -10,6 +10,7 @@
 #include <vector>
 #include <unordered_set>
 #include <chrono>
+#include <deque>
 #include "types.h"
 #include "memory.h"
 #include "cmem.h"
@@ -78,8 +79,8 @@ namespace clib {
 /* 段掩码 */
 #define SEGMENT_MASK 0x0fffffff
 
-/* 物理内存(单位：16B) */
-#define PHY_MEM (16 * 1024)
+/* 物理内存(单位：16B)，越多越好！ */
+#define PHY_MEM (256 * 1024)
 
 #define PE_MAGIC "ccos"
 
@@ -189,7 +190,11 @@ namespace clib {
             // SYSTEM CALL
             std::stringstream exec_path;
             std::chrono::system_clock::time_point record_now;
-            decimal waiting_ms{0};
+            decimal waiting_ms;
+            int input_redirect;
+            int output_redirect;
+            bool input_stop;
+            std::deque<char> input_queue;
         };
         context_t *ctx{nullptr};
         int available_tasks{0};

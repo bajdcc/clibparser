@@ -11,6 +11,10 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约9k。
 
 ![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/2.gif)
 
+**【管道示例】**
+
+![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/3.gif)
+
 ## 计划
 
 - 第一阶段：实现基本的C++编译器和虚拟机，支持控制流语句，模拟虚页机制。后续支持结构体、指针和汇编。
@@ -181,7 +185,7 @@ Shell界面：
     - [ ] 内存权限管理
     - [ ] 中断机制
     - [ ] 虚拟文件系统
-    - [ ] 管道
+    - [x] 命令行管道
 - [ ] 库函数
     - [x] malloc
     - [x] free

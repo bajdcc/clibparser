@@ -502,6 +502,10 @@ namespace clib {
     int sym_unop_t::size(sym_size_t t) const {
         if (t == x_inc)
             return 0;
+        if (t == x_load) {
+            if (AST_IS_OP_N(op, op_times))
+                return exp->size(x_inc);
+        }
         return exp->size(t);
     }
 
@@ -628,8 +632,6 @@ namespace clib {
     }
 
     int sym_sinop_t::size(sym_size_t t) const {
-        if (t == x_inc)
-            return 0;
         return exp->size(t);
     }
 
@@ -791,7 +793,12 @@ namespace clib {
                 base = exp1->base->clone();
                 gen.emit(PUSH);
                 exp2->gen_rvalue(gen);
-                gen.emit(SAVE, exp1->size(x_load));
+                auto size = exp1->size(x_load);
+                if (size == 0) {
+                    size = exp1->size(x_load);
+                    gen.error("size == zero: " + to_string());
+                }
+                gen.emit(SAVE, size);
             }
                 break;
             case op_plus_assign:

@@ -32,6 +32,8 @@ namespace clib {
             error("'nodes' out of memory");
         }
         auto node = nodes.alloc<ast_node>();
+        if (!node)
+            error("'nodes' out of memory");
         memset(node, 0, sizeof(ast_node));
         node->flag = type;
         return node;
