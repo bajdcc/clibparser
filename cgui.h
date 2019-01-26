@@ -18,7 +18,7 @@
 #define GUI_ROWS 30
 #define GUI_COLS 84
 #define GUI_SIZE (GUI_ROWS * GUI_COLS)
-#define GUI_CYCLES 1000
+#define GUI_CYCLES 10000
 #define GUI_TICKS 1
 #define GUI_INPUT_CARET 15
 

@@ -331,7 +331,8 @@ namespace clib {
     void cgui::input(unsigned char c) {
         if (!input_state)
             return;
-        if (c == '\0') {
+        if (!(std::isprint(c) || c == '\b' || c == '\n' || c == '\r' || c == 4 || c == 26)) {
+            printf("[SYSTEM] GUI  | Input: %d\n", (int) c);
             return;
         }
         if (c == '\b') {
@@ -341,7 +342,7 @@ namespace clib {
             }
             return;
         }
-        if (c == '\r') {
+        if (c == '\r' || c == 4 || c == 26) {
             put_char('\n');
             cvm::global_state.input_content = string_t(input_string.begin(), input_string.end());
             cvm::global_state.input_read_ptr = 0;
