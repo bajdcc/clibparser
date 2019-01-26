@@ -22,6 +22,7 @@ namespace clib {
 
     cgui::cgui() {
         buffer.resize(GUI_SIZE);
+        std::fill(buffer.begin(), buffer.end(), 0);
     }
 
     cgui &cgui::singleton() {
@@ -82,10 +83,10 @@ namespace clib {
         for (auto i = 0; i < rows; ++i) {
             glRasterPos2i(x, y);
             for (auto j = 0; j < cols; ++j) {
-                if (buffer[i * cols + j] == '\0')
-                    glutBitmapCharacter(GUI_FONT, ' ');
-                else
+                if (std::isprint(buffer[i * cols + j]))
                     glutBitmapCharacter(GUI_FONT, buffer[i * cols + j]);
+                else
+                    glutBitmapCharacter(GUI_FONT, ' ');
             }
             y += GUI_FONT_H;
         }
