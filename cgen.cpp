@@ -46,10 +46,11 @@ namespace clib {
         return std::move(ss.str());
     }
 
-    sym_list_t::ref exp_list(const std::vector<sym_t::ref> &exps) {
+    sym_list_t::ref cgen::exp_list(const std::vector<sym_t::ref> &exps) {
         auto list = std::make_shared<sym_list_t>();
         for (auto &exp : exps) {
-            assert(exp->get_base_type() == s_expression);
+            if (exp->get_base_type() != s_expression)
+                error(exp, "need expression: " + exp->to_string());
             list->exps.push_back(std::dynamic_pointer_cast<type_exp_t>(exp));
         }
         return list;
@@ -359,6 +360,10 @@ namespace clib {
         return s_expression;
     }
 
+    int type_exp_t::size(sym_size_t t) const {
+        return base->size(t);
+    }
+
     sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : type_exp_t(base), node(node) {
         line = node->line;
         column = node->column;
@@ -550,6 +555,7 @@ namespace clib {
     gen_t sym_unop_t::gen_rvalue(igen &gen) {
         if (AST_IS_KEYWORD_N(op, k_sizeof)) {
             gen.emit(IMM, exp->size(x_size));
+            base = std::make_shared<type_base_t>(l_int, 0);
             return g_ok;
         }
         switch (op->data._op) {
@@ -1482,10 +1488,18 @@ namespace clib {
                             break;
                     }
                 } else if (AST_IS_KEYWORD_N(op, k_sizeof)) {
-                    auto exp = to_exp(tmp.back().front());
-                    auto s = std::make_shared<sym_unop_t>(exp, op);
-                    tmp.back().clear();
-                    tmp.back().push_back(s);
+                    auto type = tmp.back().front();
+                    if (type->get_base_type() == s_type) {
+                        auto exp = std::make_shared<type_exp_t>(std::dynamic_pointer_cast<type_t>(type));
+                        auto s = std::make_shared<sym_unop_t>(exp, op);
+                        tmp.back().clear();
+                        tmp.back().push_back(s);
+                    } else {
+                        auto exp = to_exp(type);
+                        auto s = std::make_shared<sym_unop_t>(exp, op);
+                        tmp.back().clear();
+                        tmp.back().push_back(s);
+                    }
                     asts.clear();
                 } else {
                     error("invalid unary exp: coll");
@@ -2206,12 +2220,14 @@ namespace clib {
     }
 
     type_exp_t::ref cgen::to_exp(sym_t::ref s) {
-        assert(s->get_base_type() == s_expression);
+        if (s->get_base_type() != s_expression)
+            error(s, "need expression: " + s->to_string());
         return std::dynamic_pointer_cast<type_exp_t>(s);
     }
 
     void cgen::allocate(sym_id_t::ref id, const type_exp_t::ref &init, int delta) {
-        assert(id->base->get_base_type() == s_type);
+        if (id->base->get_base_type() != s_type)
+            error(id, "need type: " + id->to_string());
         auto type = id->base;
         if (id->clazz == z_global_var) {
             id->addr = data.size();

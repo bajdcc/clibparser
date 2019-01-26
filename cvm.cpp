@@ -26,11 +26,12 @@ namespace clib {
 
     cvm::global_state_t cvm::global_state;
 
-    uint32_t cvm::pmm_alloc() {
+    uint32_t cvm::pmm_alloc(bool reusable) {
         auto ptr = (uint32_t) memory.alloc_array<byte>(PAGE_SIZE * 2);
         if (!ptr)
             error("alloc page failed");
-        ctx->allocation.push_back(ptr);
+        if (reusable)
+            ctx->allocation.push_back(ptr);
         auto page = PAGE_ALIGN_UP(ptr);
         memset((void *) page, 0, PAGE_SIZE);
         return page;
@@ -73,7 +74,7 @@ namespace clib {
 
         if (!pte) { // 缺页
             if (va >= USER_BASE) { // 若是用户地址则转换
-                pte = (pte_t *) pmm_alloc(); // 申请物理页框，用作新页表
+                pte = (pte_t *) pmm_alloc(false); // 申请物理页框，用作新页表
                 pgdir[pde_idx] = (uint32_t) pte | PTE_P | flags; // 设置页表
                 pte[pte_idx] = (pa & PAGE_MASK) | PTE_P | flags; // 设置页表项
             } else { // 内核地址不转换
@@ -100,6 +101,9 @@ namespace clib {
             return;
         }
 
+#if 0
+        printf("MEMUNMAP> V=%08X\n", va);
+#endif
         pte[pte_idx] = 0; // 清空页表项，此时有效位为零
     }
 
@@ -185,6 +189,13 @@ namespace clib {
         return vmm_pa2va(ctx->heap, ctx->pool->alloc(size));
     }
 
+    uint32_t cvm::vmm_free(uint32_t addr) {
+        if ((addr & 0xF0000000) != HEAP_BASE) {
+            return 0;
+        }
+        return ctx->pool->free(K2U(addr));
+    }
+
     uint32_t cvm::vmm_memset(uint32_t va, uint32_t value, uint32_t count) {
 #if 0
         uint32_t pa;
@@ -215,7 +226,7 @@ namespace clib {
             if (vmm_get<byte>(src + i) > vmm_get<byte>(dst + i))
                 return 1;
             if (vmm_get<byte>(src + i) < vmm_get<byte>(dst + i))
-                return -1;
+                return 2;
         }
         return 0;
     }
@@ -484,6 +495,17 @@ namespace clib {
                                 return;
                             }
                             break;
+                        case 2:
+                            if (global_state.input_lock == -1) {
+                                cgui::singleton().put_hex((int) ctx->ax);
+                            } else {
+                                if (global_state.input_lock != ctx->id)
+                                    global_state.input_waiting_list.push_back(ctx->id);
+                                ctx->state = CTS_WAIT;
+                                ctx->pc -= INC_PTR;
+                                return;
+                            }
+                            break;
                         case 3:
                             ctx->debug = !ctx->debug;
                             break;
@@ -565,7 +587,11 @@ namespace clib {
                             break;
                         }
                         case 30:
-                            ctx->ax = vmm_malloc((uint32_t) ctx->ax);
+                            if (ctx->ax != 0)
+                                ctx->ax = vmm_malloc((uint32_t) ctx->ax);
+                            break;
+                        case 31:
+                            ctx->ax = vmm_free((uint32_t) ctx->ax);
                             break;
                         case 50:
                             if (ctx->ax)
@@ -605,7 +631,9 @@ namespace clib {
                         }
                             break;
                         default:
-                            printf("unknown interrupt:%d\n", ctx->ax);
+#if LOG_SYSTEM
+                            printf("[SYSTEM] ERR  | unknown interrupt: %d\n", ctx->ax);
+#endif
                             error("unknown interrupt");
                             break;
                     }
@@ -613,11 +641,13 @@ namespace clib {
                     break;
                 }
                 default: {
-                    printf("AX: %08X BP: %08X SP: %08X PC: %08X\n", ctx->ax, ctx->bp, ctx->sp, ctx->pc);
+#if LOG_SYSTEM
+                    printf("[SYSTEM] ERR  | AX: %08X BP: %08X SP: %08X PC: %08X\n", ctx->ax, ctx->bp, ctx->sp, ctx->pc);
                     for (uint32_t j = ctx->sp; j < STACK_BASE + PAGE_SIZE; j += 4) {
-                        printf("[%08X]> %08X\n", j, vmm_get<uint32_t>(j));
+                        printf("[SYSTEM] ERR  | [%08X]> %08X\n", j, vmm_get<uint32_t>(j));
                     }
-                    printf("unknown instruction:%d\n", op);
+                    printf("[SYSTEM] ERR  | unknown instruction: %d\n", op);
+#endif
                     error("unknown instruction");
                 }
             }
@@ -663,7 +693,7 @@ namespace clib {
         // TODO: VALID PE FILE
         uint32_t pa;
         ctx->poolsize = PAGE_SIZE;
-        ctx->mask = ((uint) (ctx->id << 16) & 0x00ff0000);
+        ctx->mask = U2K(ctx->id);
         ctx->entry = pe->entry;
         ctx->stack = STACK_BASE | ctx->mask;
         ctx->data = DATA_BASE | ctx->mask;
@@ -768,7 +798,7 @@ namespace clib {
         {
             PE *pe = (PE *) ctx->file.data();
             ctx->poolsize = PAGE_SIZE;
-            ctx->mask = ((uint) (ctx->id << 16) & 0x00ff0000);
+            ctx->mask = U2K(ctx->id);
             ctx->entry = pe->entry;
             ctx->stack = STACK_BASE | ctx->mask;
             ctx->data = DATA_BASE | ctx->mask;
@@ -796,7 +826,7 @@ namespace clib {
             /* 映射16KB的堆空间 */
             {
                 for (int i = 0; i < ctx->pool->page_size(); ++i) {
-                    vmm_unmap(HEAP_BASE + PAGE_SIZE * i);
+                    vmm_unmap(ctx->heap + PAGE_SIZE * i);
                 }
             }
             {
@@ -958,6 +988,9 @@ namespace clib {
         uint32_t pa;
         auto va = (ctx->heap | ctx->mask) | (PAGE_SIZE * id);
         vmm_map(va, addr, PTE_U | PTE_P | PTE_R);
+#if LOG_SYSTEM
+        printf("[SYSTEM] MEM  | Map: PA= %p, VA= %p\n", (void *) addr, (void *) va);
+#endif
         if (!vmm_ismap(va, &pa)) {
             destroy(ctx->id);
             error("heap alloc: alloc page failed");

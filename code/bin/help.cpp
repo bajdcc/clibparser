@@ -15,11 +15,13 @@ int main(int argc, char **argv) {
     put_string("    help            - command help\n");
     put_string("    sh              - shell\n");
     put_string("    echo            - echo\n");
+    put_string("    pipe            - pipe test\n");
     put_string("\nDIR ==> /usr\n");
     put_string("    test            - test all cases\n");
     put_string("    test_rec        - test recursion\n");
     put_string("    test_fork       - test fork\n");
     put_string("    test_input      - test ui input\n");
     put_string("    test_resize     - test resize screen\n");
+    put_string("    test_malloc     - test malloc and free\n");
     return 0;
 }

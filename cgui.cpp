@@ -224,6 +224,14 @@ namespace clib {
             put_char(*s++);
     }
 
+    void cgui::put_hex(int number) {
+        static char str[256];
+        sprintf(str, "0x%p", (void*) number);
+        auto s = str;
+        while (*s)
+            put_char(*s++);
+    }
+
     void cgui::new_line() {
         ptr_x = 0;
         for (int i = 0; i < rows - 1; ++i) {

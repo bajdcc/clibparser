@@ -75,19 +75,18 @@ namespace clib {
 #define STACK_BASE 0xe0000000
 /* 用户堆基址 */
 #define HEAP_BASE 0xf0000000
-/* 用户堆大小 */
-#define HEAP_SIZE 16
 /* 段掩码 */
 #define SEGMENT_MASK 0x0fffffff
 
 /* 物理内存(单位：16B) */
 #define PHY_MEM (16 * 1024)
-/* 堆内存(单位：16B) */
-#define HEAP_MEM (16 * 1024)
 
 #define PE_MAGIC "ccos"
 
-#define TASK_NUM 128
+#define U2K(addr) ((uint) ((addr) << 20) & 0x0ff00000)
+#define K2U(addr) ((uint) ((addr) & 0x000fffff))
+
+#define TASK_NUM 256
 
     class cvm : public imem {
     public:
@@ -104,7 +103,7 @@ namespace clib {
 
     private:
         // 申请页框
-        uint32_t pmm_alloc();
+        uint32_t pmm_alloc(bool reusable = true);
         // 初始化页表
         void vmm_init();
         // 虚页映射
@@ -121,6 +120,7 @@ namespace clib {
         T vmm_set(uint32_t va, T);
         void vmm_setstr(uint32_t va, const string_t &str);
         uint32_t vmm_malloc(uint32_t size);
+        uint32_t vmm_free(uint32_t addr);
         uint32_t vmm_memset(uint32_t va, uint32_t value, uint32_t count);
         uint32_t vmm_memcmp(uint32_t src, uint32_t dst, uint32_t count);
         template<class T = int>

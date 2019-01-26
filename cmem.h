@@ -27,6 +27,7 @@ namespace clib {
         cmem &operator=(const cmem &) = delete;
 
         uint32_t alloc(uint32_t size);
+        uint32_t free(uint32_t addr);
         int page_size() const;
 
         void copy_from(const cmem &mem);

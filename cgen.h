@@ -124,6 +124,7 @@ namespace clib {
         explicit type_exp_t(const type_t::ref &base);
         symbol_t get_type() const override;
         symbol_t get_base_type() const override;
+        int size(sym_size_t t) const override;
         type_t::ref base;
     };
 
@@ -351,10 +352,12 @@ namespace clib {
         sym_t::ref find_symbol(const string_t &name);
         sym_var_t::ref primary_node(ast_node *node);
 
-        void error(ast_node *, const string_t &, bool info = false) const ;
-        void error(sym_t::ref s, const string_t &) const ;
+        void error(ast_node *, const string_t &, bool info = false) const;
+        void error(sym_t::ref s, const string_t &) const;
 
-        static type_exp_t::ref to_exp(sym_t::ref s);
+        sym_list_t::ref exp_list(const std::vector<sym_t::ref> &exps);
+
+        type_exp_t::ref to_exp(sym_t::ref s);
 
     private:
         std::vector<LEX_T(int)> text; // 代码

@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
             continue;
         if (strcmp(text, "exit") == 0)
             break;
+
         if (strncmp(text, "/sys/", 5) == 0) {
             put_string("[ERROR] Cannot execute system programs!\n");
             continue;
