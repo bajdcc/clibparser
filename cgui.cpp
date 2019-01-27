@@ -39,7 +39,6 @@ namespace clib {
         string_t path;
         if (std::regex_match(name, res, re_path)) {
             path = "../code" + res[0].str() + ".cpp";
-
         } else if (std::regex_match(name, res, re_bin)) {
             path = "../code/bin/" + res[0].str() + ".cpp";
         }
@@ -285,6 +284,58 @@ namespace clib {
         ptr_my = std::min(ptr_my, rows);
     }
 
+    string_t cgui::do_include(const string_t &path, const string_t &code) {
+        static string_t pat_inc{ "#include[ ]+\"([/A-Za-z0-9_-]+?)\"" };
+        static std::regex re_inc(pat_inc);
+        std::smatch res;
+        //迭代器声明
+        auto begin = code.begin();
+        auto end = code.end();
+        std::vector<std::tuple<int, int, string_t>> records;
+        {
+            auto offset = 0;
+            while (std::regex_search(begin, end, res, re_inc)) {
+                if (res[1].str() == path) {
+                    error("cannot include self: " + path);
+                }
+                records.emplace_back(offset + res.position(),
+                                     offset + res.position() + res.length(),
+                                     res[1].str());
+                offset += std::distance(begin, res[0].second);
+                begin = res[0].second;
+            }
+        }
+        if (!records.empty()) {
+            // has #include directive
+            std::stringstream ss;
+            auto prev = 0;
+            std::unordered_set<string_t> s;
+            for (auto &r : records) {
+                auto &start = std::get<0>(r);
+                auto &length= std::get<1>(r);
+                auto &include_path = std::get<2>(r);
+                if (prev < start - prev)
+                    ss << code.substr((uint) prev, (uint) start - prev);
+                if (s.find(include_path) == s.end()) {
+                    ss << do_include(include_path, load_file(include_path));
+                    auto &dep = cache_dep[include_path];
+                    s.insert(dep.begin(), dep.end());
+                }
+                prev = length;
+            }
+            if (prev < code.length())
+                ss << code.substr((uint) prev, code.length() - (uint) prev);
+            cache_code.insert(std::make_pair(path, ss.str()));
+            cache_dep.insert(std::make_pair(path, std::move(s)));
+            return ss.str();
+        } else {
+            // no #include directive
+            cache_code.insert(std::make_pair(path, code));
+            cache_dep.insert(std::make_pair(path, std::unordered_set<string_t>{path}));
+            return code;
+        }
+    }
+
     int cgui::compile(const string_t &path, const std::vector<string_t> &args) {
         if (path.empty())
             return -1;
@@ -294,7 +345,7 @@ namespace clib {
             if (c != cache.end()) {
                 return vm->load(c->second, args);
             }
-            auto code = load_file(path);
+            auto code = do_include(path, load_file(path));
             fail_errno = -2;
             gen.reset();
             auto root = p.parse(code, &gen);

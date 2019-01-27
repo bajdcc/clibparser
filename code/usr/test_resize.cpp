@@ -1,23 +1,5 @@
-int resize(int rows, int cols) {
-    (rows << 16) | cols;
-    interrupt 20;
-}
-int put_char(char c) {
-    c;
-    interrupt 0;
-}
-int put_string(char *text) {
-    while (put_char(*text++));
-}
-int put_int(int number) {
-    number;
-    interrupt 1;
-}
-int sleep(int ms) {
-    ms;
-    interrupt 100;
-    interrupt 101;
-}
+#include "/include/io"
+#include "/include/proc"
 int main(int argc, char **argv) {
     int i;
     put_string("========== [#4 TEST RESIZE] ==========\n");

@@ -1,25 +1,6 @@
-int put_char(char c) {
-    c;
-    interrupt 0;
-}
-int put_string(char *text) {
-    while (put_char(*text++));
-}
-int put_int(int number) {
-    number;
-    interrupt 1;
-}
-int wait() {
-    interrupt 52;
-}
-int exec_char(char c) {
-    c;
-    interrupt 50;
-}
-int exec(char *path) {
-    while (exec_char(*path++));
-    interrupt 51;
-}
+#include "/include/exec"
+#include "/include/io"
+#include "/include/proc"
 int main(int argc, char **argv) {
     exec("/usr/test_rec");    wait();
     exec("/usr/test_fork");   wait();

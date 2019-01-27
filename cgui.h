@@ -54,6 +54,8 @@ namespace clib {
         void new_line();
         inline void draw_char(const char &c);
 
+        string_t do_include(const string_t &path, const string_t &code);
+
         static void error(const string_t &);
 
     public:
@@ -67,6 +69,8 @@ namespace clib {
         cparser p;
         std::unique_ptr<cvm> vm;
         std::unordered_map<string_t, std::vector<byte>> cache;
+        std::unordered_map<string_t, string_t> cache_code;
+        std::unordered_map<string_t, std::unordered_set<string_t>> cache_dep;
         bool running{false};
         bool exited{false};;
         int cycle{ GUI_CYCLES };

@@ -1,22 +1,7 @@
-int put_char(char c) {
-    c;
-    interrupt 0;
-}
-int put_string(char *text) {
-    while (put_char(*text++));
-}
-int put_int(int number) {
-    number;
-    interrupt 1;
-}
-int put_hex(int number) {
-    number;
-    interrupt 2;
-}
-char *malloc(int size) {
-    size;
-    interrupt 30;
-}
+#include "/include/proc"
+#include "/include/io"
+#include "/include/memory"
+#include "/include/string"
 char *malloc_log(int size) {
     put_string("[x] MALLOC: ");
     char *ptr = malloc(size);
@@ -25,10 +10,6 @@ char *malloc_log(int size) {
     put_int(size);
     put_string("\n");
     return ptr;
-}
-int free(int addr) {
-    addr;
-    interrupt 31;
 }
 int free_log(int addr) {
     put_string("[x] FREE:   ");

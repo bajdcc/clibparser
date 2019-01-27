@@ -1,19 +1,5 @@
-int put_char(char c) {
-    c;
-    interrupt 0;
-}
-int put_string(char *text) {
-    while (put_char(*text++));
-}
-int put_int(int number) {
-    number;
-    interrupt 1;
-}
-int sleep(int ms) {
-    ms;
-    interrupt 100;
-    interrupt 101;
-}
+#include "/include/io"
+#include "/include/proc"
 // TEST
 int fib(int i) {
     if (i > 2)
