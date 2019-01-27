@@ -14,6 +14,7 @@
 #include "types.h"
 #include "memory.h"
 #include "cmem.h"
+#include "cvfs.h"
 
 namespace clib {
 
@@ -116,7 +117,7 @@ namespace clib {
 
         template<class T = int>
         T vmm_get(uint32_t va);
-        char *vmm_getstr(uint32_t va);
+        string_t vmm_getstr(uint32_t va);
         template<class T = int>
         T vmm_set(uint32_t va, T);
         void vmm_setstr(uint32_t va, const string_t &str);
@@ -129,13 +130,13 @@ namespace clib {
         template<class T = int>
         T vmm_popstack(uint32_t &sp);
 
-        void init_args(uint32_t *args, uint32_t sp, uint32_t pc, bool converted = false);
-
         void error(const string_t &);
         void exec(int cycle, int &cycles);
         void destroy(int id);
         int exec_file(const string_t &path);
         int fork();
+
+        bool interrupt();
 
     private:
         /* 内核页表 = PTE_SIZE*PAGE_SIZE */
@@ -188,17 +189,19 @@ namespace clib {
             std::vector<uint32_t> stack_mem;
             std::unique_ptr<cmem> pool;
             // SYSTEM CALL
-            std::stringstream exec_path;
             std::chrono::system_clock::time_point record_now;
             decimal waiting_ms;
             int input_redirect;
             int output_redirect;
             bool input_stop;
             std::deque<char> input_queue;
+            // VFS
+            string_t pwd;
         };
         context_t *ctx{nullptr};
         int available_tasks{0};
         std::array<context_t, TASK_NUM> tasks;
+        cvfs fs;
 
     public:
         static struct global_state_t {

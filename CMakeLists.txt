@@ -16,7 +16,8 @@ add_executable(clibparser main.cpp
         cgen.h cgen.cpp
         cvm.h cvm.cpp
         cgui.h cgui.cpp
-        cmem.h cmem.cpp)
+        cmem.h cmem.cpp
+        cvfs.h cvfs.cpp)
 
 add_executable(clibparser-test test.cpp
         cast.h cast.cpp
@@ -29,4 +30,5 @@ add_executable(clibparser-test test.cpp
         cgen.h cgen.cpp
         cvm.h cvm.cpp
         cgui.h cgui.cpp
-        cmem.h cmem.cpp)
+        cmem.h cmem.cpp
+        cvfs.h cvfs.cpp)

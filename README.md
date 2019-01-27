@@ -188,13 +188,24 @@ Shell界面：
     - [ ] 中断机制
     - [ ] 虚拟文件系统
     - [x] 命令行管道
-- [ ] 库函数
-    - [x] malloc
-    - [x] free
+- [ ] 库代码文件
+    - [x] exec
+    - [x] fs
+    - [x] io
+    - [x] memory
+    - [x] proc
+    - [x] string
 - [ ] 用户例程
     - [x] Shell(`sh`)
     - [x] 测试用例(`/usr/test`)
     - [x] echo
+    - [x] VFS: pwd, whoami
+- [ ] 虚拟文件系统
+    - [x] 数据结构
+    - [x] 账户
+    - [ ] 读取
+    - [ ] 存储
+    - [ ] 链接
 - [ ] 图形用户界面
     - [x] 用OpenGL创建窗口
     - [x] 实现控制台输出接口

@@ -16,6 +16,7 @@ namespace clib {
             std::make_tuple(ex_gen, "GEN ERROR"),
             std::make_tuple(ex_gui, "GUI ERROR"),
             std::make_tuple(ex_mem, "MEMORY ERROR"),
+            std::make_tuple(ex_vfs, "VFS ERROR"),
     };
 
     const string_t &ex_str(ex_t t) {

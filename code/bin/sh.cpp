@@ -3,6 +3,32 @@
 #include "/include/memory"
 #include "/include/proc"
 #include "/include/string"
+int exec_single(char *text, int *total) {
+    while (*text == ' ')
+        text++;
+    if (strncmp(text, "/sys/", 5) == 0) {
+        return -3;
+    }
+    (*total)++;
+    return exec_sleep(text);
+}
+int exec_start(char *text, int *total) {
+    char *c = strchr(text, '|');
+    if (c == (char *) 0) {
+        return exec_single(text, total);
+    } else {
+        *c++ = '\0';
+        if (*c == '\0')
+            return exec_single(text, total);
+        int right = exec_start(c, total);
+        if (right < 0)
+            return right;
+        int left = exec_single(text, total);
+        exec_connect(left, right);
+        exec_wakeup(right);
+        return left;
+    }
+}
 int main(int argc, char **argv) {
     int i, j, total, state = 1, direct_input = input_state();
     char *text = malloc(100);
