@@ -28,6 +28,7 @@ namespace clib {
     // 结点
     struct vfs_node {
         using ref = std::shared_ptr<vfs_node>;
+        using weak_ref = std::shared_ptr<vfs_node>;
         vfs_file_t type;
         uint32_t size;
         vfs_mod mod[3];
@@ -38,6 +39,7 @@ namespace clib {
             time_t modify;
         } time;
         std::map<string_t, ref> children;
+        weak_ref parent;
     };
 
     struct vfs_user {
@@ -51,10 +53,17 @@ namespace clib {
         cvfs();
 
         void reset();
-        string_t user() const;
+        string_t get_user() const;
+        string_t get_pwd() const;
+        int cd(const string_t &path);
+        int mkdir(const string_t &path);
 
     private:
         vfs_node::ref new_node(vfs_file_t type);
+        vfs_node::ref get_node(const string_t &path) const;
+        int _mkdir(const string_t &path);
+
+        string_t combine(const string_t &pwd, const string_t &path) const;
 
         void error(const string_t &);
 
@@ -62,6 +71,7 @@ namespace clib {
         std::vector<vfs_user> account;
         std::shared_ptr<vfs_node> root;
         int current_user;
+        string_t pwd;
     };
 }
 

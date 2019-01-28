@@ -603,7 +603,6 @@ namespace clib {
         ctx->output_redirect = -1;
         ctx->input_queue.clear();
         ctx->input_stop = false;
-        ctx->pwd = "/";
         available_tasks++;
         auto pid = ctx->id;
         ctx = old_ctx;
@@ -700,13 +699,14 @@ namespace clib {
         return args.front();
     }
 
-    static void trim(string_t &str) {
+    string_t trim(string_t str) {
         string_t::size_type pos = str.find_last_not_of(' ');
         if (pos != string_t::npos) {
             str.erase(pos + 1);
             pos = str.find_first_not_of(' ');
             if (pos != string_t::npos) str.erase(0, pos);
         } else str.erase(str.begin(), str.end());
+        return str;
     }
 
     int cvm::exec_file(const string_t &path) {
@@ -825,7 +825,6 @@ namespace clib {
         ctx->input_redirect = old_ctx->input_redirect;
         ctx->output_redirect = old_ctx->output_redirect;
         ctx->input_stop = old_ctx->input_stop;
-        ctx->pwd = old_ctx->pwd;
         available_tasks++;
         auto pid = ctx->id;
         ctx = old_ctx;
@@ -897,6 +896,9 @@ namespace clib {
                 break;
             case 3:
                 ctx->debug = !ctx->debug;
+                break;
+            case 5:
+                vmm_setstr((uint32_t) ctx->ax, global_state.hostname);
                 break;
             case 10: {
                 if (ctx->input_redirect != -1) {
@@ -1046,10 +1048,16 @@ namespace clib {
                 break;
             }
             case 60:
-                vmm_setstr((uint32_t) ctx->ax, ctx->pwd);
+                vmm_setstr((uint32_t) ctx->ax, fs.get_pwd());
                 break;
             case 61:
-                vmm_setstr((uint32_t) ctx->ax, fs.user());
+                vmm_setstr((uint32_t) ctx->ax, fs.get_user());
+                break;
+            case 62:
+                ctx->ax = fs.cd(trim(vmm_getstr((uint32_t) ctx->ax)));
+                break;
+            case 63:
+                ctx->ax = fs.mkdir(trim(vmm_getstr((uint32_t) ctx->ax)));
                 break;
             case 100:
                 ctx->record_now = std::chrono::high_resolution_clock::now();

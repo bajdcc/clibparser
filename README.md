@@ -195,11 +195,13 @@ Shell界面：
     - [x] memory
     - [x] proc
     - [x] string
+    - [x] sys
 - [ ] 用户例程
     - [x] Shell(`sh`)
     - [x] 测试用例(`/usr/test`)
     - [x] echo
-    - [x] VFS: pwd, whoami
+    - [x] pwd, whoami
+    - [x] VFS: cd, mkdir
 - [ ] 虚拟文件系统
     - [x] 数据结构
     - [x] 账户

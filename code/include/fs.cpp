@@ -13,3 +13,11 @@ int whoami(char *s) {
     s;
     interrupt 61;
 }
+int cd(char *s) {
+    s;
+    interrupt 62;
+}
+int mkdir(char *s) {
+    s;
+    interrupt 63;
+}

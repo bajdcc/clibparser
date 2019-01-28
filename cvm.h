@@ -195,8 +195,6 @@ namespace clib {
             int output_redirect;
             bool input_stop;
             std::deque<char> input_queue;
-            // VFS
-            string_t pwd;
         };
         context_t *ctx{nullptr};
         int available_tasks{0};
@@ -210,6 +208,7 @@ namespace clib {
             std::string input_content;
             bool input_success{false};
             int input_read_ptr{-1};
+            string_t hostname{"ccos"};
         } global_state;
     };
 }
