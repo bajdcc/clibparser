@@ -25,7 +25,15 @@ int touch(char *s) {
     s;
     interrupt 64;
 }
-int cat(char *s) {
+int open(char *s) {
     s;
     interrupt 65;
+}
+int read(int handle) {
+    handle;
+    interrupt 66;
+}
+int close(int handle) {
+    handle;
+    interrupt 67;
 }

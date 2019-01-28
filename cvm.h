@@ -89,6 +89,7 @@ namespace clib {
 #define K2U(addr) ((uint) ((addr) & 0x000fffff))
 
 #define TASK_NUM 256
+#define HANDLE_NUM 1024
 
     class cvm : public imem {
     public:
@@ -103,6 +104,7 @@ namespace clib {
 
         void map_page(uint32_t addr, uint32_t id) override;
         bool read_vfs(const string_t &path, std::vector<byte> &data) const;
+        bool write_vfs(const string_t &path, const std::vector<byte> &data);
 
     private:
         // 申请页框
@@ -139,6 +141,15 @@ namespace clib {
 
         bool interrupt();
 
+        enum handle_type {
+            h_none,
+            h_file,
+        };
+
+        int new_pid();
+        int new_handle(handle_type);
+        int destroy_handle(int handle);
+
     private:
         /* 内核页表 = PTE_SIZE*PAGE_SIZE */
         pde_t *pgd_kern;
@@ -148,7 +159,7 @@ namespace clib {
         memory_pool<PHY_MEM> memory;
         /* 页表 */
         pde_t *pgdir{nullptr};
-        int ids{0};
+        int pids{0};
 
         enum ctx_flag_t {
             CTX_VALID = 1 << 0,
@@ -196,11 +207,26 @@ namespace clib {
             int output_redirect;
             bool input_stop;
             std::deque<char> input_queue;
+            std::unordered_set<int> handles;
         };
         context_t *ctx{nullptr};
         int available_tasks{0};
         std::array<context_t, TASK_NUM> tasks;
         cvfs fs;
+
+        struct handle_t {
+            handle_type type;
+            string_t name;
+            union {
+                struct {
+                    vfs_node::weak_ref *node;
+                    int index;
+                } file;
+            } data;
+        };
+        int handle_ids{0};
+        int available_handles{0};
+        std::array<handle_t, HANDLE_NUM> handles;
 
     public:
         static struct global_state_t {

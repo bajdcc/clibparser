@@ -21,8 +21,6 @@ char **g_argv;
 namespace clib {
 
 #define INC_PTR 4
-#define VMM_ARG(s, p) ((s) + p * INC_PTR)
-#define VMM_ARGS(t, n) vmm_get(t - (n) * INC_PTR)
 
     cvm::global_state_t cvm::global_state;
 
@@ -61,6 +59,9 @@ namespace clib {
             tasks[i].id = i;
             tasks[i].parent = -1;
             tasks[i].state = CTS_DEAD;
+        }
+        for (i = 0; i < HANDLE_NUM; ++i) {
+            handles[i].type = h_none;
         }
     }
 
@@ -491,22 +492,9 @@ namespace clib {
     }
 
     int cvm::load(const std::vector<byte> &file, const std::vector<string_t> &args) {
-        if (available_tasks >= TASK_NUM) {
-            error("max process num!");
-        }
         auto old_ctx = ctx;
-        auto end = TASK_NUM + ids;
-        for (int i = ids; i < end; ++i) {
-            auto j = i % TASK_NUM;
-            if (!(tasks[j].flag & CTX_VALID)) {
-                tasks[j].flag |= CTX_VALID;
-                ctx = &tasks[j];
-                ids = (j + 1) % TASK_NUM;
-                ctx->id = i;
-                ctx->file = file;
-                break;
-            }
-        }
+        new_pid();
+        ctx->file = file;
 #if LOG_SYSTEM
         printf("[SYSTEM] PROC | Create: PID= #%d\n", ctx->id);
 #endif
@@ -672,6 +660,10 @@ namespace clib {
             ctx->allocation.clear();
             ctx->pool.reset();
             ctx->flag = 0;
+            for (auto &h : ctx->handles) {
+                destroy_handle(h);
+            }
+            ctx->handles.clear();
             if (ctx->parent != -1) {
                 auto &parent = tasks[ctx->parent];
                 parent.child.erase(ctx->id);
@@ -728,22 +720,9 @@ namespace clib {
     }
 
     int cvm::fork() {
-        if (available_tasks >= TASK_NUM) {
-            error("max process num!");
-        }
         auto old_ctx = ctx;
-        auto end = TASK_NUM + ids;
-        for (int i = ids; i < end; ++i) {
-            auto j = i % TASK_NUM;
-            if (!(tasks[j].flag & CTX_VALID)) {
-                tasks[j].flag |= CTX_VALID;
-                ctx = &tasks[j];
-                ids = (j + 1) % TASK_NUM;
-                ctx->id = i;
-                ctx->file = old_ctx->file;
-                break;
-            }
-        }
+        new_pid();
+        ctx->file = old_ctx->file;
 #if LOG_SYSTEM
         printf("[SYSTEM] PROC | Fork: Parent= #%d, Child= #%d\n", old_ctx->id, ctx->id);
 #endif
@@ -781,7 +760,6 @@ namespace clib {
         {
             auto size = PAGE_SIZE;
             auto data_size = pe->data_len;
-            auto data_start = (char *) &pe->data;
             for (uint32_t i = 0, start = 0; start < data_size; ++i, start += size) {
                 auto new_page = (uint32_t) pmm_alloc();
                 ctx->data_mem.push_back(new_page);
@@ -825,6 +803,7 @@ namespace clib {
         ctx->input_redirect = old_ctx->input_redirect;
         ctx->output_redirect = old_ctx->output_redirect;
         ctx->input_stop = old_ctx->input_stop;
+        ctx->handles = old_ctx->handles;
         available_tasks++;
         auto pid = ctx->id;
         ctx = old_ctx;
@@ -846,6 +825,63 @@ namespace clib {
 
     bool cvm::read_vfs(const string_t &path, std::vector<byte> &data) const {
         return fs.read_vfs(path, data);
+    }
+
+    bool cvm::write_vfs(const string_t &path, const std::vector<byte> &data) {
+        return fs.write_vfs(path, data);
+    }
+
+    int cvm::new_pid() {
+        if (available_tasks >= TASK_NUM) {
+            error("max process num!");
+        }
+        auto end = TASK_NUM + pids;
+        for (int i = pids; i < end; ++i) {
+            auto j = i % TASK_NUM;
+            if (!(tasks[j].flag & CTX_VALID)) {
+                tasks[j].flag |= CTX_VALID;
+                ctx = &tasks[j];
+                pids = (j + 1) % TASK_NUM;
+                ctx->id = j;
+                return j;
+            }
+        }
+        error("max process num!");
+    }
+
+    int cvm::new_handle(cvm::handle_type type) {
+        if (available_handles >= HANDLE_NUM)
+            error("max handle num!");
+        auto end = HANDLE_NUM + handle_ids;
+        for (int i = handle_ids; i < end; ++i) {
+            auto j = i % HANDLE_NUM;
+            if (handles[j].type == h_none) {
+                handles[j].type = type;
+                handle_ids = (j + 1) % HANDLE_NUM;
+                available_handles++;
+                ctx->handles.insert(j);
+                return j;
+            }
+        }
+        error("max handle num!");
+    }
+
+    int cvm::destroy_handle(int handle) {
+        if (handles[handle].type != h_none) {
+            auto h = &handles[handle];
+            if (h->type == h_file) {
+                auto &f = h->data.file;
+                auto d = f.node->lock();
+                if (d)
+                    d->refs--;
+                delete f.node;
+            }
+            h->type = h_none;
+            ctx->handles.erase(handle);
+            available_handles--;
+        } else {
+            assert(!"destroy handle failed!");
+        }
     }
 
     bool cvm::interrupt() {
@@ -1065,6 +1101,56 @@ namespace clib {
                 break;
             case 64:
                 ctx->ax = fs.touch(trim(vmm_getstr((uint32_t) ctx->ax)));
+                break;
+            case 65: {
+                auto path = trim(vmm_getstr((uint32_t) ctx->ax));
+                auto node = fs.get_node(path);
+                if (!node) {
+                    ctx->ax = -1;
+                    break;
+                }
+                if (node->type != fs_file) {
+                    ctx->ax = -2;
+                    break;
+                }
+                if (node->locked) {
+                    ctx->ax = -3;
+                    break;
+                }
+                node->refs++;
+                auto h = new_handle(h_file);
+                handles[h].name = path;
+                handles[h].data.file.node = new vfs_node::weak_ref(node);
+                handles[h].data.file.index = 0;
+                ctx->ax = h;
+            }
+                break;
+            case 66: {
+                auto h = ctx->ax;
+                if (ctx->handles.find(h) != ctx->handles.end()) {
+                    auto &f = handles[h].data.file;
+                    auto d = f.node->lock();
+                    if (d) {
+                        if (f.index < d->data.size())
+                            ctx->ax = (int) d->data[f.index++];
+                        else
+                            ctx->ax = -1;
+                    } else {
+                        ctx->ax = -2;
+                    }
+                } else {
+                    ctx->ax = -3;
+                }
+            }
+                break;
+            case 67: {
+                auto h = ctx->ax;
+                if (ctx->handles.find(h) != ctx->handles.end()) {
+                    destroy_handle(h);
+                } else {
+                    ctx->ax = -1;
+                }
+            }
                 break;
             case 100:
                 ctx->record_now = std::chrono::high_resolution_clock::now();

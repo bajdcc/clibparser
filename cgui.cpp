@@ -48,7 +48,10 @@ namespace clib {
         if (t) {
             std::stringstream buffer;
             buffer << t.rdbuf();
-            return buffer.str();
+            auto str = buffer.str();
+            std::vector<byte> data(str.begin(), str.end());
+            vm->write_vfs(name, data);
+            return str;
         }
         std::vector<byte> data;
         if (vm->read_vfs(name, data)) {

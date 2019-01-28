@@ -47,6 +47,8 @@ namespace clib {
         node->time.access = ctime;
         node->time.modify = ctime;
         node->owner = current_user;
+        node->refs = 0;
+        node->locked = false;
         return node;
     }
 
@@ -66,6 +68,21 @@ namespace clib {
             return false;
         data.resize(node->data.size());
         std::copy(node->data.begin(), node->data.end(), data.begin());
+        return true;
+    }
+
+    bool cvfs::write_vfs(const string_t &path, const std::vector<byte> &data) {
+        auto node = get_node(path);
+        if (!node) {
+            touch(path);
+            node = get_node(path);
+            if (!node)
+                return false;
+        }
+        if (node->type != fs_file)
+            return false;
+        node->data.resize(data.size());
+        std::copy(data.begin(), data.end(), node->data.begin());
         return true;
     }
 
@@ -186,7 +203,7 @@ namespace clib {
             vfs_node::ref cur;
             auto s = _mkdir(p, cur);
             if (s == 0) { // new dir
-                cur->type = fs_file;
+                cur->type = fs_file;_touch(cur);
                 return -1;
             } else { // exists
                 _touch(cur);
@@ -209,17 +226,5 @@ namespace clib {
         node->time.create = ctime;
         node->time.access = ctime;
         node->time.modify = ctime;
-    }
-
-    int cvfs::cat(const string_t &path, std::vector<byte> &data) const {
-        auto p = combine(pwd, path);
-        auto node = get_node(p);
-        if (!node)
-            return -1;
-        if (node->type != fs_file)
-            return -2;
-        data.resize(node->data.size());
-        std::copy(node->data.begin(), node->data.end(), data.begin());
-        return 0;
     }
 }
