@@ -50,6 +50,38 @@ namespace clib {
         string_t password;
     };
 
+    class vfs_node_dec {
+    public:
+        virtual bool available() const = 0;
+        virtual int index() const = 0;
+        virtual void advance();
+        virtual ~vfs_node_dec() = default;
+    protected:
+        int idx{0};
+    };
+
+    class cvfs;
+    class vfs_node_solid : public vfs_node_dec {
+        friend class cvfs;
+    public:
+        ~vfs_node_solid() override;
+        virtual bool available() const override;
+        virtual int index() const override;
+    private:
+        explicit vfs_node_solid(const vfs_node::ref &ref);
+        vfs_node::weak_ref node;
+    };
+
+    class vfs_node_cached : public vfs_node_dec {
+        friend class cvfs;
+    public:
+        virtual bool available() const override;
+        virtual int index() const override;
+    private:
+        explicit vfs_node_cached(const string_t &str);
+        string_t cache;
+    };
+
     class cvfs {
     public:
         cvfs();
@@ -57,8 +89,7 @@ namespace clib {
         void reset();
         string_t get_user() const;
         string_t get_pwd() const;
-        string_t translate(const string_t &path) const;
-        vfs_node::ref get_node(const string_t &path) const;
+        int get(const string_t &path, vfs_node_dec **dec) const;
         bool read_vfs(const string_t &path, std::vector<byte> &data) const;
         bool write_vfs(const string_t &path, const std::vector<byte> &data);
 
@@ -68,6 +99,7 @@ namespace clib {
 
     private:
         vfs_node::ref new_node(vfs_file_t type);
+        vfs_node::ref get_node(const string_t &path) const;
         int _mkdir(const string_t &path, vfs_node::ref &cur);
         void _touch(vfs_node::ref &node);
 

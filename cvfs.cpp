@@ -9,6 +9,45 @@
 
 namespace clib {
 
+    void vfs_node_dec::advance() {
+        if (available())
+            idx++;
+    }
+
+    vfs_node_solid::vfs_node_solid(const vfs_node::ref &ref) : node(ref) {
+        node.lock()->refs++;
+    }
+
+    vfs_node_solid::~vfs_node_solid() {
+        node.lock()->refs--;
+    }
+
+    bool vfs_node_solid::available() const {
+        auto n = node.lock();
+        if (!n)
+            return false;
+        return idx < n->data.size();
+    }
+
+    int vfs_node_solid::index() const {
+        auto n = node.lock();
+        if (!n)
+            return -2;
+        if (idx < n->data.size())
+            return n->data[idx];
+        return -1;
+    }
+
+    vfs_node_cached::vfs_node_cached(const string_t &str) : cache(str) {}
+
+    bool vfs_node_cached::available() const {
+        return idx < cache.length();
+    }
+
+    int vfs_node_cached::index() const {
+        return idx < cache.length() ? cache[idx] : -1;
+    }
+
     cvfs::cvfs() {
         reset();
     }
@@ -60,8 +99,18 @@ namespace clib {
         return pwd;
     }
 
-    string_t cvfs::translate(const string_t &path) const {
-        return combine(pwd, path);
+    int cvfs::get(const string_t &path, vfs_node_dec **dec) const {
+        auto p = combine(pwd, path);
+        auto node = get_node(p);
+        if (!node)
+            return -1;
+        if (node->type == fs_file) {
+            if (node->locked)
+                return -3;
+            *dec = new vfs_node_solid(node);
+            return 0;
+        }
+        return -2;
     }
 
     bool cvfs::read_vfs(const string_t &path, std::vector<byte> &data) const {

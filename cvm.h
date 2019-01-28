@@ -218,10 +218,7 @@ namespace clib {
             handle_type type;
             string_t name;
             union {
-                struct {
-                    vfs_node::weak_ref *node;
-                    int index;
-                } file;
+                vfs_node_dec *file;
             } data;
         };
         int handle_ids{0};

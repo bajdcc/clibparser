@@ -870,11 +870,7 @@ namespace clib {
         if (handles[handle].type != h_none) {
             auto h = &handles[handle];
             if (h->type == h_file) {
-                auto &f = h->data.file;
-                auto d = f.node->lock();
-                if (d)
-                    d->refs--;
-                delete f.node;
+                delete h->data.file;
             }
             h->type = h_none;
             ctx->handles.erase(handle);
@@ -1104,40 +1100,25 @@ namespace clib {
                 break;
             case 65: {
                 auto path = trim(vmm_getstr((uint32_t) ctx->ax));
-                auto node = fs.get_node(fs.translate(path));
-                if (!node) {
-                    ctx->ax = -1;
+                vfs_node_dec *dec;
+                auto s = fs.get(path, &dec);
+                if (s != 0) {
+                    ctx->ax = s;
                     break;
                 }
-                if (node->type != fs_file) {
-                    ctx->ax = -2;
-                    break;
-                }
-                if (node->locked) {
-                    ctx->ax = -3;
-                    break;
-                }
-                node->refs++;
                 auto h = new_handle(h_file);
                 handles[h].name = path;
-                handles[h].data.file.node = new vfs_node::weak_ref(node);
-                handles[h].data.file.index = 0;
+                handles[h].data.file = dec;
                 ctx->ax = h;
             }
                 break;
             case 66: {
                 auto h = ctx->ax;
                 if (ctx->handles.find(h) != ctx->handles.end()) {
-                    auto &f = handles[h].data.file;
-                    auto d = f.node->lock();
-                    if (d) {
-                        if (f.index < d->data.size())
-                            ctx->ax = (int) d->data[f.index++];
-                        else
-                            ctx->ax = -1;
-                    } else {
-                        ctx->ax = -2;
-                    }
+                    auto dec = handles[h].data.file;
+                    ctx->ax = dec->index();
+                    if (ctx->ax >= 0)
+                        dec->advance();
                 } else {
                     ctx->ax = -3;
                 }
