@@ -844,6 +844,10 @@ namespace clib {
         }
     }
 
+    bool cvm::read_vfs(const string_t &path, std::vector<byte> &data) const {
+        return fs.read_vfs(path, data);
+    }
+
     bool cvm::interrupt() {
         switch (vmm_get(ctx->pc)) {
             case 0:
@@ -1058,6 +1062,9 @@ namespace clib {
                 break;
             case 63:
                 ctx->ax = fs.mkdir(trim(vmm_getstr((uint32_t) ctx->ax)));
+                break;
+            case 64:
+                ctx->ax = fs.touch(trim(vmm_getstr((uint32_t) ctx->ax)));
                 break;
             case 100:
                 ctx->record_now = std::chrono::high_resolution_clock::now();

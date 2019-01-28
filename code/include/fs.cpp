@@ -21,3 +21,11 @@ int mkdir(char *s) {
     s;
     interrupt 63;
 }
+int touch(char *s) {
+    s;
+    interrupt 64;
+}
+int cat(char *s) {
+    s;
+    interrupt 65;
+}

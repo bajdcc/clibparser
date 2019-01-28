@@ -50,6 +50,10 @@ namespace clib {
             buffer << t.rdbuf();
             return buffer.str();
         }
+        std::vector<byte> data;
+        if (vm->read_vfs(name, data)) {
+            return string_t(data.begin(), data.end());
+        }
         error("file not exists: " + name);
     }
 

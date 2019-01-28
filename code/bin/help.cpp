@@ -6,10 +6,11 @@ int main(int argc, char **argv) {
     put_string("    sh              - shell\n");
     put_string("    echo            - echo\n");
     put_string("    pipe            - pipe test\n");
+    put_string("    whoami          - show user name\n");
     put_string("    cd              - change dir\n");
     put_string("    mkdir           - create dir\n");
     put_string("    pwd             - show current dir\n");
-    put_string("    whoami          - show user name\n");
+    put_string("    touch           - touch file\n");
     put_string("\nDIR ==> /usr\n");
     put_string("    test            - test all cases\n");
     put_string("    test_rec        - test recursion\n");

@@ -102,6 +102,7 @@ namespace clib {
         bool run(int cycle, int &cycles);
 
         void map_page(uint32_t addr, uint32_t id) override;
+        bool read_vfs(const string_t &path, std::vector<byte> &data) const;
 
     private:
         // 申请页框

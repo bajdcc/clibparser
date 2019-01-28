@@ -34,8 +34,6 @@ namespace clib {
     vfs_node::ref cvfs::new_node(vfs_file_t type) {
         auto node = std::make_shared<vfs_node>();
         node->type = type;
-        node->size = 0;
-        node->size = 0;
         if (type == fs_file) {
             mod_copy(node->mod, "rw-rw-rw-");
         } else if (type == fs_dir) {
@@ -58,6 +56,17 @@ namespace clib {
 
     string_t cvfs::get_pwd() const {
         return pwd;
+    }
+
+    bool cvfs::read_vfs(const string_t &path, std::vector<byte> &data) const {
+        auto node = get_node(path);
+        if (!node)
+            return false;
+        if (node->type != fs_file)
+            return false;
+        data.resize(node->data.size());
+        std::copy(node->data.begin(), node->data.end(), data.begin());
+        return true;
     }
 
     string_t get_parent(const string_t &path) {
@@ -114,18 +123,18 @@ namespace clib {
         return 0;
     }
 
-    int cvfs::_mkdir(const string_t &path) {
+    int cvfs::_mkdir(const string_t &path, vfs_node::ref &cur) {
         std::vector<string_t> paths;
         split_path(path, paths);
-        auto cur = root;
+        cur = root;
         bool update = false;
         for (auto &p : paths) {
             if (!p.empty()) {
                 auto f = cur->children.find(p);
                 if (f != cur->children.end()) {
+                    cur = f->second;
                     if (f->second->type != fs_dir)
                         return -2;
-                    cur = f->second;
                 } else {
                     if (!update)
                         update = true;
@@ -143,7 +152,8 @@ namespace clib {
 
     int cvfs::mkdir(const string_t &path) {
         auto p = combine(pwd, path);
-        return _mkdir(p);
+        vfs_node::ref cur;
+        return _mkdir(p, cur);
     }
 
     string_t cvfs::combine(const string_t &pwd, const string_t &path) const {
@@ -167,5 +177,49 @@ namespace clib {
             }
         }
         return res;
+    }
+
+    int cvfs::touch(const string_t &path) {
+        auto p = combine(pwd, path);
+        auto node = get_node(p);
+        if (!node) {
+            vfs_node::ref cur;
+            auto s = _mkdir(p, cur);
+            if (s == 0) { // new dir
+                cur->type = fs_file;
+                return -1;
+            } else { // exists
+                _touch(cur);
+                return 0;
+            }
+        }
+        switch (node->type) {
+            case fs_file:
+            case fs_dir:
+                _touch(node);
+                return 0;
+            default:
+                return -2;
+        }
+    }
+
+    void cvfs::_touch(vfs_node::ref &node) {
+        time_t ctime;
+        time(&ctime);
+        node->time.create = ctime;
+        node->time.access = ctime;
+        node->time.modify = ctime;
+    }
+
+    int cvfs::cat(const string_t &path, std::vector<byte> &data) const {
+        auto p = combine(pwd, path);
+        auto node = get_node(p);
+        if (!node)
+            return -1;
+        if (node->type != fs_file)
+            return -2;
+        data.resize(node->data.size());
+        std::copy(node->data.begin(), node->data.end(), data.begin());
+        return 0;
     }
 }

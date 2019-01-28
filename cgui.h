@@ -61,7 +61,7 @@ namespace clib {
     public:
         static cgui &singleton();
 
-        static string_t load_file(const string_t &name);
+        string_t load_file(const string_t &name);
 
     private:
         std::vector<char> buffer;
