@@ -60,6 +60,10 @@ namespace clib {
         return pwd;
     }
 
+    string_t cvfs::translate(const string_t &path) const {
+        return combine(pwd, path);
+    }
+
     bool cvfs::read_vfs(const string_t &path, std::vector<byte> &data) const {
         auto node = get_node(path);
         if (!node)
@@ -80,6 +84,8 @@ namespace clib {
                 return false;
         }
         if (node->type != fs_file)
+            return false;
+        if (!node->data.empty())
             return false;
         node->data.resize(data.size());
         std::copy(data.begin(), data.end(), node->data.begin());

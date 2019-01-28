@@ -1104,7 +1104,7 @@ namespace clib {
                 break;
             case 65: {
                 auto path = trim(vmm_getstr((uint32_t) ctx->ax));
-                auto node = fs.get_node(path);
+                auto node = fs.get_node(fs.translate(path));
                 if (!node) {
                     ctx->ax = -1;
                     break;

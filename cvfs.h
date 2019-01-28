@@ -57,6 +57,7 @@ namespace clib {
         void reset();
         string_t get_user() const;
         string_t get_pwd() const;
+        string_t translate(const string_t &path) const;
         vfs_node::ref get_node(const string_t &path) const;
         bool read_vfs(const string_t &path, std::vector<byte> &data) const;
         bool write_vfs(const string_t &path, const std::vector<byte> &data);

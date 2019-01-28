@@ -50,7 +50,10 @@ namespace clib {
             buffer << t.rdbuf();
             auto str = buffer.str();
             std::vector<byte> data(str.begin(), str.end());
-            vm->write_vfs(name, data);
+            if (name[0] != '/')
+                vm->write_vfs("/bin/" + name, data);
+            else
+                vm->write_vfs(name, data);
             return str;
         }
         std::vector<byte> data;
