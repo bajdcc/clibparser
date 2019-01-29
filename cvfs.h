@@ -23,6 +23,12 @@ namespace clib {
     enum vfs_file_t {
         fs_file,
         fs_dir,
+        fs_func,
+    };
+
+    class vfs_func_t {
+    public:
+        virtual string_t callback(const string_t &path) = 0;
     };
 
     // 结点
@@ -41,6 +47,7 @@ namespace clib {
         bool locked;
         std::map<string_t, ref> children;
         std::vector<byte> data;
+        vfs_func_t *callback;
         weak_ref parent;
     };
 
@@ -65,8 +72,8 @@ namespace clib {
         friend class cvfs;
     public:
         ~vfs_node_solid() override;
-        virtual bool available() const override;
-        virtual int index() const override;
+        bool available() const override;
+        int index() const override;
     private:
         explicit vfs_node_solid(const vfs_node::ref &ref);
         vfs_node::weak_ref node;
@@ -75,8 +82,8 @@ namespace clib {
     class vfs_node_cached : public vfs_node_dec {
         friend class cvfs;
     public:
-        virtual bool available() const override;
-        virtual int index() const override;
+        bool available() const override;
+        int index() const override;
     private:
         explicit vfs_node_cached(const string_t &str);
         string_t cache;
@@ -89,13 +96,18 @@ namespace clib {
         void reset();
         string_t get_user() const;
         string_t get_pwd() const;
-        int get(const string_t &path, vfs_node_dec **dec) const;
+        int get(const string_t &path, vfs_node_dec **dec = nullptr, vfs_func_t *f = nullptr) const;
         bool read_vfs(const string_t &path, std::vector<byte> &data) const;
         bool write_vfs(const string_t &path, const std::vector<byte> &data);
 
         int cd(const string_t &path);
         int mkdir(const string_t &path);
         int touch(const string_t &path);
+        int func(const string_t &path, vfs_func_t *f);
+        int rm(const string_t &path);
+
+        static void split_path(const string_t &path, std::vector<string_t> &args);
+        static string_t get_filename(const string_t &path);
 
     private:
         vfs_node::ref new_node(vfs_file_t type);
@@ -106,6 +118,8 @@ namespace clib {
         string_t combine(const string_t &pwd, const string_t &path) const;
 
         void error(const string_t &);
+
+        static time_t now();
 
     private:
         std::vector<vfs_user> account;

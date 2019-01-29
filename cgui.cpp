@@ -353,7 +353,7 @@ namespace clib {
         try {
             auto c = cache.find(path);
             if (c != cache.end()) {
-                return vm->load(c->second, args);
+                return vm->load(path, c->second, args);
             }
             auto code = do_include(path, load_file(path));
             fail_errno = -2;
@@ -365,7 +365,7 @@ namespace clib {
             gen.gen(root);
             auto file = gen.file();
             cache.insert(std::make_pair(path, file));
-            return vm->load(file, args);
+            return vm->load(path, file, args);
         } catch (const cexception &e) {
             gen.reset();
             std::cout << "[SYSTEM] ERR  | PATH: " << path << ", ";

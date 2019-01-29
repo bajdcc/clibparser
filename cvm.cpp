@@ -6,6 +6,7 @@
 #include <cassert>
 #include <memory.h>
 #include <cstring>
+#include <regex>
 #include "cvm.h"
 #include "cgen.h"
 #include "cexception.h"
@@ -63,6 +64,8 @@ namespace clib {
         for (i = 0; i < HANDLE_NUM; ++i) {
             handles[i].type = h_none;
         }
+
+        fs.mkdir("/proc");
     }
 
     // 虚页映射
@@ -491,7 +494,7 @@ namespace clib {
         throw cexception(ex_vm, str);
     }
 
-    int cvm::load(const std::vector<byte> &file, const std::vector<string_t> &args) {
+    int cvm::load(const string_t &path, const std::vector<byte> &file, const std::vector<string_t> &args) {
         auto old_ctx = ctx;
         new_pid();
         ctx->file = file;
@@ -511,6 +514,7 @@ namespace clib {
         ctx->pool = std::make_unique<cmem>(this);
         ctx->flag |= CTX_KERNEL;
         ctx->state = CTS_RUNNING;
+        ctx->path = path;
         /* 映射4KB的代码空间 */
         {
             auto size = PAGE_SIZE / sizeof(int);
@@ -677,6 +681,11 @@ namespace clib {
             ctx->text_mem.clear();
             ctx->stack_mem.clear();
             ctx->input_queue.clear();
+            {
+                std::stringstream ss;
+                ss << "/proc/" << ctx->id;
+                fs.rm(ss.str());
+            }
         }
         ctx = old_ctx;
         available_tasks--;
@@ -739,6 +748,7 @@ namespace clib {
         ctx->pool = std::make_unique<cmem>(this);
         ctx->flag |= CTX_KERNEL;
         ctx->state = CTS_RUNNING;
+        ctx->path = old_ctx->path;
         /* 映射4KB的代码空间 */
         {
             auto size = PAGE_SIZE / sizeof(int);
@@ -831,6 +841,33 @@ namespace clib {
         return fs.write_vfs(path, data);
     }
 
+    string_t cvm::callback(const string_t &path) {
+        if (path.substr(0, 5) == "/proc") {
+            static string_t pat{ R"(/proc/(\d+)/([a-z_]+))" };
+            static std::regex re(pat);
+            std::smatch res;
+            if (std::regex_match(path, res, re)) {
+                auto id = std::stoi(res[1].str());
+                if (!(tasks[id].flag & CTX_VALID)) {
+                    return "[ERROR] Invalid pid";
+                }
+                const auto &op = res[2].str();printf("%s\n",op.data());
+                if (op == "exe") {
+                    return tasks[id].path;
+                } else if (op == "parent") {
+                    char sz[16];
+                    sprintf(sz, "%d", tasks[id].parent);
+                    return sz;
+                } else if (op == "heap_size") {
+                    char sz[16];
+                    sprintf(sz, "%d", tasks[id].pool->page_size());
+                    return sz;
+                }
+            }
+        }
+        return "[ERROR] Undefined";
+    }
+
     int cvm::new_pid() {
         if (available_tasks >= TASK_NUM) {
             error("max process num!");
@@ -843,6 +880,21 @@ namespace clib {
                 ctx = &tasks[j];
                 pids = (j + 1) % TASK_NUM;
                 ctx->id = j;
+                {
+                    std::stringstream ss;
+                    ss << "/proc/" << j;
+                    auto dir = ss.str();
+                    if (fs.mkdir(dir) == 0) { // '/proc/[pid]'
+                        static std::vector<string_t> ps =
+                                {"exe", "parent", "heap_size"};
+                        dir += "/";
+                        for (auto &_ps : ps) {
+                            ss.str("");
+                            ss << dir << _ps;
+                            fs.func(ss.str(), this);
+                        }
+                    }
+                }
                 return j;
             }
         }
@@ -1101,7 +1153,7 @@ namespace clib {
             case 65: {
                 auto path = trim(vmm_getstr((uint32_t) ctx->ax));
                 vfs_node_dec *dec;
-                auto s = fs.get(path, &dec);
+                auto s = fs.get(path, &dec, this);
                 if (s != 0) {
                     ctx->ax = s;
                     break;

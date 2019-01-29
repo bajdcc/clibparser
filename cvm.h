@@ -91,7 +91,7 @@ namespace clib {
 #define TASK_NUM 256
 #define HANDLE_NUM 1024
 
-    class cvm : public imem {
+    class cvm : public imem, public vfs_func_t {
     public:
         cvm();
         ~cvm();
@@ -99,12 +99,14 @@ namespace clib {
         cvm(const cvm &) = delete;
         cvm &operator=(const cvm &) = delete;
 
-        int load(const std::vector<byte> &file, const std::vector<string_t> &args);
+        int load(const string_t &path, const std::vector<byte> &file, const std::vector<string_t> &args);
         bool run(int cycle, int &cycles);
 
         void map_page(uint32_t addr, uint32_t id) override;
         bool read_vfs(const string_t &path, std::vector<byte> &data) const;
         bool write_vfs(const string_t &path, const std::vector<byte> &data);
+
+        string_t callback(const string_t &path) override;
 
     private:
         // 申请页框

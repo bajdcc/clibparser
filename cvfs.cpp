@@ -88,6 +88,7 @@ namespace clib {
         node->owner = current_user;
         node->refs = 0;
         node->locked = false;
+        node->callback = nullptr;
         return node;
     }
 
@@ -99,7 +100,7 @@ namespace clib {
         return pwd;
     }
 
-    int cvfs::get(const string_t &path, vfs_node_dec **dec) const {
+    int cvfs::get(const string_t &path, vfs_node_dec **dec, vfs_func_t *f) const {
         auto p = combine(pwd, path);
         auto node = get_node(p);
         if (!node)
@@ -107,7 +108,19 @@ namespace clib {
         if (node->type == fs_file) {
             if (node->locked)
                 return -3;
-            *dec = new vfs_node_solid(node);
+            node->time.access = now();
+            if (dec)
+                *dec = new vfs_node_solid(node);
+            return 0;
+        }
+        if (node->type == fs_func) {
+            node->time.access = now();
+            if (dec) {
+                if (f)
+                    *dec = new vfs_node_cached(f->callback(p));
+                else
+                    return -2;
+            }
             return 0;
         }
         return -2;
@@ -152,7 +165,13 @@ namespace clib {
         return path.substr(0, f);
     }
 
-    void split_path(const string_t &path, std::vector<string_t> &args) {
+    time_t cvfs::now() {
+        time_t ctime;
+        time(&ctime);
+        return ctime;
+    }
+
+    void cvfs::split_path(const string_t &path, std::vector<string_t> &args) {
         std::stringstream ss(path);
         string_t temp;
         while (std::getline(ss, temp, '/')) {
@@ -190,6 +209,8 @@ namespace clib {
                 return -2;
             case fs_dir:
                 pwd = p;
+                break;
+            case fs_func:
                 break;
         }
         return 0;
@@ -258,7 +279,7 @@ namespace clib {
             vfs_node::ref cur;
             auto s = _mkdir(p, cur);
             if (s == 0) { // new dir
-                cur->type = fs_file;_touch(cur);
+                cur->type = fs_file;
                 return -1;
             } else { // exists
                 _touch(cur);
@@ -276,10 +297,45 @@ namespace clib {
     }
 
     void cvfs::_touch(vfs_node::ref &node) {
-        time_t ctime;
-        time(&ctime);
+        auto ctime = now();
         node->time.create = ctime;
         node->time.access = ctime;
         node->time.modify = ctime;
+    }
+
+    int cvfs::func(const string_t &path, vfs_func_t *f) {
+        auto node = get_node(path);
+        if (!node) {
+            vfs_node::ref cur;
+            auto s = _mkdir(path, cur);
+            if (s == 0) { // new dir
+                cur->type = fs_func;
+                cur->callback = f;
+                return 0;
+            } else { // exists
+                return 1;
+            }
+        }
+        return -2;
+    }
+
+    string_t cvfs::get_filename(const string_t &path) {
+        if (path.empty())
+            return "";
+        if (path == "/")
+            return "";
+        auto f = path.find_last_of('/');
+        if (f == string_t::npos)
+            return "";
+        return path.substr(f + 1);
+    }
+
+    int cvfs::rm(const string_t &path) {
+        auto p = combine(pwd, path);
+        auto node = get_node(p);
+        if (!node)
+            return -1;
+        return node->parent.lock()->children.erase(get_filename(path)) == 0 ?
+               -2 : (node->type != fs_dir ? 0 : 1);
     }
 }
