@@ -713,8 +713,10 @@ namespace clib {
     int cvm::exec_file(const string_t &path) {
         if (path.empty())
             return -1;
-        auto new_path = path;
-        trim(new_path);
+        auto new_path = trim(path);
+#if LOG_SYSTEM
+        printf("[SYSTEM] PROC | Exec: Command= %s\n", new_path.data());
+#endif
         std::vector<string_t> args;
         auto file = get_args(new_path, args);
         auto pid = cgui::singleton().compile(file, args);
@@ -1094,6 +1096,9 @@ namespace clib {
                 ctx->ax = exec_file(vmm_getstr((uint32_t) ctx->ax));
                 ctx->pc += INC_PTR;
                 return true;
+            case 50:
+                ctx->ax = ctx->id;
+                break;
             case 52: {
                 if (!ctx->child.empty()) {
                     ctx->state = CTS_WAIT;

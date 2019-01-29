@@ -1373,6 +1373,7 @@ namespace clib {
             }
                 break;
             case c_compoundStatement:
+                symbols.emplace_back();
                 break;
             case c_blockItemList:
                 break;
@@ -1964,6 +1965,7 @@ namespace clib {
             }
                 break;
             case c_compoundStatement: {
+                symbols.pop_back();
                 tmp.back().clear();
             }
                 break;

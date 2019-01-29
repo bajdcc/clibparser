@@ -42,3 +42,9 @@ char *strchr(char *text, char c) {
             return text;
     return (char *) 0;
 }
+char *strcat(char *dst, char *src) {
+    char *s = dst;
+    while (*s++); s--;
+    while (*s++ = *src++);
+    return dst;
+}

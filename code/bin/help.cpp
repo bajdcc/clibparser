@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
     put_string("    mkdir           - create dir\n");
     put_string("    pwd             - show current dir\n");
     put_string("    touch           - touch file\n");
+    put_string("    ls              - list file\n");
     put_string("\nDIR ==> /usr\n");
     put_string("    test            - test all cases\n");
     put_string("    test_rec        - test recursion\n");

@@ -15,3 +15,6 @@ int wait() {
 int fork() {
     interrupt 55;
 }
+int get_pid() {
+    interrupt 50;
+}

@@ -317,6 +317,13 @@ namespace clib {
         }
         if (!records.empty()) {
             // has #include directive
+            std::unordered_set<string_t> deps;
+            for (auto &r : records) {
+                auto &include_path = std::get<2>(r);
+                do_include(include_path, load_file(include_path));
+                auto &dep = cache_dep[include_path];
+                deps.insert(dep.begin(), dep.end());
+            }
             std::stringstream ss;
             auto prev = 0;
             std::unordered_set<string_t> s;
@@ -326,10 +333,11 @@ namespace clib {
                 auto &include_path = std::get<2>(r);
                 if (prev < start - prev)
                     ss << code.substr((uint) prev, (uint) start - prev);
-                if (s.find(include_path) == s.end()) {
+                if (deps.find(include_path) == deps.end()) {
                     ss << do_include(include_path, load_file(include_path));
                     auto &dep = cache_dep[include_path];
                     s.insert(dep.begin(), dep.end());
+                    s.insert(include_path);
                 }
                 prev = length;
             }
@@ -341,7 +349,7 @@ namespace clib {
         } else {
             // no #include directive
             cache_code.insert(std::make_pair(path, code));
-            cache_dep.insert(std::make_pair(path, std::unordered_set<string_t>{path}));
+            cache_dep.insert(std::make_pair(path, std::unordered_set<string_t>()));
             return code;
         }
     }

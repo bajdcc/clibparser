@@ -4,6 +4,8 @@
 //
 
 #include <ctime>
+#include <iterator>
+#include <algorithm>
 #include "cvfs.h"
 #include "cexception.h"
 
@@ -100,8 +102,25 @@ namespace clib {
         return pwd;
     }
 
+    int cvfs::macro(const std::vector<string_t> &m, const vfs_node::ref &node, vfs_node_dec **dec) const {
+        if (m[1] == "ls") {
+            std::stringstream ss;
+            std::transform(node->children.begin(), node->children.end(),
+                           std::ostream_iterator<string_t>(ss, "\n"),
+                           [](const auto &p) { return p.first; });
+            auto str = ss.str();
+            if (!str.empty())
+                str.pop_back();
+            *dec = new vfs_node_cached(std::move(str));
+            return 0;
+        }
+        return -2;
+    }
+
     int cvfs::get(const string_t &path, vfs_node_dec **dec, vfs_func_t *f) const {
-        auto p = combine(pwd, path);
+        std::vector<string_t> m;
+        split_path(path, m, ':');
+        auto p = combine(pwd, m[0]);
         auto node = get_node(p);
         if (!node)
             return -1;
@@ -122,6 +141,11 @@ namespace clib {
                     return -2;
             }
             return 0;
+        }
+        if (node->type == fs_dir) {
+            if (m.size() > 1) {
+                return macro(m, node, dec);
+            }
         }
         return -2;
     }
@@ -171,17 +195,17 @@ namespace clib {
         return ctime;
     }
 
-    void cvfs::split_path(const string_t &path, std::vector<string_t> &args) {
+    void cvfs::split_path(const string_t &path, std::vector<string_t> &args, char c) {
         std::stringstream ss(path);
         string_t temp;
-        while (std::getline(ss, temp, '/')) {
+        while (std::getline(ss, temp, c)) {
             args.push_back(temp);
         }
     }
 
     vfs_node::ref cvfs::get_node(const string_t &path) const {
         std::vector<string_t> paths;
-        split_path(path, paths);
+        split_path(path, paths, '/');
         auto cur = root;
         for (auto i = 0; i < paths.size(); ++i) {
             auto &p = paths[i];
@@ -218,7 +242,7 @@ namespace clib {
 
     int cvfs::_mkdir(const string_t &path, vfs_node::ref &cur) {
         std::vector<string_t> paths;
-        split_path(path, paths);
+        split_path(path, paths, '/');
         cur = root;
         bool update = false;
         for (auto &p : paths) {
@@ -256,7 +280,7 @@ namespace clib {
             return path;
         auto res = pwd;
         std::vector<string_t> paths;
-        split_path(path, paths);
+        split_path(path, paths, '/');
         for (auto &p : paths) {
             if (!p.empty()) {
                 if (p == ".")

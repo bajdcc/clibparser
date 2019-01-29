@@ -106,7 +106,7 @@ namespace clib {
         int func(const string_t &path, vfs_func_t *f);
         int rm(const string_t &path);
 
-        static void split_path(const string_t &path, std::vector<string_t> &args);
+        static void split_path(const string_t &path, std::vector<string_t> &args, char c);
         static string_t get_filename(const string_t &path);
 
     private:
@@ -116,6 +116,7 @@ namespace clib {
         void _touch(vfs_node::ref &node);
 
         string_t combine(const string_t &pwd, const string_t &path) const;
+        int macro(const std::vector<string_t> &m, const vfs_node::ref &node, vfs_node_dec **dec) const;
 
         void error(const string_t &);
 
