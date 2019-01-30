@@ -255,9 +255,17 @@ namespace clib {
 
     bool cvm::run(int cycle, int &cycles) {
         for (int i = 0; i < TASK_NUM; ++i) {
-            if (tasks[i].flag & CTX_VALID && tasks[i].state == CTS_RUNNING) {
-                ctx = &tasks[i];
-                exec(cycle, cycles);
+            if (tasks[i].flag & CTX_VALID) {
+                if (tasks[i].state == CTS_RUNNING) {
+                    ctx = &tasks[i];
+                    exec(cycle, cycles);
+                } else if (tasks[i].state == CTS_WAIT &&
+                           tasks[i].input_redirect != -1 &&
+                           tasks[i].output_redirect != -1) {
+                    copy(tasks[i].input_queue.begin(), tasks[i].input_queue.end(),
+                         std::back_inserter(tasks[tasks[i].output_redirect].input_queue));
+                    tasks[i].input_queue.clear();
+                }
             }
         }
         ctx = nullptr;
@@ -606,6 +614,11 @@ namespace clib {
         ctx = &tasks[id];
         {
             if (ctx->output_redirect != -1 && tasks[ctx->output_redirect].flag & CTX_VALID) {
+                if (tasks[id].input_redirect != -1) {
+                    copy(tasks[id].input_queue.begin(), tasks[id].input_queue.end(),
+                         std::back_inserter(tasks[tasks[id].output_redirect].input_queue));
+                    tasks[id].input_queue.clear();
+                }
                 tasks[ctx->output_redirect].input_stop = true;
                 ctx->output_redirect = -1;
             }
@@ -888,7 +901,7 @@ namespace clib {
                     auto dir = ss.str();
                     if (fs.mkdir(dir) == 0) { // '/proc/[pid]'
                         static std::vector<string_t> ps =
-                                {"exe", "parent", "heap_size"};
+                            {"exe", "parent", "heap_size"};
                         dir += "/";
                         for (auto &_ps : ps) {
                             ss.str("");
@@ -1126,8 +1139,8 @@ namespace clib {
             case 56: {
                 auto left = ctx->ax >> 16;
                 auto right = ctx->ax & 0xFFFF;
-                if (ctx->child.find(left) != ctx->child.end() &&
-                    ctx->child.find(right) != ctx->child.end()) {
+                if ((left == ctx->id || ctx->child.find(left) != ctx->child.end()) &&
+                    (right == ctx->id || ctx->child.find(right) != ctx->child.end())) {
                     tasks[right].input_redirect = left;
                     tasks[left].output_redirect = right;
                 }
@@ -1197,7 +1210,7 @@ namespace clib {
             case 101: {
                 auto now = std::chrono::high_resolution_clock::now();
                 if (std::chrono::duration_cast<std::chrono::duration<decimal>>(
-                        now - ctx->record_now).count() <= ctx->waiting_ms) {
+                    now - ctx->record_now).count() <= ctx->waiting_ms) {
                     ctx->pc -= INC_PTR;
                     return true;
                 }
