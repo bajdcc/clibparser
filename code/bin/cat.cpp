@@ -12,10 +12,14 @@ int read_file(int handle) {
             put_string("\n");
             break;
         case -2:
+            set_fg(240, 0, 0);
             put_string("[ERROR] File already deleted.\n");
+            restore_fg();
             break;
         case -3:
+            set_fg(240, 0, 0);
             put_string("[ERROR] Invalid handle.\n");
+            restore_fg();
             break;
     }
     close(handle);
@@ -29,13 +33,19 @@ int main(int argc, char **argv) {
                 read_file(handle);
                 break;
             case -1:
+                set_fg(240, 0, 0);
                 put_string("[ERROR] File not exists.\n");
+                restore_fg();
                 break;
             case -2:
+                set_fg(240, 0, 0);
                 put_string("[ERROR] Path is not file.\n");
+                restore_fg();
                 break;
             case -3:
+                set_fg(240, 0, 0);
                 put_string("[ERROR] File is locked.\n");
+                restore_fg();
                 break;
         }
     }

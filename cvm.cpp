@@ -613,6 +613,13 @@ namespace clib {
         auto old_ctx = ctx;
         ctx = &tasks[id];
         {
+            if (global_state.input_lock == ctx->id) {
+                global_state.input_lock = -1;
+                global_state.input_read_ptr = -1;
+                global_state.input_content.clear();
+                global_state.input_success = false;
+                cgui::singleton().reset_cmd();
+            }
             if (ctx->output_redirect != -1 && tasks[ctx->output_redirect].flag & CTX_VALID) {
                 if (tasks[id].input_redirect != -1) {
                     copy(tasks[id].input_queue.begin(), tasks[id].input_queue.end(),
@@ -983,7 +990,7 @@ namespace clib {
             case 2:
                 if (ctx->output_redirect != -1) {
                     static char str[256];
-                    sprintf(str, "0x%p", (void *) ctx->ax);
+                    sprintf(str, "%p", (void *) ctx->ax);
                     auto s = str;
                     while (*s)
                         tasks[ctx->output_redirect].input_queue.push_back(*s++);

@@ -1,5 +1,6 @@
 #include "/include/io"
 int main(int argc, char **argv) {
+    set_fg(240, 200, 220);
     put_string("Commands:\n");
     put_string("\nDIR ==> /bin\n");
     put_string("    help            - command help\n");
@@ -21,5 +22,6 @@ int main(int argc, char **argv) {
     put_string("    test_input      - test ui input\n");
     put_string("    test_resize     - test resize screen\n");
     put_string("    test_malloc     - test malloc and free\n");
+    restore_fg();
     return 0;
 }

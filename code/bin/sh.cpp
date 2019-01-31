@@ -40,16 +40,21 @@ int main(int argc, char **argv) {
     while (state) {
         total = 0;
         if (direct_input) {
+            set_fg(143, 164, 174);
             put_string("[");
+            set_fg(63, 234, 53);
             whoami(_whoami);
             put_string(_whoami);
             put_string("@");
             hostname(_hostname);
             put_string(_hostname);
             put_string(" ");
+            set_fg(73, 240, 229);
             pwd(_pwd);
             put_string(_pwd);
+            set_fg(143, 164, 174);
             put_string("]# ");
+            restore_fg();
         }
         state = input(text, 100);
         if (strlen(text) == 0)
@@ -66,13 +71,19 @@ int main(int argc, char **argv) {
             exec_kill_children();
             switch (pid) {
                 case -1:
+                    set_fg(240, 0, 0);
                     put_string("[ERROR] File not exists.\n");
+                    restore_fg();
                     break;
                 case -2:
+                    set_fg(240, 0, 0);
                     put_string("[ERROR] Compile failed.\n");
+                    restore_fg();
                     break;
                 case -3:
+                    set_fg(240, 0, 0);
                     put_string("[ERROR] Cannot execute system programs!\n");
+                    restore_fg();
                     break;
             }
         }

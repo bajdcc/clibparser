@@ -47,3 +47,33 @@ int resize(int rows, int cols) {
     (rows << 16) | cols;
     interrupt 20;
 }
+int set_bg(int r, int g, int b) {
+    put_char('\033');
+    put_char('B');
+    put_hex((0xff << 24) | (b << 16) | (g << 8) | r);
+    put_char('\033');
+}
+int set_fg(int r, int g, int b) {
+    put_char('\033');
+    put_char('F');
+    put_hex((0xff << 24) | (b << 16) | (g << 8) | r);
+    put_char('\033');
+}
+int gui_cfg(char c) {
+    put_char('\033');
+    put_char('S');
+    put_char(c);
+    put_char('\033');
+}
+int save_bg() {
+    gui_cfg('1');
+}
+int save_fg() {
+    gui_cfg('2');
+}
+int restore_bg() {
+    gui_cfg('3');
+}
+int restore_fg() {
+    gui_cfg('4');
+}

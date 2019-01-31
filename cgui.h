@@ -47,6 +47,7 @@ namespace clib {
 
         void input_set(bool valid);
         void input(unsigned char c);
+        void reset_cmd();
 
     private:
         void tick();
@@ -56,6 +57,8 @@ namespace clib {
         inline void draw_char(const char &c);
 
         string_t do_include(const string_t &path, const string_t &code);
+
+        void exec_cmd(const string_t &s);
 
         static void error(const string_t &);
 
@@ -70,13 +73,17 @@ namespace clib {
         std::unique_ptr<cvm> vm;
         memory_pool<GUI_MEMORY> memory;
         char *buffer{nullptr};
+        uint32_t *colors_bg{nullptr};
+        uint32_t *colors_fg{nullptr};
         std::unordered_map<string_t, std::vector<byte>> cache;
         std::unordered_map<string_t, string_t> cache_code;
         std::unordered_map<string_t, std::unordered_set<string_t>> cache_dep;
+        std::vector<uint32_t> color_bg_stack;
+        std::vector<uint32_t> color_fg_stack;
         bool running{false};
-        bool exited{false};;
-        int cycle{ GUI_CYCLES };
-        int ticks{ GUI_TICKS };
+        bool exited{false};
+        int cycle{GUI_CYCLES};
+        int ticks{GUI_TICKS};
         int ptr_x{0};
         int ptr_y{0};
         int ptr_mx{0};
@@ -87,7 +94,11 @@ namespace clib {
         bool input_state{false};
         int input_ticks{0};
         bool input_caret{false};
+        bool cmd_state{false};
+        std::vector<char> cmd_string;
         std::vector<char> input_string;
+        uint32_t color_bg;
+        uint32_t color_fg;
     };
 }
 

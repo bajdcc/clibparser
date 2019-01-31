@@ -15,15 +15,32 @@
 
 #define ENTRY_FILE "/sys/entry"
 
+#define MAKE_ARGB(a,r,g,b) ((uint32_t)(((BYTE)(r)|((WORD)((BYTE)(g))<<8))|(((DWORD)(BYTE)(b))<<16)|(((DWORD)(BYTE)(a))<<24)))
+#define MAKE_RGB(r,g,b) MAKE_ARGB(255,r,g,b)
+#define GET_R(rgb) (LOBYTE(rgb))
+#define GET_G(rgb) (LOBYTE(((WORD)(rgb)) >> 8))
+#define GET_B(rgb) (LOBYTE((WORD)((rgb)>>16)))
+#define GET_A(rgb) (LOBYTE((rgb)>>24))
+
 extern int g_argc;
 extern char **g_argv;
 
 namespace clib {
 
     cgui::cgui() {
-        buffer = memory.alloc_array<char>(size);
+        buffer = memory.alloc_array<char>((uint) size);
         assert(buffer);
-        memset(buffer, 0, size);
+        memset(buffer, 0, (uint) size);
+        colors_bg = memory.alloc_array<uint32_t>((uint) size);
+        assert(colors_bg);
+        color_bg = 0;
+        std::fill(colors_bg, colors_bg + size, color_bg);
+        colors_fg = memory.alloc_array<uint32_t>((uint) size);
+        assert(colors_fg);
+        color_fg = MAKE_RGB(255, 255, 255);
+        std::fill(colors_fg, colors_fg + size, color_fg);
+        color_bg_stack.push_back(color_bg);
+        color_fg_stack.push_back(color_fg);
     }
 
     cgui &cgui::singleton() {
@@ -86,18 +103,25 @@ namespace clib {
         glPushMatrix();
         glLoadIdentity();
 
-        glColor3f(0.9f, 0.9f, 0.9f);
         int x = std::max((w - width) / 2, 0);
         int y = std::max((h - height) / 2, 0);
+        auto old_x = x;
 
         for (auto i = 0; i < rows; ++i) {
-            glRasterPos2i(x, y);
             for (auto j = 0; j < cols; ++j) {
-                if (std::isprint(buffer[i * cols + j]))
+                /*if (colors_bg[i * cols + j]) {
+                    glColor4ubv((GLubyte *) &colors_fg[0]);
+                    glRasterPos2i(x, y);
+                    glutBitmapCharacter(GUI_FONT,9608); // 全黑字符
+                }*/
+                if (std::isprint(buffer[i * cols + j])) {
+                    glColor4ubv((GLubyte *) &colors_fg[i * cols + j]);
+                    glRasterPos2i(x, y);
                     glutBitmapCharacter(GUI_FONT, buffer[i * cols + j]);
-                else
-                    glutBitmapCharacter(GUI_FONT, ' ');
+                }
+                x += GUI_FONT_W;
             }
+            x = old_x;
             y += GUI_FONT_H;
         }
 
@@ -111,11 +135,13 @@ namespace clib {
                 if (ptr_x <= cols - 1) {
                     int _x = std::max((w - width) / 2, 0) + ptr_x * GUI_FONT_W;
                     int _y = std::max((h - height) / 2, 0) + ptr_y * GUI_FONT_H;
+                    glColor4ubv((GLubyte *) &color_fg_stack.back());
                     glRasterPos2i(_x, _y);
                     glutBitmapCharacter(GUI_FONT, '_');
                 } else if (ptr_y < rows - 1) {
                     int _x = std::max((w - width) / 2, 0);
                     int _y = std::max((h - height) / 2, 0) + (ptr_y + 1) * GUI_FONT_H;
+                    glColor4ubv((GLubyte *) &color_fg_stack.back());
                     glRasterPos2i(_x, _y);
                     glutBitmapCharacter(GUI_FONT, '_');
                 }
@@ -170,6 +196,25 @@ namespace clib {
     }
 
     void cgui::put_char(char c) {
+        if (cmd_state) {
+            if (c == '\033') {
+                static string_t pat{R"([A-Za-z][0-9a-f]{1,8})"};
+                static std::regex re(pat);
+                std::smatch res;
+                string_t s(cmd_string.begin(), cmd_string.end());
+                if (std::regex_search(s, res, re)) {
+                    exec_cmd(s);
+                }
+                cmd_string.clear();
+                cmd_state = false;
+            } else {
+                cmd_string.push_back(c);
+            }
+            return;
+        } else if (c == '\033') {
+            cmd_state = true;
+            return;
+        }
         if (c == 0)
             return;
         if (c == '\n') {
@@ -212,6 +257,8 @@ namespace clib {
             ptr_mx = 0;
             ptr_my = 0;
             memset(buffer, 0, (uint) size);
+            std::fill(colors_bg, colors_bg + size, color_bg);
+            std::fill(colors_fg, colors_fg + size, color_fg);
         } else if (ptr_x == cols - 1) {
             if (ptr_y == rows - 1) {
                 draw_char(c);
@@ -237,7 +284,7 @@ namespace clib {
 
     void cgui::put_hex(int number) {
         static char str[256];
-        sprintf(str, "0x%p", (void*) number);
+        sprintf(str, "%p", (void*) number);
         auto s = str;
         while (*s)
             put_char(*s++);
@@ -247,10 +294,16 @@ namespace clib {
         ptr_x = 0;
         memcpy(buffer, buffer + cols, (uint) cols * (rows - 1));
         memset(&buffer[cols * (rows - 1)], 0, (uint) cols);
+        memcpy(colors_bg, colors_bg + cols, (uint) cols * (rows - 1) * sizeof(uint32_t));
+        std::fill(&colors_bg[cols * (rows - 1)], &colors_bg[cols * (rows)], color_bg);
+        memcpy(colors_fg, colors_fg + cols, (uint) cols * (rows - 1) * sizeof(uint32_t));
+        std::fill(&colors_fg[cols * (rows - 1)], &colors_fg[cols * (rows)], color_fg);
     }
 
     void cgui::draw_char(const char &c) {
         buffer[ptr_y * cols + ptr_x] = c;
+        colors_bg[ptr_y * cols + ptr_x] = color_bg;
+        colors_fg[ptr_y * cols + ptr_x] = color_fg;
     }
 
     void cgui::error(const string_t &str) {
@@ -273,24 +326,40 @@ namespace clib {
         printf("[SYSTEM] GUI  | Resize: from (%d, %d) to (%d, %d)\n", old_rows, old_cols, rows, cols);
         size = rows * cols;
         auto old_buffer = buffer;
-        memory.free(buffer);
         buffer = memory.alloc_array<char>((uint) size);
         assert(buffer);
         if (!buffer)
             error("gui memory overflow");
         memset(buffer, 0, (uint) size);
+        auto old_bg = colors_bg;
+        colors_bg = memory.alloc_array<uint32_t>((uint) size);
+        assert(colors_bg);
+        if (!colors_bg)
+            error("gui memory overflow");
+        std::fill(colors_bg, colors_bg + size, 0);
+        auto old_fg = colors_fg;
+        colors_fg = memory.alloc_array<uint32_t>((uint) size);
+        assert(colors_fg);
+        if (!colors_fg)
+            error("gui memory overflow");
+        std::fill(colors_fg, colors_fg + size, MAKE_RGB(255, 255, 255));
         auto min_rows = std::min(old_rows, rows);
         auto min_cols = std::min(old_cols, cols);
         auto delta_rows = old_rows - min_rows;
         for (int i = 0; i < min_rows; ++i) {
             for (int j = 0; j < min_cols; ++j) {
                 buffer[i * cols + j] = old_buffer[(delta_rows + i) * old_cols + j];
+                colors_bg[i * cols + j] = old_bg[(delta_rows + i) * old_cols + j];
+                colors_fg[i * cols + j] = old_fg[(delta_rows + i) * old_cols + j];
             }
         }
         ptr_x = std::min(ptr_x, cols);
         ptr_y = std::min(ptr_y, rows);
         ptr_mx = std::min(ptr_mx, cols);
         ptr_my = std::min(ptr_my, rows);
+        memory.free(old_buffer);
+        memory.free(old_fg);
+        memory.free(old_bg);
     }
 
     string_t cgui::do_include(const string_t &path, const string_t &code) {
@@ -420,5 +489,48 @@ namespace clib {
         }
         put_char(c);
         input_string.push_back(c);
+    }
+
+    void cgui::reset_cmd() {
+        cmd_state = false;
+        cmd_string.clear();
+    }
+
+    void cgui::exec_cmd(const string_t &s) {
+        switch (s[0]) {
+            case 'B': { // 设置背景色
+                color_bg = (uint32_t) std::stoul(s.substr(1), nullptr, 16);
+            }
+                break;
+            case 'F': { // 设置前景色
+                color_fg = (uint32_t) std::stoul(s.substr(1), nullptr, 16);
+            }
+                break;
+            case 'S': { // 设置
+                static int cfg;
+                cfg = (uint32_t) std::stoul(s.substr(1), nullptr, 10);
+                switch (cfg) {
+                    case 1: // 保存背景色
+                        color_bg_stack.push_back(color_bg);
+                        break;
+                    case 2: // 保存前景色
+                        color_fg_stack.push_back(color_fg);
+                        break;
+                    case 3: // 恢复背景色
+                        color_bg = color_bg_stack.back();
+                        if (color_bg_stack.size() > 1) color_bg_stack.pop_back();
+                        break;
+                    case 4: // 恢复前景色
+                        color_fg = color_fg_stack.back();
+                        if (color_fg_stack.size() > 1) color_fg_stack.pop_back();
+                        break;
+                    default:
+                        break;
+                }
+            }
+                break;
+            default:
+                break;
+        }
     }
 }

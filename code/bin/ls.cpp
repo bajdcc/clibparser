@@ -14,7 +14,9 @@ int main(int argc, char **argv) {
         shell(cmd);
         free((int) cmd);
     } else if (argc == 2 && strcmp(argv[1], "-l") == 0) { // ls -l
+        set_fg(240, 0, 0);
         put_string("[Error] Not implemented.\n");
+        restore_fg();
     } else if (argc == 2) { // ls -l
         char *cmd = malloc(1024);
         strcpy(cmd, "cat ");
@@ -23,7 +25,9 @@ int main(int argc, char **argv) {
         shell(cmd);
         free((int) cmd);
     } else {
+        set_fg(240, 0, 0);
         put_string("[Error] Invalid argument.\n");
+        restore_fg();
     }
     free((int) s);
     return 0;

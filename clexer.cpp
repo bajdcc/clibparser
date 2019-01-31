@@ -381,6 +381,15 @@ LEX_T(t) clexer::get_store_##t(int index) const \
         }
     }
 
+    // 八进制字符转十进制
+    static int oct2dec(char c) {
+        if (c >= '0' && c <= '7') {
+            return c - '0';
+        } else {
+            return -1;
+        }
+    }
+
     // 参考自：https://github.com/bajdcc/CEval/blob/master/CEval/CEval.cpp#L105
     lexer_t clexer::next_digit() {
         // 假定这里的数字规则是以0-9开头
@@ -628,6 +637,20 @@ LEX_T(t) clexer::get_store_##t(int index) const \
                         esc = hex2dec(str[index + 4]); // '\x_?'
                         if (esc != -1) {
                             bags._char *= 0x10;
+                            bags._char += (char) esc;
+                            move(i);
+                            return l_char;
+                        }
+                    }
+                }
+                // '\0??'
+                if (str[index + 1] == '\\' && str[index + 2] == '0') {
+                    auto esc = oct2dec(str[index + 3]); // '\0?_'
+                    if (esc != -1) {
+                        bags._char = (char) esc;
+                        esc = oct2dec(str[index + 4]); // '\0_?'
+                        if (esc != -1) {
+                            bags._char *= 8;
                             bags._char += (char) esc;
                             move(i);
                             return l_char;

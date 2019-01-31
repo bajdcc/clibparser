@@ -8,10 +8,14 @@ int main(int argc, char **argv) {
                 // put_string("[INFO] Success.\n");
                 break;
             case -1:
+                set_fg(240, 0, 0);
                 put_string("[ERROR] Directory already exists.\n");
+                restore_fg();
                 break;
             case -2:
+                set_fg(240, 0, 0);
                 put_string("[ERROR] Path is invalid.\n");
+                restore_fg();
                 break;
         }
     }

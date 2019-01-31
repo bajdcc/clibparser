@@ -21,6 +21,10 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约11k。
 
 ![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/5.gif)
 
+**【控制台颜色】**
+
+![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/6.gif)
+
 ## 计划
 
 - 第一阶段：实现基本的C++编译器和虚拟机，支持控制流语句，模拟虚页机制。后续支持结构体、指针和汇编。
@@ -228,6 +232,7 @@ Shell界面：
     - [x] 支持设置缓冲区大小
     - [x] 输入功能
     - [x] 键盘输入（任务独占）
+    - [x] 支持前景色
 
 1. 将文法树转换表（完成）
 2. 根据PDA表生成AST（完成）

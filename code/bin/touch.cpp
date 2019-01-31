@@ -11,7 +11,9 @@ int main(int argc, char **argv) {
                 // put_string("[INFO] Created file.\n");
                 break;
             case -2:
+                set_fg(240, 0, 0);
                 put_string("[ERROR] Path is not file/dir.\n");
+                restore_fg();
                 break;
         }
     }
