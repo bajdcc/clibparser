@@ -21,8 +21,9 @@ extern char **g_argv;
 namespace clib {
 
     cgui::cgui() {
-        buffer.resize(GUI_SIZE);
-        std::fill(buffer.begin(), buffer.end(), 0);
+        buffer = memory.alloc_array<char>(size);
+        assert(buffer);
+        memset(buffer, 0, size);
     }
 
     cgui &cgui::singleton() {
@@ -210,7 +211,7 @@ namespace clib {
             ptr_y = 0;
             ptr_mx = 0;
             ptr_my = 0;
-            std::fill(buffer.begin(), buffer.end(), 0);
+            memset(buffer, 0, (uint) size);
         } else if (ptr_x == cols - 1) {
             if (ptr_y == rows - 1) {
                 draw_char(c);
@@ -244,14 +245,8 @@ namespace clib {
 
     void cgui::new_line() {
         ptr_x = 0;
-        for (int i = 0; i < rows - 1; ++i) {
-            std::copy(buffer.begin() + (cols * (i + 1)),
-                      buffer.begin() + (cols * (i + 2)),
-                      buffer.begin() + (cols * (i)));
-        }
-        std::fill(buffer.begin() + (cols * (rows - 1)),
-                  buffer.begin() + (cols * (rows)),
-                  0);
+        memcpy(buffer, buffer + cols, (uint) cols * (rows - 1));
+        memset(&buffer[cols * (rows - 1)], 0, (uint) cols);
     }
 
     void cgui::draw_char(const char &c) {
@@ -278,8 +273,12 @@ namespace clib {
         printf("[SYSTEM] GUI  | Resize: from (%d, %d) to (%d, %d)\n", old_rows, old_cols, rows, cols);
         size = rows * cols;
         auto old_buffer = buffer;
-        buffer.resize((uint) size);
-        std::fill(buffer.begin(), buffer.end(), 0);
+        memory.free(buffer);
+        buffer = memory.alloc_array<char>((uint) size);
+        assert(buffer);
+        if (!buffer)
+            error("gui memory overflow");
+        memset(buffer, 0, (uint) size);
         auto min_rows = std::min(old_rows, rows);
         auto min_cols = std::min(old_cols, cols);
         auto delta_rows = old_rows - min_rows;
@@ -416,6 +415,7 @@ namespace clib {
             cvm::global_state.input_content = string_t(input_string.begin(), input_string.end());
             cvm::global_state.input_read_ptr = 0;
             cvm::global_state.input_success = true;
+            input_state = false;
             return;
         }
         put_char(c);

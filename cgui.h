@@ -21,6 +21,7 @@
 #define GUI_CYCLES 10000
 #define GUI_TICKS 1
 #define GUI_INPUT_CARET 15
+#define GUI_MEMORY (256 * 1024)
 
 namespace clib {
 
@@ -64,10 +65,11 @@ namespace clib {
         string_t load_file(const string_t &name);
 
     private:
-        std::vector<char> buffer;
         cgen gen;
         cparser p;
         std::unique_ptr<cvm> vm;
+        memory_pool<GUI_MEMORY> memory;
+        char *buffer{nullptr};
         std::unordered_map<string_t, std::vector<byte>> cache;
         std::unordered_map<string_t, string_t> cache_code;
         std::unordered_map<string_t, std::unordered_set<string_t>> cache_dep;
