@@ -215,7 +215,7 @@ Shell界面：
     - [x] 测试用例(`/usr/test`)
     - [x] echo
     - [x] pwd, whoami
-    - [x] VFS: cd, mkdir, touch, cat, ls(-l), ll
+    - [x] VFS: cd, mkdir, touch, cat, ls(-l), ll, rm
     - [x] wc
 - [ ] 虚拟文件系统
     - [x] 数据结构

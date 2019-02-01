@@ -65,7 +65,9 @@ namespace clib {
             handles[i].type = h_none;
         }
 
+        fs.as_root(true);
         fs.mkdir("/proc");
+        fs.as_root(false);
     }
 
     // 虚页映射
@@ -855,6 +857,10 @@ namespace clib {
         }
     }
 
+    void cvm::as_root(bool flag) {
+        fs.as_root(flag);
+    }
+
     bool cvm::read_vfs(const string_t &path, std::vector<byte> &data) const {
         return fs.read_vfs(path, data);
     }
@@ -906,6 +912,7 @@ namespace clib {
                     std::stringstream ss;
                     ss << "/proc/" << j;
                     auto dir = ss.str();
+                    fs.as_root(true);
                     if (fs.mkdir(dir) == 0) { // '/proc/[pid]'
                         static std::vector<string_t> ps =
                             {"exe", "parent", "heap_size"};
@@ -916,6 +923,7 @@ namespace clib {
                             fs.func(ss.str(), this);
                         }
                     }
+                    fs.as_root(false);
                 }
                 return j;
             }
@@ -1208,6 +1216,10 @@ namespace clib {
                 } else {
                     ctx->ax = -1;
                 }
+            }
+                break;
+            case 68: {
+                ctx->ax = fs.rm_safe(trim(vmm_getstr((uint32_t) ctx->ax)));
             }
                 break;
             case 100:

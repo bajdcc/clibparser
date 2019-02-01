@@ -57,11 +57,15 @@ namespace clib {
     void cvfs::reset() {
         account.clear();
         account.push_back(vfs_user{0, "root", "root"});
+        account.push_back(vfs_user{1, "cc", "cc"});
         current_user = 0;
+        last_user = 1;
         root = new_node(fs_dir);
         pwd = "/";
         auto n = now();
         year = localtime(&n)->tm_year;
+        current_user = 1;
+        last_user = 0;
     }
 
     void cvfs::error(const string_t &str) {
@@ -78,9 +82,9 @@ namespace clib {
         auto node = std::make_shared<vfs_node>();
         node->type = type;
         if (type == fs_file) {
-            mod_copy(node->mod, "rw-rw-rw-");
+            mod_copy(node->mod, "rw-r--r--");
         } else if (type == fs_dir) {
-            mod_copy(node->mod, "rwxrwxr--");
+            mod_copy(node->mod, "rw-r--r--");
         } else {
             error("invalid mod");
         }
@@ -215,6 +219,20 @@ namespace clib {
         return true;
     }
 
+    void cvfs::as_root(bool flag) {
+        if (flag) {
+            if (current_user != 0) {
+                last_user = current_user;
+                current_user = 0;
+            }
+        } else {
+            if (current_user == 0) {
+                current_user = last_user;
+                last_user = 0;
+            }
+        }
+    }
+
     bool cvfs::write_vfs(const string_t &path, const std::vector<byte> &data) {
         auto node = get_node(path);
         if (!node) {
@@ -262,6 +280,8 @@ namespace clib {
         split_path(path, paths, '/');
         auto cur = root;
         for (auto i = 0; i < paths.size(); ++i) {
+            if (!can_mod(cur, 0))
+                return nullptr;
             auto &p = paths[i];
             if (!p.empty()) {
                 auto f = cur->children.find(p);
@@ -415,5 +435,46 @@ namespace clib {
             return -1;
         return node->parent.lock()->children.erase(get_filename(path)) == 0 ?
                -2 : (node->type != fs_dir ? 0 : 1);
+    }
+
+    int cvfs::rm_safe(const string_t &path) {
+        auto p = combine(pwd, path);
+        auto node = get_node(p);
+        if (!node)
+            return -1;
+        if (!can_rm(node))
+            return -2;
+        return node->parent.lock()->children.erase(get_filename(path)) == 0 ?
+               -3 : (node->type != fs_dir ? 0 : 1);
+    }
+
+    bool cvfs::can_rm(const vfs_node::ref &node) const {
+        if (!can_mod(node, 1))
+            return false;
+        if (node->refs > 0)
+            return false;
+        if (node->locked)
+            return false;
+        if (node->type == fs_dir) {
+            for (auto &c : node->children) {
+                if (!can_rm(c.second))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    bool cvfs::can_mod(const vfs_node::ref &node, int mod) const {
+        if (mod != -1) {
+            if (node->mod[0].rwx[mod] == '-')
+                return false;
+            if (node->owner != current_user) {
+                if (node->mod[1].rwx[mod] == '-')
+                    return false;
+                if (node->mod[2].rwx[mod] == '-')
+                    return false;
+            }
+        }
+        return true;
     }
 }

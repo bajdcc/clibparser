@@ -33,6 +33,7 @@ enum INTR_TABLE {
     INTR_FS_OPEN = 65,
     INTR_FS_READ = 66,
     INTR_FS_CLOSE = 67,
+    INTR_FS_RM = 68,
     INTR_SLEEP_RECORD = 100,
     INTR_SLEEP_REACH = 101,
 };

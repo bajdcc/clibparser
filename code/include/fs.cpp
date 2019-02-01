@@ -37,3 +37,7 @@ int close(int handle) {
     handle;
     interrupt 67;
 }
+int rm(char *s) {
+    s;
+    interrupt 68;
+}

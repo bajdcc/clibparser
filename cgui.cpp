@@ -68,10 +68,12 @@ namespace clib {
             buffer << t.rdbuf();
             auto str = buffer.str();
             std::vector<byte> data(str.begin(), str.end());
+            vm->as_root(true);
             if (name[0] != '/')
                 vm->write_vfs("/bin/" + name, data);
             else
                 vm->write_vfs(name, data);
+            vm->as_root(false);
             return str;
         }
         std::vector<byte> data;

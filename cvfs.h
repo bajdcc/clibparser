@@ -15,9 +15,7 @@ namespace clib {
 
     // 权限
     struct vfs_mod {
-        char read;
-        char write;
-        char execute;
+        char rwx[3];
     };
 
     enum vfs_file_t {
@@ -100,11 +98,14 @@ namespace clib {
         bool read_vfs(const string_t &path, std::vector<byte> &data) const;
         bool write_vfs(const string_t &path, const std::vector<byte> &data);
 
+        void as_root(bool flag);
+
         int cd(const string_t &path);
         int mkdir(const string_t &path);
         int touch(const string_t &path);
         int func(const string_t &path, vfs_func_t *f);
         int rm(const string_t &path);
+        int rm_safe(const string_t &path);
 
         static void split_path(const string_t &path, std::vector<string_t> &args, char c);
         static string_t get_filename(const string_t &path);
@@ -124,11 +125,14 @@ namespace clib {
         static time_t now();
 
         char* file_time(const time_t &t) const;
+        bool can_rm(const vfs_node::ref &node) const;
+        bool can_mod(const vfs_node::ref &node, int mod) const;
 
     private:
         std::vector<vfs_user> account;
         std::shared_ptr<vfs_node> root;
         int current_user;
+        int last_user;
         string_t pwd;
         int year{0};
     };

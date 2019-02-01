@@ -103,6 +103,7 @@ namespace clib {
         bool run(int cycle, int &cycles);
 
         void map_page(uint32_t addr, uint32_t id) override;
+        void as_root(bool flag);
         bool read_vfs(const string_t &path, std::vector<byte> &data) const;
         bool write_vfs(const string_t &path, const std::vector<byte> &data);
 
