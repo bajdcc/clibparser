@@ -43,6 +43,7 @@ namespace clib {
         } time;
         int refs;
         bool locked;
+        string_t name;
         std::map<string_t, ref> children;
         std::vector<byte> data;
         vfs_func_t *callback;

@@ -23,6 +23,16 @@ int main(int argc, char **argv) {
         strcat(cmd, ":ll");
         shell(cmd);
         free((int) cmd);
+    } else if (argc >= 2 && strcmp(argv[1], "-tree") == 0) { // ls -tree
+        char *cmd = malloc(1024);
+        strcpy(cmd, "cat ");
+        if (argc > 2)
+            strcat(cmd, argv[2]);
+        else
+            strcat(cmd, s);
+        strcat(cmd, ":tree");
+        shell(cmd);
+        free((int) cmd);
     } else if (argc == 2) {
         char *cmd = malloc(1024);
         strcpy(cmd, "cat ");

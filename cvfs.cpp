@@ -147,6 +147,22 @@ namespace clib {
         os << fmt << std::endl;
     }
 
+    string_t full_path(const vfs_node::ref &node) {
+        std::stringstream ss;
+        std::vector<vfs_node::ref> paths;
+        auto p = node;
+        while (p) {
+            paths.push_back(p);
+            p = p->parent.lock();
+        }
+        std::transform(paths.rbegin(), paths.rend(),
+                       std::ostream_iterator<string_t>(ss, "/"),
+                       [](const auto &p) { return p->name; });
+        auto str = ss.str();
+        str.erase(str.begin() + str.size() - 1);
+        return std::move(str);
+    }
+
     int cvfs::macro(const std::vector<string_t> &m, const vfs_node::ref &node, vfs_node_dec **dec) const {
         if (m[1] == "ls") {
             std::stringstream ss;
@@ -165,6 +181,26 @@ namespace clib {
             ll(".", node, ss); // self
             for (auto &c : node->children) {
                 ll(c.first, c.second, ss); // children
+            }
+            auto str = ss.str();
+            if (!str.empty())
+                str.pop_back();
+            *dec = new vfs_node_cached(str);
+            return 0;
+        }
+        if (m[1] == "tree") {
+            std::stringstream ss;
+            std::vector<vfs_node::ref> stacks;
+            stacks.push_back(node);
+            while (!stacks.empty()) {
+                auto n = stacks.back();
+                stacks.pop_back();
+                ll(full_path(n), n, ss); // children
+                if (n->type == fs_dir) {
+                    for (auto c = n->children.rbegin(); c != n->children.rend(); c++) {
+                        stacks.push_back(c->second);
+                    }
+                }
             }
             auto str = ss.str();
             if (!str.empty())
@@ -331,6 +367,7 @@ namespace clib {
                         update = true;
                     auto node = new_node(fs_dir);
                     node->parent = cur;
+                    node->name = p;
                     cur->children.insert(std::make_pair(p, node));
                     cur = node;
                 }
