@@ -13,11 +13,17 @@ int main(int argc, char **argv) {
         strcat(cmd, ":ls");
         shell(cmd);
         free((int) cmd);
-    } else if (argc == 2 && strcmp(argv[1], "-l") == 0) { // ls -l
-        set_fg(240, 0, 0);
-        put_string("[Error] Not implemented.\n");
-        restore_fg();
-    } else if (argc == 2) { // ls -l
+    } else if (argc >= 2 && strcmp(argv[1], "-l") == 0) { // ls -l
+        char *cmd = malloc(1024);
+        strcpy(cmd, "cat ");
+        if (argc > 2)
+            strcat(cmd, argv[2]);
+        else
+            strcat(cmd, s);
+        strcat(cmd, ":ll");
+        shell(cmd);
+        free((int) cmd);
+    } else if (argc == 2) {
         char *cmd = malloc(1024);
         strcpy(cmd, "cat ");
         strcat(cmd, argv[1]);

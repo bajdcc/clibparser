@@ -117,16 +117,20 @@ namespace clib {
 
         string_t combine(const string_t &pwd, const string_t &path) const;
         int macro(const std::vector<string_t> &m, const vfs_node::ref &node, vfs_node_dec **dec) const;
+        void ll(const string_t &name, const vfs_node::ref &node, std::ostream &os) const;
 
         void error(const string_t &);
 
         static time_t now();
+
+        char* file_time(const time_t &t) const;
 
     private:
         std::vector<vfs_user> account;
         std::shared_ptr<vfs_node> root;
         int current_user;
         string_t pwd;
+        int year{0};
     };
 }
 

@@ -66,6 +66,8 @@ Shell界面：
 
 ![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/1.png)
 
+![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/2.png)
+
 ## 调试信息
 
 实现C语言的解析。
@@ -213,14 +215,14 @@ Shell界面：
     - [x] 测试用例(`/usr/test`)
     - [x] echo
     - [x] pwd, whoami
-    - [x] VFS: cd, mkdir, touch, cat, ls
+    - [x] VFS: cd, mkdir, touch, cat, ls(-l), ll
     - [x] wc
 - [ ] 虚拟文件系统
     - [x] 数据结构
     - [x] 账户
     - [x] 读取
     - [x] 限定操作
-    - [x] 语义接口（:ls）
+    - [x] 语义接口（:ls,:ll）
     - [ ] 存储
     - [ ] 权限
     - [ ] 互斥

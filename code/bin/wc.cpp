@@ -1,12 +1,12 @@
 #include "/include/io"
 int wc(int *lines) {
     int c;
-    interrupt 10;
+    input_lock();
     while ((c = input_char()) != -1) {
         if (((char) c) == '\n')
             (*lines)++;
     }
-    interrupt 12;
+    input_unlock();
     return 0;
 }
 int main(int argc, char **argv) {

@@ -8,11 +8,11 @@
 
 int intern_pipe() {
     int c;
-    interrupt 10;
+    input_lock();
     while ((c = input_char()) != -1) {
         put_char((char) c);
     }
-    interrupt 12;
+    input_unlock();
     return 0;
 }
 int shell(char *path) {

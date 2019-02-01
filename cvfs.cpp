@@ -60,6 +60,8 @@ namespace clib {
         current_user = 0;
         root = new_node(fs_dir);
         pwd = "/";
+        auto n = now();
+        year = localtime(&n)->tm_year;
     }
 
     void cvfs::error(const string_t &str) {
@@ -102,6 +104,45 @@ namespace clib {
         return pwd;
     }
 
+    char* cvfs::file_time(const time_t &t) const {
+        auto timeptr = localtime(&t);
+        /*static const char wday_name[][4] = {
+                "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+        };*/
+        static const char mon_name[][4] = {
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        };
+        static char result[32];
+        if (year == timeptr->tm_year) {
+            sprintf(result, "%.3s%3d %.2d:%.2d",
+                    mon_name[timeptr->tm_mon],
+                    timeptr->tm_mday, timeptr->tm_hour,
+                    timeptr->tm_min);
+        } else {
+            sprintf(result, "%.3s%3d %5d",
+                    //wday_name[timeptr->tm_wday],
+                    mon_name[timeptr->tm_mon],
+                    timeptr->tm_mday,
+                    1900 + timeptr->tm_year);
+        }
+        return result;
+    }
+
+    void cvfs::ll(const string_t &name, const vfs_node::ref &node, std::ostream &os) const {
+        if (!node)
+            return;
+        static char fmt[256];
+        sprintf(fmt, "\033FFFA0A0A0\033%c%9s \033FFFB3B920\033%4s \033S4\033%9d \033FFF51C2A8\033%s \033FFF35EA3F\033%s\033S4\033",
+                node->type == fs_dir ? 'd' : '-',
+                (char *) node->mod,
+                account[node->owner].name.data(),
+                node->data.size(),
+                file_time(node->time.create),
+                name.data());
+        os << fmt << std::endl;
+    }
+
     int cvfs::macro(const std::vector<string_t> &m, const vfs_node::ref &node, vfs_node_dec **dec) const {
         if (m[1] == "ls") {
             std::stringstream ss;
@@ -111,7 +152,20 @@ namespace clib {
             auto str = ss.str();
             if (!str.empty())
                 str.pop_back();
-            *dec = new vfs_node_cached(std::move(str));
+            *dec = new vfs_node_cached(str);
+            return 0;
+        }
+        if (m[1] == "ll") {
+            std::stringstream ss;
+            ll("..", node->parent.lock(), ss); // parent
+            ll(".", node, ss); // self
+            for (auto &c : node->children) {
+                ll(c.first, c.second, ss); // children
+            }
+            auto str = ss.str();
+            if (!str.empty())
+                str.pop_back();
+            *dec = new vfs_node_cached(str);
             return 0;
         }
         return -2;

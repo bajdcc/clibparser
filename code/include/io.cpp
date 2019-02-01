@@ -29,6 +29,9 @@ int input_char() {
 int input_lock() {
     interrupt 10;
 }
+int input_unlock() {
+    interrupt 12;
+}
 int input_state() {
     interrupt 13;
 }
