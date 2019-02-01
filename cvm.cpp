@@ -984,8 +984,7 @@ namespace clib {
                     auto s = str;
                     while (*s)
                         tasks[ctx->output_redirect].input_queue.push_back(*s++);
-                }
-                if (global_state.input_lock == -1) {
+                } else if (global_state.input_lock == -1) {
                     cgui::singleton().put_int((int) ctx->ax);
                 } else {
                     if (global_state.input_lock != ctx->id)

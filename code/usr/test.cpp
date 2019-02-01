@@ -1,11 +1,9 @@
-#include "/include/exec"
-#include "/include/io"
-#include "/include/proc"
+#include "/include/shell"
 int main(int argc, char **argv) {
-    exec("/usr/test_rec");    wait();
-    exec("/usr/test_fork");   wait();
-    exec("/usr/test_input");  wait();
-    exec("/usr/test_resize"); wait();
-    exec("/usr/test_malloc"); wait();
+    shell("/usr/test_rec");
+    shell("/usr/test_fork");
+    shell("/usr/test_input");
+    shell("/usr/test_resize");
+    shell("/usr/test_malloc");
     return 0;
 }

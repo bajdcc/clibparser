@@ -5,6 +5,7 @@
 
 #include "/include/exec"
 #include "/include/proc"
+#include "/include/io"
 
 int intern_pipe() {
     int c;
