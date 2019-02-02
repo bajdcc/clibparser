@@ -3,7 +3,7 @@
 #include "/include/string"
 #include "/include/memory"
 int write_file(int handle) {
-    int c;
+    int c, r;
     int state = input_lock();
     while ((c = input_char()) != -1) {
         r = write(handle, (char) c);
