@@ -17,6 +17,11 @@ int main(int argc, char **argv) {
                 put_string("[ERROR] Path is invalid.\n");
                 restore_fg();
                 break;
+            case -3:
+                set_fg(240, 0, 0);
+                put_string("[ERROR] Forbidden.\n");
+                restore_fg();
+                break;
         }
     }
     return 0;

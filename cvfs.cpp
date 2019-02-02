@@ -229,6 +229,8 @@ namespace clib {
             while (!stacks.empty()) {
                 auto n = stacks.back();
                 stacks.pop_back();
+                if (!can_mod(node, 0))
+                    continue;
                 ll(full_path(n), n, ss); // children
                 if (n->type == fs_dir) {
                     for (auto c = n->children.rbegin(); c != n->children.rend(); c++) {
@@ -401,6 +403,8 @@ namespace clib {
                 } else {
                     if (!update)
                         update = true;
+                    if (!can_mod(cur, 1))
+                        return -3;
                     auto node = new_node(fs_dir);
                     node->parent = cur;
                     node->name = p;
@@ -457,6 +461,8 @@ namespace clib {
                 return 0;
             }
         }
+        if (!can_mod(node, 1))
+            return -3;
         switch (node->type) {
             case fs_file:
             case fs_dir:
