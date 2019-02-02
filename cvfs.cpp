@@ -88,6 +88,12 @@ namespace clib {
         reset();
     }
 
+    static void mod_copy(vfs_mod *mod, const char *s) {
+        for (int i = 0; i < 9; ++i) {
+            ((char *) mod)[i] = *s++;
+        }
+    }
+
     void cvfs::reset() {
         account.clear();
         account.push_back(vfs_user{0, "root", "root"});
@@ -95,6 +101,7 @@ namespace clib {
         current_user = 0;
         last_user = 1;
         root = new_node(fs_dir);
+        mod_copy(root->mod, "rw-r--rw-"); // make '/' writable
         pwd = "/";
         auto n = now();
         year = localtime(&n)->tm_year;
@@ -104,12 +111,6 @@ namespace clib {
 
     void cvfs::error(const string_t &str) {
         throw cexception(ex_vm, str);
-    }
-
-    static void mod_copy(vfs_mod *mod, const char *s) {
-        for (int i = 0; i < 9; ++i) {
-            ((char *) mod)[i] = *s++;
-        }
     }
 
     vfs_node::ref cvfs::new_node(vfs_file_t type) {
