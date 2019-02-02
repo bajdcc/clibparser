@@ -16,7 +16,18 @@ namespace clib {
             idx++;
     }
 
-    vfs_node_solid::vfs_node_solid(const vfs_node::ref &ref) : node(ref) {
+    int vfs_node_dec::write(byte c) {
+        return -1;
+    }
+
+    int vfs_node_dec::truncate() {
+        return -1;
+    }
+
+    vfs_node_dec::vfs_node_dec(const vfs_mod_query *mod) : mod(mod) {}
+
+    vfs_node_solid::vfs_node_solid(const vfs_mod_query *mod, const vfs_node::ref &ref) :
+        vfs_node_dec(mod), node(ref) {
         node.lock()->refs++;
     }
 
@@ -40,7 +51,30 @@ namespace clib {
         return -1;
     }
 
-    vfs_node_cached::vfs_node_cached(const string_t &str) : cache(str) {}
+    int vfs_node_solid::write(byte c) {
+        auto n = node.lock();
+        if (!n)
+            return -1;
+        if (!mod->can_mod(n, 1))
+            return -2;
+        n->data.push_back(c);
+        idx = n->data.size() - 1;
+        return 0;
+    }
+
+    int vfs_node_solid::truncate() {
+        auto n = node.lock();
+        if (!n)
+            return -1;
+        if (!mod->can_mod(n, 1))
+            return -2;
+        n->data.clear();
+        idx = 0;
+        return 0;
+    }
+
+    vfs_node_cached::vfs_node_cached(const vfs_mod_query *mod, const string_t &str) :
+            vfs_node_dec(mod), cache(str) {}
 
     bool vfs_node_cached::available() const {
         return idx < cache.length();
@@ -172,7 +206,7 @@ namespace clib {
             auto str = ss.str();
             if (!str.empty())
                 str.pop_back();
-            *dec = new vfs_node_cached(str);
+            *dec = new vfs_node_cached(this, str);
             return 0;
         }
         if (m[1] == "ll") {
@@ -185,7 +219,7 @@ namespace clib {
             auto str = ss.str();
             if (!str.empty())
                 str.pop_back();
-            *dec = new vfs_node_cached(str);
+            *dec = new vfs_node_cached(this, str);
             return 0;
         }
         if (m[1] == "tree") {
@@ -205,13 +239,15 @@ namespace clib {
             auto str = ss.str();
             if (!str.empty())
                 str.pop_back();
-            *dec = new vfs_node_cached(str);
+            *dec = new vfs_node_cached(this, str);
             return 0;
         }
         return -2;
     }
 
     int cvfs::get(const string_t &path, vfs_node_dec **dec, vfs_func_t *f) const {
+        if (path.empty())
+            return -1;
         std::vector<string_t> m;
         split_path(path, m, ':');
         auto p = combine(pwd, m[0]);
@@ -223,14 +259,14 @@ namespace clib {
                 return -3;
             node->time.access = now();
             if (dec)
-                *dec = new vfs_node_solid(node);
+                *dec = new vfs_node_solid(this, node);
             return 0;
         }
         if (node->type == fs_func) {
             node->time.access = now();
             if (dec) {
                 if (f)
-                    *dec = new vfs_node_cached(f->callback(p));
+                    *dec = new vfs_node_cached(this, f->callback(p));
                 else
                     return -2;
             }

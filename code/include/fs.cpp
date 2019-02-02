@@ -41,3 +41,11 @@ int rm(char *s) {
     s;
     interrupt 68;
 }
+int write(int handle, char c) {
+    handle << 16 | c;
+    interrupt 69;
+}
+int truncate(int handle) {
+    handle;
+    interrupt 70;
+}

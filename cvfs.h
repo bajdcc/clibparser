@@ -56,25 +56,36 @@ namespace clib {
         string_t password;
     };
 
+
+
+    class vfs_mod_query {
+    public:
+        virtual bool can_mod(const vfs_node::ref &node, int mod) const = 0;
+    };
     class vfs_node_dec {
     public:
         virtual bool available() const = 0;
         virtual int index() const = 0;
         virtual void advance();
+        virtual int write(byte c);
+        virtual int truncate();
         virtual ~vfs_node_dec() = default;
     protected:
+        explicit vfs_node_dec(const vfs_mod_query *);
         int idx{0};
+        const vfs_mod_query *mod{nullptr};
     };
 
-    class cvfs;
     class vfs_node_solid : public vfs_node_dec {
         friend class cvfs;
     public:
         ~vfs_node_solid() override;
         bool available() const override;
         int index() const override;
+        int write(byte c) override;
+        int truncate() override;
     private:
-        explicit vfs_node_solid(const vfs_node::ref &ref);
+        explicit vfs_node_solid(const vfs_mod_query *, const vfs_node::ref &ref);
         vfs_node::weak_ref node;
     };
 
@@ -84,11 +95,11 @@ namespace clib {
         bool available() const override;
         int index() const override;
     private:
-        explicit vfs_node_cached(const string_t &str);
+        explicit vfs_node_cached(const vfs_mod_query *, const string_t &str);
         string_t cache;
     };
 
-    class cvfs {
+    class cvfs : public vfs_mod_query {
     public:
         cvfs();
 
@@ -127,7 +138,9 @@ namespace clib {
 
         char* file_time(const time_t &t) const;
         bool can_rm(const vfs_node::ref &node) const;
-        bool can_mod(const vfs_node::ref &node, int mod) const;
+
+    public:
+        bool can_mod(const vfs_node::ref &node, int mod) const override;
 
     private:
         std::vector<vfs_user> account;

@@ -5,6 +5,28 @@
 #include "/include/proc"
 #include "/include/string"
 #include "/include/sys"
+int process(char *text) {
+    char *tmp = malloc(256), c;
+    int i = 0, j = 0;
+    while (true) {
+        c = text[i];
+        if (c == '>') {
+            i++;
+            if (text[i] == '>') { // append
+                i++;
+                strcpy(tmp + j, "| append ");
+                j += 9;
+            } else { // truncate
+                strcpy(tmp + j, "| write ");
+                j += 8;
+            }
+        }
+        tmp[j++] = text[i++];
+        if (c == (char) 0)
+            break;
+    }
+    strcpy(text, tmp);
+}
 int exec_single(char *text, int *total) {
     while (*text == ' ')
         text++;
@@ -33,7 +55,7 @@ int exec_start(char *text, int *total) {
 }
 int main(int argc, char **argv) {
     int i, j, total, state = 1, direct_input = input_state();
-    char *text = malloc(100);
+    char *text = malloc(256);
     char *_whoami = malloc(100);
     char *_hostname = malloc(100);
     char *_pwd = malloc(100);
@@ -61,6 +83,7 @@ int main(int argc, char **argv) {
             continue;
         if (strcmp(text, "exit") == 0)
             break;
+        process(text);
         int pid = exec_start(text, &total);
         if (pid >= 0) {
             exec_wakeup(pid);

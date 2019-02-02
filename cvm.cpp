@@ -879,7 +879,7 @@ namespace clib {
                 if (!(tasks[id].flag & CTX_VALID)) {
                     return "[ERROR] Invalid pid";
                 }
-                const auto &op = res[2].str();printf("%s\n",op.data());
+                const auto &op = res[2].str();
                 if (op == "exe") {
                     return tasks[id].path;
                 } else if (op == "parent") {
@@ -1219,6 +1219,26 @@ namespace clib {
                 break;
             case 68: {
                 ctx->ax = fs.rm_safe(trim(vmm_getstr((uint32_t) ctx->ax)));
+            }
+            case 69: {
+                auto h = ctx->ax >> 16;
+                auto c = ctx->ax & 0xFFFF;
+                if (ctx->handles.find(h) != ctx->handles.end()) {
+                    auto dec = handles[h].data.file;
+                    ctx->ax = dec->write((byte) c);
+                } else {
+                    ctx->ax = -3;
+                }
+            }
+                break;
+            case 70: {
+                auto h = ctx->ax;
+                if (ctx->handles.find(h) != ctx->handles.end()) {
+                    auto dec = handles[h].data.file;
+                    ctx->ax = dec->truncate();
+                } else {
+                    ctx->ax = -3;
+                }
             }
                 break;
             case 100:
