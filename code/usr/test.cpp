@@ -5,5 +5,6 @@ int main(int argc, char **argv) {
     shell("/usr/test_input");
     shell("/usr/test_resize");
     shell("/usr/test_malloc");
+    shell("/usr/test_struct");
     return 0;
 }

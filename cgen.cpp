@@ -252,6 +252,8 @@ namespace clib {
             gen.emit(LEA, addr);
         } else if (clazz == z_param_var) {
             gen.emit(LEA, addr);
+        } else if (clazz == z_struct_var) {
+            gen.emit(IMM, addr);
         }
         return g_ok;
     }
@@ -267,6 +269,8 @@ namespace clib {
         } else if (clazz == z_param_var) {
             gen.emit(LEA, addr);
             gen.emit(LOAD, base->size(x_load));
+        } else if (clazz == z_struct_var) {
+            gen.error("not implemented");
         }
         return g_ok;
     }
@@ -284,7 +288,9 @@ namespace clib {
     int sym_struct_t::size(sym_size_t t) const {
         if (_size == 0) {
             for (auto &decl : decls) {
+                decl->addr = _size;
                 *const_cast<int *>(&_size) += decl->size(t);
+                decl->addr_end = _size;
             }
         }
         return _size;
@@ -378,6 +384,8 @@ namespace clib {
     }
 
     string_t sym_var_t::get_name() const {
+        if (node->flag == ast_literal)
+            return node->data._string;
         return to_string();
     }
 
@@ -749,6 +757,60 @@ namespace clib {
                 }
             }
                 break;
+            case op_dot: {
+                exp1->gen_lvalue(gen);
+                base = exp1->base;
+                if (base->get_type() != s_type_typedef)
+                    gen.error("[binop] need struct type");
+                auto type_def = std::dynamic_pointer_cast<type_typedef_t>(base);
+                auto _type = type_def->refer.lock();
+                if (_type->get_type() != s_struct)
+                    gen.error("[binop] need struct type");
+                auto _struct = std::dynamic_pointer_cast<sym_struct_t>(_type);
+                auto dec = exp2->get_name();
+                sym_id_t::ref field;
+                for (auto &d : _struct->decls) {
+                    if (d->get_name() == dec) {
+                        field = d;
+                        break;
+                    }
+                }
+                if (!field)
+                    gen.error("[binop] invalid struct field");
+                gen.emit(PUSH);
+                field->gen_lvalue(gen);
+                base = field->base;
+                gen.emit(ADD);
+            }
+                break;
+            case op_pointer: {
+                exp1->gen_rvalue(gen);
+                base = exp1->base;
+                if (base->to_string().back() != '*')
+                    gen.error("[binop] need struct pointer");
+                if (base->get_type() != s_type_typedef)
+                    gen.error("[binop] need struct type");
+                auto type_def = std::dynamic_pointer_cast<type_typedef_t>(base);
+                auto _type = type_def->refer.lock();
+                if (_type->get_type() != s_struct)
+                    gen.error("[binop] need struct type");
+                auto _struct = std::dynamic_pointer_cast<sym_struct_t>(_type);
+                auto dec = exp2->get_name();
+                sym_id_t::ref field;
+                for (auto &d : _struct->decls) {
+                    if (d->get_name() == dec) {
+                        field = d;
+                        break;
+                    }
+                }
+                if (!field)
+                    gen.error("[binop] invalid struct field");
+                gen.emit(PUSH);
+                field->gen_lvalue(gen);
+                base = field->base;
+                gen.emit(ADD);
+            }
+                break;
             default:
                 gen.error("[binop] not supported lvalue: " + to_string());
                 return g_error;
@@ -840,6 +902,16 @@ namespace clib {
                 auto exp = std::dynamic_pointer_cast<sym_t>(exp2);
                 exp1->gen_invoke(gen, exp);
                 base = exp1->base->clone();
+            }
+                break;
+            case op_dot: {
+                gen_lvalue(gen);
+                gen.emit(LOAD, base->size(x_load));
+            }
+                break;
+            case op_pointer: {
+                gen_lvalue(gen);
+                gen.emit(LOAD, base->size(x_load));
             }
                 break;
             default:
@@ -2375,11 +2447,20 @@ namespace clib {
         type_t::ref t;
         switch (node->flag) {
             case ast_literal: {
+                if (AST_IS_COLL_N(node->parent, c_postfixExpression) &&
+                    (AST_IS_OP_N(node->prev, op_dot) || AST_IS_OP_N(node->prev, op_pointer))) {
+                    t = std::make_shared<type_base_t>(l_int, 0);
+                    return std::make_shared<sym_var_t>(t, node);
+                }
                 auto sym = find_symbol(node->data._string);
                 if (!sym)
                     error(node, "undefined id: " + string_t(node->data._string));
                 if (sym->get_type() == s_id || sym->get_type() == s_function) {
                     t = std::dynamic_pointer_cast<sym_id_t>(sym)->base->clone();
+                    return std::make_shared<sym_var_id_t>(t, node, sym);
+                }
+                if (sym->get_type() == s_struct) {
+                    t = std::dynamic_pointer_cast<type_typedef_t>(sym);
                     return std::make_shared<sym_var_id_t>(t, node, sym);
                 }
                 error(node, "required id but got: " + sym->to_string());

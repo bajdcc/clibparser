@@ -106,6 +106,52 @@ Shell界面：
 
 采用[Antlr 4 - C test](https://github.com/antlr/grammars-v4/tree/master/c/examples)中的9个c文件。
 
+**最新：支持结构体和指针（位置：/code/usr/test_struct，命令：/usr/test_struct）**
+
+```cpp
+#include "/include/io"
+#include "/include/memory"
+struct node {
+    int value;
+    node *next;
+};
+node *create(int n) {
+    if (n <= 0)
+        return (node *) 0;
+    node *new_node = (node *) malloc(sizeof(node));
+    new_node->value = n;
+    new_node->next = create(n - 1);
+    return new_node;
+}
+int print(node *head) {
+    while (head) {
+        put_int(head->value); put_string(" ");
+        head = head->next;
+    }
+}
+int destroy(node *head) {
+    node *old;
+    while (head) {
+        old = head;
+        head = head->next;
+        free((int) old);
+    }
+}
+int case_1() {
+    put_string("-- CASE #1 --\n");
+    node *head = create(10);
+    print(head);
+    destroy(head);
+    put_string("\n");
+}
+int main(int argc, char **argv) {
+    put_string("========== [#6 TEST STRUCT] ==========\n");
+    case_1();
+    put_string("========== [#6 TEST STRUCT] ==========\n");
+    return 0;
+}
+```
+
 测试文件在test.cpp中，编译为clibparser-test。
 
 **9个测试用例均通过。**
@@ -165,7 +211,7 @@ Shell界面：
     - [x] 函数调用（及递归）
     - [x] 数组寻址（及左值），多维数组定义，一维数组使用
     - [x] 枚举
-    - [ ] 结构体成员（点和指针）
+    - [x] **结构体成员（点和指针）**
     - [x] 一元运算
     - [x] 二元运算
     - [x] 短路运算
