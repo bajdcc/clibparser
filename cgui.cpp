@@ -12,6 +12,7 @@
 #include "cexception.h"
 
 #define LOG_AST 0
+#define LOG_DEP 0
 
 #define ENTRY_FILE "/sys/entry"
 
@@ -48,7 +49,7 @@ namespace clib {
         return gui;
     }
 
-    string_t cgui::load_file(const string_t &name) {
+    string_t cgui::load_file(string_t &name) {
         static string_t pat_path{ R"((/[A-Za-z0-9_]+)+)" };
         static std::regex re_path(pat_path);
         static string_t pat_bin{ R"([A-Za-z0-9_]+)" };
@@ -70,9 +71,8 @@ namespace clib {
             std::vector<byte> data(str.begin(), str.end());
             vm->as_root(true);
             if (name[0] != '/')
-                vm->write_vfs("/bin/" + name, data);
-            else
-                vm->write_vfs(name, data);
+                name = "/bin/" + name;
+            vm->write_vfs(name, data);
             vm->as_root(false);
             return str;
         }
@@ -364,13 +364,18 @@ namespace clib {
         memory.free(old_bg);
     }
 
-    string_t cgui::do_include(const string_t &path, const string_t &code) {
+    void cgui::load_dep(string_t &path, std::unordered_set<string_t> &deps) {
+        auto f = cache_code.find(path);
+        if (f != cache_code.end()) {
+            deps.insert(cache_dep[path].begin(), cache_dep[path].end());
+            return;
+        }
+        auto code = load_file(path);
         static string_t pat_inc{ "#include[ ]+\"([/A-Za-z0-9_-]+?)\"" };
         static std::regex re_inc(pat_inc);
         std::smatch res;
-        //迭代器声明
-        auto begin = code.begin();
-        auto end = code.end();
+        auto begin = code.cbegin();
+        auto end = code.cend();
         std::vector<std::tuple<int, int, string_t>> records;
         {
             auto offset = 0;
@@ -387,53 +392,121 @@ namespace clib {
         }
         if (!records.empty()) {
             // has #include directive
-            std::unordered_set<string_t> deps;
+            std::unordered_set<string_t> _deps;
             for (auto &r : records) {
                 auto &include_path = std::get<2>(r);
-                do_include(include_path, load_file(include_path));
-                auto &dep = cache_dep[include_path];
-                deps.insert(dep.begin(), dep.end());
+                load_dep(include_path, _deps);
+                _deps.insert(include_path);
             }
-            std::stringstream ss;
+            std::stringstream sc;
             auto prev = 0;
-            std::unordered_set<string_t> s;
             for (auto &r : records) {
                 auto &start = std::get<0>(r);
                 auto &length= std::get<1>(r);
                 auto &include_path = std::get<2>(r);
-                if (prev < start - prev)
-                    ss << code.substr((uint) prev, (uint) start - prev);
-                if (deps.find(include_path) == deps.end()) {
-                    ss << do_include(include_path, load_file(include_path));
-                    auto &dep = cache_dep[include_path];
-                    s.insert(dep.begin(), dep.end());
-                    s.insert(include_path);
+                if (prev < start - prev) {
+                    auto frag = code.substr((uint) prev, (uint) start - prev);
+                    sc << frag;
                 }
                 prev = length;
             }
-            if (prev < code.length())
-                ss << code.substr((uint) prev, code.length() - (uint) prev);
-            cache_code.insert(std::make_pair(path, ss.str()));
-            cache_dep.insert(std::make_pair(path, std::move(s)));
-            return ss.str();
+            if (prev < code.length()) {
+                auto frag = code.substr((uint) prev, code.length() - (uint) prev);
+                sc << frag;
+            }
+            cache_code.insert(std::make_pair(path, sc.str()));
+            cache_dep.insert(std::make_pair(path, _deps));
         } else {
             // no #include directive
             cache_code.insert(std::make_pair(path, code));
             cache_dep.insert(std::make_pair(path, std::unordered_set<string_t>()));
-            return code;
         }
+        load_dep(path, deps);
+    }
+
+    string_t cgui::do_include(string_t &path) { // DAG solution for include
+        std::vector<string_t> v; // VERTEX(Map id to name)
+        std::unordered_map<string_t, int> deps; // VERTEX(Map name to id)
+        {
+            std::unordered_set<string_t> _deps;
+            load_dep(path, _deps);
+            if (_deps.empty())
+                return cache_code[path]; // no include
+            _deps.insert(path);
+            v.resize(_deps.size());
+            std::copy(_deps.begin(), _deps.end(), v.begin());
+            int i = 0;
+            for (auto &d : v) {
+                deps.insert(std::make_pair(d, i++));
+            }
+        }
+        auto n = v.size();
+        std::vector<std::vector<bool>> DAG(n); // DAG(Map id to id)
+        std::unordered_set<size_t> deleted;
+        std::vector<size_t> topo; // 拓扑排序
+        for (size_t i = 0; i < n; ++i) {
+            DAG[i].resize(n);
+            for (size_t j = 0; j < n; ++j) {
+                auto &_d = cache_dep[v[i]];
+                if (_d.find(v[j]) != _d.end())
+                    DAG[i][j] = true;
+            }
+        }
+        // DAG[i][j] == true  =>  i 包含 j
+        for (size_t i = 0; i < n; ++i) { // 每次找出零入度点并删除
+            size_t right = n;
+            for (size_t j = 0; j < n; ++j) { // 找出零入度点
+                if (deleted.find(j) == deleted.end()) {
+                    bool success = true;
+                    for (size_t k = 0; k < n; ++k) {
+                        if (DAG[j][k]) {
+                            success = false;
+                            break;
+                        }
+                    }
+                    if (success) { // 找到
+                        right = j;
+                        break;
+                    }
+                }
+            }
+            if (right != n) {
+                for (size_t k = 0; k < n; ++k) { // 删除点
+                    DAG[k][right] = false;
+                }
+                topo.push_back(right);
+                deleted.insert(right);
+            }
+        }
+        if (topo.size() != n) {
+            error("topo failed: " + path);
+        }
+#if LOG_DEP
+        printf("[SYSTEM] DEP  | ---------------\n");
+        printf("[SYSTEM] DEP  | PATH: %s\n", path.c_str());
+        for (size_t i = 0; i < n; ++i) {
+            printf("[SYSTEM] DEP  | [%d] ==> %s\n", i, v[topo[i]].c_str());
+        }
+        printf("[SYSTEM] DEP  | ---------------\n");
+#endif
+        std::stringstream ss;
+        for (auto &tp : topo) {
+            ss << cache_code[v[tp]];
+        }
+        return ss.str();
     }
 
     int cgui::compile(const string_t &path, const std::vector<string_t> &args) {
         if (path.empty())
             return -1;
         auto fail_errno = -1;
+        auto new_path = path;
         try {
-            auto c = cache.find(path);
+            auto c = cache.find(new_path);
             if (c != cache.end()) {
-                return vm->load(path, c->second, args);
+                return vm->load(new_path, c->second, args);
             }
-            auto code = do_include(path, load_file(path));
+            auto code = do_include(new_path);
             fail_errno = -2;
             gen.reset();
             auto root = p.parse(code, &gen);
@@ -442,11 +515,11 @@ namespace clib {
 #endif
             gen.gen(root);
             auto file = gen.file();
-            cache.insert(std::make_pair(path, file));
-            return vm->load(path, file, args);
+            cache.insert(std::make_pair(new_path, file));
+            return vm->load(new_path, file, args);
         } catch (const cexception &e) {
             gen.reset();
-            std::cout << "[SYSTEM] ERR  | PATH: " << path << ", ";
+            std::cout << "[SYSTEM] ERR  | PATH: " << new_path << ", ";
             std::cout << e.message() << std::endl;
             return fail_errno;
         }

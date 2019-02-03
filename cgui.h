@@ -56,7 +56,8 @@ namespace clib {
         void new_line();
         inline void draw_char(const char &c);
 
-        string_t do_include(const string_t &path, const string_t &code);
+        void load_dep(string_t &path, std::unordered_set<string_t> &deps);
+        string_t do_include(string_t &path);
 
         void exec_cmd(const string_t &s);
 
@@ -65,7 +66,7 @@ namespace clib {
     public:
         static cgui &singleton();
 
-        string_t load_file(const string_t &name);
+        string_t load_file(string_t &name);
 
     private:
         cgen gen;
