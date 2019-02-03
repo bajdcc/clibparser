@@ -115,6 +115,7 @@ Shell界面：
 ```cpp
 #include "/include/io"
 #include "/include/memory"
+#include "/include/string"
 struct node {
     int value;
     node *next;
@@ -148,9 +149,39 @@ int case_1() {
     destroy(head);
     put_string("\n");
 }
+struct node2 {
+    int a, b;
+};
+union node3 {
+    struct _1 {
+        int a, b;
+    } A;
+    struct _2 {
+        char a, b, c, d;
+        char e, f, g, h;
+    } B;
+};
+int case_2() {
+    put_string("-- CASE #2 --\n");
+    node2 *n1 = (node2 *) malloc(sizeof(node2));
+    strncpy((char *) n1, "ABCD1234", 8);
+    put_int(n1->a); put_string(" ");
+    put_int(n1->b);
+    free((int) n1);
+    put_string("\n");
+    node3 *n2 = (node3 *) malloc(sizeof(node3));
+    strncpy((char *) n2, "1234ABCD", 8);
+    put_int(n2->A.a); put_string(" ");
+    put_int(n2->A.b); put_string(" ");
+    put_char(n2->B.a); put_string(" ");
+    put_char(n2->B.h);
+    free((int) n2);
+    put_string("\n");
+}
 int main(int argc, char **argv) {
     put_string("========== [#6 TEST STRUCT] ==========\n");
     case_1();
+    case_2();
     put_string("========== [#6 TEST STRUCT] ==========\n");
     return 0;
 }
@@ -215,7 +246,7 @@ int main(int argc, char **argv) {
     - [x] 函数调用（及递归）
     - [x] 数组寻址（及左值），多维数组定义，一维数组使用
     - [x] 枚举
-    - [x] **结构体成员（点和指针）**
+    - [x] **结构体成员（点和指针），嵌套**
     - [x] 一元运算
     - [x] 二元运算
     - [x] 短路运算
@@ -253,7 +284,7 @@ int main(int argc, char **argv) {
     - [ ] 内核与用户态分离
     - [ ] 内存权限管理
     - [ ] 中断机制
-    - [ ] 虚拟文件系统
+    - [x] 虚拟文件系统
     - [x] 命令行管道
 - [ ] 库代码文件
     - [x] exec
@@ -277,9 +308,9 @@ int main(int argc, char **argv) {
     - [x] 读取
     - [x] 限定操作
     - [x] 语义接口（:ls,:ll）
-    - [ ] 存储
+    - [x] 存储
     - [ ] 权限
-    - [ ] 互斥
+    - [x] 锁定
     - [ ] 链接
 - [ ] 图形用户界面
     - [x] 用OpenGL创建窗口

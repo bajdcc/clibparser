@@ -150,12 +150,13 @@ namespace clib {
     class sym_struct_t : public sym_t {
     public:
         using ref = std::shared_ptr<sym_id_t>;
-        explicit sym_struct_t(const string_t &id);
+        explicit sym_struct_t(bool _struct, const string_t &id);
         symbol_t get_type() const override;
         symbol_t get_base_type() const override;
         int size(sym_size_t t) const override;
         string_t get_name() const override;
         string_t to_string() const override;
+        bool _struct{true};
         string_t id;
         int _size{0};
         std::vector<sym_id_t::ref> decls;
@@ -368,6 +369,8 @@ namespace clib {
         std::vector<cycle_t> cycle;
         std::vector<std::vector<switch_t>> cases;
         sym_t::weak_ref ctx;
+        std::vector<sym_t::ref> ctx_stack;
+        int global_id{0};
     };
 }
 

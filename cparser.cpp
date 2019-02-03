@@ -310,7 +310,7 @@ namespace clib {
                         | typedefName
                         | typeSpecifier + pointer;
         structOrUnionSpecifier =
-            structOrUnion + (Identifier | (*Identifier + ~_lbrace_ + structDeclarationList + ~_rbrace_));
+            structOrUnion + Identifier + ~_lbrace_ + structDeclarationList + ~_rbrace_;
         structOrUnion = _struct_ | _union_;
         structDeclarationList = *structDeclarationList + structDeclaration;
         structDeclaration = specifierQualifierList + *structDeclaratorList + ~_semi_;

@@ -275,7 +275,7 @@ namespace clib {
         return g_ok;
     }
 
-    sym_struct_t::sym_struct_t(const string_t &id) : id(id) {}
+    sym_struct_t::sym_struct_t(bool _struct, const string_t &id) : _struct(_struct), id(id) {}
 
     symbol_t sym_struct_t::get_type() const {
         return s_struct;
@@ -287,10 +287,19 @@ namespace clib {
 
     int sym_struct_t::size(sym_size_t t) const {
         if (_size == 0) {
-            for (auto &decl : decls) {
-                decl->addr = _size;
-                *const_cast<int *>(&_size) += decl->size(t);
-                decl->addr_end = _size;
+            if (_struct) {
+                for (auto &decl : decls) {
+                    decl->addr = _size;
+                    *const_cast<int *>(&_size) += decl->size(t);
+                    decl->addr_end = _size;
+                }
+            } else {
+                for (auto &decl : decls) {
+                    decl->addr = 0;
+                    auto s = decl->size(t);
+                    *const_cast<int *>(&_size) = std::max(_size, s);
+                    decl->addr_end = s;
+                }
             }
         }
         return _size;
@@ -1375,9 +1384,12 @@ namespace clib {
                 auto &sym = symbols[0];
                 auto f = sym.find(name->data._string);
                 if (f != sym.end()) {
+                    if (ctx.lock()) {
+                        ctx_stack.push_back(ctx.lock());
+                    }
                     ctx = f->second;
                 } else {
-                    error("invalid struct name");
+                    error("invalid struct/union name");
                 }
             }
                 break;
@@ -1656,7 +1668,16 @@ namespace clib {
             case c_declarationSpecifiers:
             case c_specifierQualifierList: {
                 type_t::ref base_type;
-                if (AST_IS_KEYWORD_N(asts[0], k_struct)) {
+                if (AST_IS_KEYWORD_N(asts[0], k_struct) || AST_IS_KEYWORD_K(asts[0], k_union)) {
+                    auto f = symbols[0].find(asts[1]->data._string);
+                    if (f == symbols[0].end()) {
+                        error("missing struct type");
+                    }
+                    auto s = std::dynamic_pointer_cast<sym_struct_t>(f->second);
+                    if (s->get_type() != s_struct) {
+                        error("need struct type");
+                    }
+                    tmp.back().push_back(s);
                     asts.clear();
                     break;
                 }
@@ -1816,7 +1837,15 @@ namespace clib {
                 } else {
                     clazz = z_struct_var;
                 }
-                auto type = std::dynamic_pointer_cast<type_t>((tmp.rbegin() + 1)->front());
+                type_t::ref type;
+                {
+                    auto t = (tmp.rbegin() + 1)->back();
+                    if (t->get_base_type() == s_type) {
+                        type = std::dynamic_pointer_cast<type_t>(t);
+                    } else {
+                        type = std::make_shared<type_typedef_t>(t);
+                    }
+                }
                 auto ptr = 0;
                 auto tmp_i = 0;
                 for (auto &ast : asts) {
@@ -2109,7 +2138,10 @@ namespace clib {
             case c_functionDefinition:
                 emit(LEV);
             case c_structOrUnionSpecifier: {
-                ctx.reset();
+                if (!ctx_stack.empty()) {
+                    ctx = ctx_stack.back();
+                    ctx_stack.pop_back();
+                }
                 symbols.pop_back();
             }
                 break;
@@ -2384,6 +2416,8 @@ namespace clib {
             if (init)
                 error(id, "allocate: invalid init value");
             auto _struct = std::dynamic_pointer_cast<sym_struct_t>(ctx.lock());
+            if (!_struct)
+                error(id, "allocate: need struct");
             _struct->decls.push_back(id);
         } else {
             error(id, "allocate: not supported");
@@ -2429,13 +2463,11 @@ namespace clib {
         }
         if (ctx.lock()) {
             auto _ctx = ctx.lock();
-            if (_ctx) {
-                if (_ctx->get_type() == s_function) {
-                    auto func = std::dynamic_pointer_cast<sym_func_t>(_ctx);
-                    for (auto &param : func->params) {
-                        if (param->get_name() == name) {
-                            return param;
-                        }
+            if (_ctx->get_type() == s_function) {
+                auto func = std::dynamic_pointer_cast<sym_func_t>(_ctx);
+                for (auto &param : func->params) {
+                    if (param->get_name() == name) {
+                        return param;
                     }
                 }
             }
@@ -2511,19 +2543,26 @@ namespace clib {
         return std::get<1>(sym_class_string_list[t]);
     }
 
+    string_t unnamed_gen(int id) {
+        std::stringstream ss;
+        ss << "_unnamed_" << id << "_";
+        return ss.str();
+    }
+
     backtrace_direction cgen::check(pda_edge_t edge, ast_node *node) {
         if (edge != e_shift) { // CONTAINS reduce, recursion, move
             if (AST_IS_COLL(node)) {
                 switch (node->data._coll) {
                     case c_structOrUnionSpecifier: { // MODIFY, CANNOT RECOVERY
                         if (AST_IS_ID(node->child->next)) {
+                            auto _struct = node->child->child->data._keyword;
                             auto id = node->child->next->data._string;
                             auto &sym = symbols[0];
                             if (sym.find(id) != sym.end()) {
                                 // CONFLICT STRUCT DECLARATION
                                 return b_fail;
                             }
-                            sym.insert(std::make_pair(id, std::make_shared<sym_struct_t>(id)));
+                            sym.insert(std::make_pair(id, std::make_shared<sym_struct_t>(_struct == k_struct, id)));
                         }
                     }
                         break;

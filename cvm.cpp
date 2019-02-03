@@ -624,7 +624,7 @@ namespace clib {
             }
             if (ctx->output_redirect != -1 && tasks[ctx->output_redirect].flag & CTX_VALID) {
                 if (tasks[id].input_redirect != -1) {
-                    copy(tasks[id].input_queue.begin(), tasks[id].input_queue.end(),
+                    std::copy(tasks[id].input_queue.begin(), tasks[id].input_queue.end(),
                          std::back_inserter(tasks[tasks[id].output_redirect].input_queue));
                     tasks[id].input_queue.clear();
                 }
