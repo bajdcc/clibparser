@@ -141,15 +141,17 @@ namespace clib {
 
         for (auto i = 0; i < rows; ++i) {
             for (auto j = 0; j < cols; ++j) {
-                /*if (colors_bg[i * cols + j]) {
-                    glColor4ubv((GLubyte *) &colors_fg[0]);
-                    glRasterPos2i(x, y);
-                    glutBitmapCharacter(GUI_FONT,9608); // 全黑字符
-                }*/
+                if (colors_bg[i * cols + j]) {
+                    glColor4ubv((GLubyte *) &colors_bg[i * cols + j]);
+                    glRectf(x, y + GUI_FONT_H_1, x + GUI_FONT_W, y + GUI_FONT_H_2);
+                }
                 if (std::isprint(buffer[i * cols + j])) {
                     glColor4ubv((GLubyte *) &colors_fg[i * cols + j]);
                     glRasterPos2i(x, y);
                     glutBitmapCharacter(GUI_FONT, buffer[i * cols + j]);
+                } else if (buffer[i * cols + j] == '\7') {
+                    glColor4ubv((GLubyte *) &colors_fg[i * cols + j]);
+                    glRectf(x, y + GUI_FONT_H_1, x + GUI_FONT_W, y + GUI_FONT_H_2);
                 }
                 x += GUI_FONT_W;
             }
@@ -597,7 +599,7 @@ namespace clib {
         }
         if (!input_state)
             return;
-        if (!(std::isprint(c) || c == '\b' || c == '\n' || c == '\r' || c == 4 || c == 26)) {
+        if (!(std::isprint(c) || c == '\b' || c == '\n' || c == '\r' || c == 4 || c == 7 || c == 26)) {
             printf("[SYSTEM] GUI  | Input: %d\n", (int) c);
             return;
         }

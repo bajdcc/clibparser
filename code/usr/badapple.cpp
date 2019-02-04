@@ -28,9 +28,9 @@ int read_file(int handle) {
             flag = 0;
             if ((num & 128) != 0) {
                 num -= 128;
-                p = ' ';
+                p = '\7';
             } else {
-                p = '*';
+                p = ' ';
             }
             if (px + num > pixels) {
                 for (j = 0; j < pixels - px; j++) {

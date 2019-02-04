@@ -45,9 +45,10 @@ static void draw_text(int x, int y, const char *format, ...) {
     int len = vsprintf(buffer, format, args); // 格式化字符串
     va_end(args);
     for (int i = 0; i < len; ++i) {
-        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, buffer[i]); // 第一个参数为字体，第二个参数为字符
+        glutBitmapCharacter(GUI_FONT, buffer[i]); // 第一个参数为字体，第二个参数为字符
     }
 
+    glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();

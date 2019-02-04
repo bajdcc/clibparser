@@ -5,7 +5,7 @@
 // WELCOME
 int welcome() {
     set_fg(0, 240, 240);
-    set_bg(43, 43, 43);
+    set_bg(10, 10, 10);
     shell("cat /usr/logo.txt");
     restore_fg();
     restore_bg();
