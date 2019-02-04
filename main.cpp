@@ -14,6 +14,8 @@ static clib::decimal dt;
 static clib::decimal dt_inv;
 static bool paused;
 static string_t title;
+static int cycles;
+static clib::decimal ips;
 
 /**
  * 绘制文字
@@ -51,17 +53,29 @@ static void draw_text(int x, int y, const char *format, ...) {
     glPopMatrix();
 }
 
+char *ipsf() {
+    static char _ipsf[32];
+    if (ips < 1e3) {
+        sprintf(_ipsf, "%.1f", ips);
+    } else if (ips < 1e6) {
+        sprintf(_ipsf, "%.1fK", ips * 1e-3);
+    } else if (ips < 1e9) {
+        sprintf(_ipsf, "%.1fM", ips * 1e-6);
+    }
+    return _ipsf;
+}
+
 void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // 清空屏幕
 
     int h = glutGet(GLUT_WINDOW_HEIGHT); // 窗口的高
     int w = glutGet(GLUT_WINDOW_WIDTH); // 窗口的宽
 
-    clib::cgui::singleton().draw(paused);
+    clib::cgui::singleton().draw(paused, dt_inv * FRAME_SPAN);
 
     // 绘制文字
     draw_text(10, 20, "clibparser @bajdcc"); // 暂不支持中文
-    draw_text(w - 110, 20, "FPS: %.1f", dt_inv);
+    draw_text(w - 200, 20, "IPS: %s FPS: %.1f", ipsf(), dt_inv);
     draw_text(10, h - 20, "#clibos v0.1");
     if (paused)
         draw_text(w / 2 - 30, 20, "PAUSED");
@@ -102,8 +116,12 @@ void idle() {
     // 计算每帧时间间隔
     dt = std::chrono::duration_cast<std::chrono::duration<double>>(now - last_clock).count();
 
+    cycles += clib::cgui::singleton().reset_cycles();
+
     // 锁帧
     if (dt > FRAME_SPAN) {
+        ips = cycles * dt;
+        cycles = 0;
         dt_inv = 1.0 / dt;
         last_clock = now;
         display();

@@ -18,7 +18,13 @@
 #define GUI_ROWS 30
 #define GUI_COLS 84
 #define GUI_SIZE (GUI_ROWS * GUI_COLS)
-#define GUI_CYCLES 10000
+#define GUI_CYCLES 1000
+#define GUI_MAX_SPEED 4
+#define GUI_MAX_CYCLE 100000000
+#define GUI_MIN_CYCLE 10
+#define GUI_MIN_FPS_RATE 0.5
+#define GUI_MAX_FPS_RATE 0.8
+#define GUI_CYCLE_STABLE 100
 #define GUI_TICKS 1
 #define GUI_INPUT_CARET 15
 #define GUI_MEMORY (256 * 1024)
@@ -33,7 +39,7 @@ namespace clib {
         cgui(const cgui &) = delete;
         cgui &operator=(const cgui &) = delete;
 
-        void draw(bool paused);
+        void draw(bool paused, decimal fps);
         int compile(const string_t &path, const std::vector<string_t> &args);
 
         void put_string(const string_t &str);
@@ -48,6 +54,7 @@ namespace clib {
         void input_set(bool valid);
         void input(unsigned char c);
         void reset_cmd();
+        int reset_cycles();
 
     private:
         void tick();
@@ -100,6 +107,9 @@ namespace clib {
         std::vector<char> input_string;
         uint32_t color_bg;
         uint32_t color_fg;
+        int cycles{0};
+        int cycle_speed{0};
+        int cycle_stable{0};
     };
 }
 

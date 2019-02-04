@@ -83,8 +83,33 @@ namespace clib {
         error("file not exists: " + name);
     }
 
-    void cgui::draw(bool paused) {
+    void cgui::draw(bool paused, decimal fps) {
         if (!paused) {
+            if (cycle_stable > 0) {
+                if (fps > GUI_MAX_FPS_RATE) {
+                    cycle = std::min(cycle << 1, GUI_MAX_CYCLE);
+                } else if (fps < GUI_MIN_FPS_RATE) {
+                    cycle_stable--;
+                }
+            } else if (fps > GUI_MAX_FPS_RATE) {
+                if (cycle_speed >= 0) {
+                    cycle_speed = std::min(cycle_speed + 1, GUI_MAX_SPEED);
+                    cycle = std::min(cycle << cycle_speed, GUI_MAX_CYCLE);
+                } else {
+                    cycle_speed = 0;
+                }
+            } else if (fps < GUI_MIN_FPS_RATE) {
+                if (cycle_speed <= 0) {
+                    cycle_speed = std::max(cycle_speed - 1, -GUI_MAX_SPEED);
+                    cycle = std::max(cycle >> (-cycle_speed), GUI_MIN_CYCLE);
+                } else {
+                    cycle_speed = 0;
+                }
+            } else {
+                if (cycle_stable == 0) {
+                    cycle_stable = GUI_CYCLE_STABLE;
+                }
+            }
             for (int i = 0; i < ticks; ++i) {
                 tick();
             }
@@ -156,12 +181,11 @@ namespace clib {
     }
 
     void cgui::tick() {
-        auto c = 0;
         if (exited)
             return;
         if (running) {
             try {
-                if (!vm->run(cycle, c)) {
+                if (!vm->run(cycle, cycles)) {
                     running = false;
                     exited = true;
                     put_string("\n[!] clibos exited.");
@@ -569,6 +593,12 @@ namespace clib {
     void cgui::reset_cmd() {
         cmd_state = false;
         cmd_string.clear();
+    }
+
+    int cgui::reset_cycles() {
+        auto c = cycles;
+        cycles = 0;
+        return c;
     }
 
     void cgui::exec_cmd(const string_t &s) {
