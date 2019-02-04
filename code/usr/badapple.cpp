@@ -66,7 +66,6 @@ int read_file(int handle) {
             restore_fg();
             break;
     }
-    resize(30, 84);
     close(handle);
 }
 int main(int argc, char **argv) {

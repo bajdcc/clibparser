@@ -360,6 +360,10 @@ namespace clib {
     }
 
     void cgui::resize(int r, int c) {
+        if (r == 0 && c == 0) {
+            r = GUI_ROWS;
+            c = GUI_COLS;
+        }
         auto old_rows = rows;
         auto old_cols = cols;
         rows = std::max(10, std::min(r, 60));

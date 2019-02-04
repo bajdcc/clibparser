@@ -76,6 +76,7 @@ namespace clib {
         fs.func("/dev/random", this);
         fs.func("/dev/null", this);
         fs.as_root(false);
+        fs.load("/usr/logo.txt");
         fs.load("/usr/badapple.txt");
     }
 
@@ -651,6 +652,10 @@ namespace clib {
                 cgui::singleton().set_cycle(0);
                 set_cycle_id = -1;
             }
+            if (set_resize_id == ctx->id) {
+                cgui::singleton().resize(0, 0);
+                set_resize_id = -1;
+            }
             if (ctx->output_redirect != -1 && tasks[ctx->output_redirect].flag & CTX_VALID) {
                 if (tasks[id].input_redirect != -1) {
                     std::copy(tasks[id].input_queue.begin(), tasks[id].input_queue.end(),
@@ -1175,6 +1180,7 @@ namespace clib {
                 break;
             case 20: {
                 if (global_state.input_lock == -1) {
+                    set_resize_id = ctx->id;
                     cgui::singleton().resize(ctx->ax >> 16, ctx->ax & 0xFFFF);
                 } else {
                     if (global_state.input_lock != ctx->id)
