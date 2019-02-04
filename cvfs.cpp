@@ -84,6 +84,30 @@ namespace clib {
         return idx < cache.length() ? cache[idx] : -1;
     }
 
+    vfs_node_stream::vfs_node_stream(const vfs_mod_query *mod, vfs_stream_t s, vfs_stream_call *call) :
+        vfs_node_dec(mod), stream(s), call(call) {}
+
+    bool vfs_node_stream::available() const {
+        return true;
+    }
+
+    int vfs_node_stream::index() const {
+        return call->stream_index(stream);
+    }
+
+    void vfs_node_stream::advance() {
+    }
+
+    int vfs_node_stream::write(byte c) {
+        return 0;
+    }
+
+    int vfs_node_stream::truncate() {
+        return 0;
+    }
+
+    // -------------------------------------------
+
     cvfs::cvfs() {
         reset();
     }
@@ -268,10 +292,16 @@ namespace clib {
         if (node->type == fs_func) {
             node->time.access = now();
             if (dec) {
-                if (f)
-                    *dec = new vfs_node_cached(this, f->callback(p));
-                else
+                if (f) {
+                    auto t = f->stream_type(p);
+                    if (t == fss_none) {
+                        *dec = new vfs_node_cached(this, f->stream_callback(p));
+                    } else {
+                        *dec = f->stream_create(this, t);
+                    }
+                } else {
                     return -2;
+                }
             }
             return 0;
         }

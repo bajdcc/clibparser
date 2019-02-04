@@ -91,7 +91,7 @@ namespace clib {
 #define TASK_NUM 256
 #define HANDLE_NUM 1024
 
-    class cvm : public imem, public vfs_func_t {
+    class cvm : public imem, public vfs_func_t, public vfs_stream_call {
     public:
         cvm();
         ~cvm();
@@ -107,7 +107,10 @@ namespace clib {
         bool read_vfs(const string_t &path, std::vector<byte> &data) const;
         bool write_vfs(const string_t &path, const std::vector<byte> &data);
 
-        string_t callback(const string_t &path) override;
+        vfs_stream_t stream_type(const string_t &path) const override;
+        string_t stream_callback(const string_t &path) override;
+        vfs_node_dec *stream_create(const vfs_mod_query *mod, vfs_stream_t type) override;
+        int stream_index(vfs_stream_t type) override;
 
     private:
         // 申请页框
@@ -143,6 +146,8 @@ namespace clib {
         int fork();
 
         bool interrupt();
+
+        void init_fs();
 
         enum handle_type {
             h_none,

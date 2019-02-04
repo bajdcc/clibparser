@@ -311,6 +311,7 @@ int main(int argc, char **argv) {
     - [x] 限定操作
     - [x] 语义接口（:ls,:ll）
     - [x] 存储
+    - [x] 设备(`/dev/random`, `/dev/null`)
     - [ ] 权限
     - [x] 锁定
     - [ ] 链接

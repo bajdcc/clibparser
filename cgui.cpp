@@ -229,7 +229,11 @@ namespace clib {
                 std::smatch res;
                 string_t s(cmd_string.begin(), cmd_string.end());
                 if (std::regex_search(s, res, re)) {
-                    exec_cmd(s);
+                    try {
+                        exec_cmd(s);
+                    } catch (const std::invalid_argument &e) {
+                        // '/dev/random' : cause error
+                    }
                 }
                 cmd_string.clear();
                 cmd_state = false;

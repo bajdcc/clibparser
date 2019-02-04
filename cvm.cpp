@@ -7,6 +7,7 @@
 #include <memory.h>
 #include <cstring>
 #include <regex>
+#include <random>
 #include "cvm.h"
 #include "cgen.h"
 #include "cexception.h"
@@ -65,8 +66,15 @@ namespace clib {
             handles[i].type = h_none;
         }
 
+        init_fs();
+    }
+
+    void cvm::init_fs() {
         fs.as_root(true);
         fs.mkdir("/proc");
+        fs.mkdir("/dev");
+        fs.func("/dev/random", this);
+        fs.func("/dev/null", this);
         fs.as_root(false);
     }
 
@@ -869,7 +877,25 @@ namespace clib {
         return fs.write_vfs(path, data);
     }
 
-    string_t cvm::callback(const string_t &path) {
+    vfs_stream_t cvm::stream_type(const string_t &path) const {
+        if (path.substr(0, 4) == "/dev") {
+            static string_t pat{ R"(/dev/([a-z_]+))" };
+            static std::regex re(pat);
+            std::smatch res;
+            if (std::regex_match(path, res, re)) {
+                auto op = res[1].str();
+                if (op == "random") {
+                    return fss_random;
+                }
+                if (op == "null") {
+                    return fss_null;
+                }
+            }
+        }
+        return fss_none;
+    }
+
+    string_t cvm::stream_callback(const string_t &path) {
         if (path.substr(0, 5) == "/proc") {
             static string_t pat{ R"(/proc/(\d+)/([a-z_]+))" };
             static std::regex re(pat);
@@ -894,6 +920,30 @@ namespace clib {
             }
         }
         return "[ERROR] Undefined";
+    }
+
+    vfs_node_dec *cvm::stream_create(const vfs_mod_query *mod, vfs_stream_t type) {
+        if (type != fss_none) {
+            return new vfs_node_stream(mod, type, this);
+        }
+        error("invalid vfs stream");
+        return nullptr;
+    }
+
+    int cvm::stream_index(vfs_stream_t type) {
+        switch (type) {
+            case fss_random: {
+                static std::default_random_engine e(((uint32_t) time(nullptr)) % (UINT32_MAX));
+                static std::uniform_int_distribution<int> u(0, 255);
+                return u(e);
+            }
+            case fss_null: {
+                return 0;
+            }
+            default:
+                break;
+        }
+        error("invalid stream type");
     }
 
     int cvm::new_pid() {
