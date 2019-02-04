@@ -278,6 +278,21 @@ namespace clib {
                 }
             }
         }
+        if (global_state.interrupt) {
+            global_state.interrupt = false;
+            std::vector<int> foreground_pids;
+            for (int i = 1; i < TASK_NUM; ++i) {
+                if ((tasks[i].flag & CTX_VALID) && (tasks[i].flag & CTX_FOREGROUND) &&
+                    tasks[i].parent != 0)
+                    foreground_pids.push_back(i);
+            }
+#if LOG_SYSTEM
+            printf("[SYSTEM] SIG  | Received Ctrl-C!\n");
+#endif
+            for (auto &pid : foreground_pids) {
+                destroy(pid);
+            }
+        }
         ctx = nullptr;
         return available_tasks > 0;
     }
@@ -288,6 +303,7 @@ namespace clib {
         for (auto i = 0; i < cycle; ++i) {
             i++;
             cycles++;
+            if (global_state.interrupt) break;
             if ((ctx->pc & 0xF0000000) != USER_BASE) {
                 if (ctx->pc != 0xE0000FF8 && ctx->pc != 0xE0000FFC) {
 #if LOG_SYSTEM
@@ -606,7 +622,7 @@ namespace clib {
             }
             vmm_pushstack(ctx->sp, tmp);
         }
-        ctx->flag |= CTX_USER_MODE;
+        ctx->flag |= CTX_USER_MODE | CTX_FOREGROUND;
         ctx->debug = false;
         ctx->waiting_ms = 0;
         ctx->input_redirect = -1;
@@ -781,6 +797,8 @@ namespace clib {
         ctx->flag |= CTX_KERNEL;
         ctx->state = CTS_RUNNING;
         ctx->path = old_ctx->path;
+        old_ctx->child.insert(ctx->id);
+        ctx->parent = old_ctx->id;
         /* 映射4KB的代码空间 */
         {
             auto size = PAGE_SIZE / sizeof(int);
@@ -830,7 +848,7 @@ namespace clib {
         }
         /* 映射堆空间 */
         ctx->pool->copy_from(*old_ctx->pool);
-        ctx->flag &= ~CTX_KERNEL;
+        ctx->flag = old_ctx->flag;
         ctx->sp = old_ctx->sp;
         ctx->stack = old_ctx->stack;
         ctx->data = old_ctx->data;
@@ -1214,6 +1232,14 @@ namespace clib {
                 std::vector<int> ids(ctx->child.begin(), ctx->child.end());
                 for (auto &id : ids) {
                     destroy(id);
+                }
+                break;
+            }
+            case 58: {
+                if ((ctx->flag & CTX_FOREGROUND) != 0) {
+                    ctx->flag &= ~CTX_FOREGROUND;
+                } else {
+                    ctx->flag |= CTX_FOREGROUND;
                 }
                 break;
             }

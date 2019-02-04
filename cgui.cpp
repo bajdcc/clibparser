@@ -85,7 +85,9 @@ namespace clib {
 
     void cgui::draw(bool paused, decimal fps) {
         if (!paused) {
-            if (cycle_stable > 0) {
+            if (cvm::global_state.interrupt) {
+                cycle = GUI_CYCLES;
+            } else if (cycle_stable > 0) {
                 if (fps > GUI_MAX_FPS_RATE) {
                     cycle = std::min(cycle << 1, GUI_MAX_CYCLE);
                 } else if (fps < GUI_MIN_FPS_RATE) {
@@ -107,6 +109,7 @@ namespace clib {
                 }
             } else {
                 if (cycle_stable == 0) {
+                    cycle_speed = 0;
                     cycle_stable = GUI_CYCLE_STABLE;
                 }
             }
@@ -569,6 +572,17 @@ namespace clib {
     }
 
     void cgui::input(unsigned char c) {
+        if (c == 3) {
+            cvm::global_state.interrupt = true;
+            if (input_state) {
+                put_char('\n');
+                cvm::global_state.input_content = string_t(input_string.begin(), input_string.end());
+                cvm::global_state.input_read_ptr = 0;
+                cvm::global_state.input_success = true;
+                input_state = false;
+            }
+            return;
+        }
         if (!input_state)
             return;
         if (!(std::isprint(c) || c == '\b' || c == '\n' || c == '\r' || c == 4 || c == 26)) {

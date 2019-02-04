@@ -173,6 +173,7 @@ namespace clib {
             CTX_VALID = 1 << 0,
             CTX_KERNEL = 1 << 1,
             CTX_USER_MODE = 1 << 2,
+            CTX_FOREGROUND = 1 << 3,
         };
 
         enum ctx_state_t {
@@ -235,6 +236,7 @@ namespace clib {
 
     public:
         static struct global_state_t {
+            bool interrupt{false};
             int input_lock{-1};
             std::vector<int> input_waiting_list;
             std::string input_content;

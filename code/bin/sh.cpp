@@ -84,6 +84,7 @@ int main(int argc, char **argv) {
         if (strcmp(text, "exit") == 0)
             break;
         process(text);
+        switch_task();
         int pid = exec_start(text, &total);
         if (pid >= 0) {
             exec_wakeup(pid);
@@ -110,6 +111,7 @@ int main(int argc, char **argv) {
                     break;
             }
         }
+        switch_task();
         if (!direct_input)
             break;
     }

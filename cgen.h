@@ -38,6 +38,7 @@ namespace clib {
     enum gen_t {
         g_ok,
         g_error,
+        g_no_load,
     };
 
     class igen {

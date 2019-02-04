@@ -20,6 +20,7 @@ int main(int argc, char **argv) {
     put_string("    write           - write to file\n");
     put_string("    append          - append to file\n");
     put_string("    wc              - word count\n");
+    put_string("    od              - show binary content\n");
     put_string("\nDIR ==> /usr\n");
     put_string("    test            - test all cases\n");
     put_string("    test_rec        - test recursion\n");

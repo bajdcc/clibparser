@@ -18,3 +18,6 @@ int fork() {
 int get_pid() {
     interrupt 50;
 }
+int switch_task() {
+    interrupt 58;
+}

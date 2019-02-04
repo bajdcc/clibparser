@@ -247,7 +247,9 @@ namespace clib {
 
     gen_t sym_id_t::gen_lvalue(igen &gen) {
         if (clazz == z_global_var) {
-            gen.error("global id cannot be modified");
+            // gen.error("global id cannot be modified");
+            gen.emit(IMM, DATA_BASE | addr);
+            return g_no_load;
         } else if (clazz == z_local_var) {
             gen.emit(LEA, addr);
         } else if (clazz == z_param_var) {
@@ -742,8 +744,8 @@ namespace clib {
     gen_t sym_binop_t::gen_lvalue(igen &gen) {
         switch (op->data._op) {
             case op_lsquare: {
-                exp1->gen_lvalue(gen);
-                if (exp1->size(x_matrix) == 0)
+                auto r = exp1->gen_lvalue(gen);
+                if (r != g_no_load && exp1->size(x_matrix) == 0)
                     gen.emit(LOAD, exp1->size(x_size));
                 base = exp1->base->clone();
                 auto s = exp1->base->to_string();
@@ -2135,8 +2137,13 @@ namespace clib {
                 break;
             case c_externalDeclaration:
                 break;
-            case c_functionDefinition:
+            case c_functionDefinition: {
+                ctx_stack.clear();
+                ctx.reset();
+                symbols.pop_back();
                 emit(LEV);
+            }
+                break;
             case c_structOrUnionSpecifier: {
                 if (!ctx_stack.empty()) {
                     ctx = ctx_stack.back();
