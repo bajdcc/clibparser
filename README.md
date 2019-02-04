@@ -37,6 +37,10 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约11k。
 
 ![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/9.gif)
 
+**【badapple动画】**
+
+![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/10.gif)
+
 ## 计划
 
 - 第一阶段：实现基本的C++编译器和虚拟机，支持控制流语句，模拟虚页机制。后续支持结构体、指针和汇编。
@@ -308,6 +312,7 @@ int main(int argc, char **argv) {
     - [x] pwd, whoami
     - [x] VFS: cd, mkdir, touch, cat, ls(-l), ll, rm, tree, write, append
     - [x] wc
+    - [x] badapple（黑白动画）
 - [ ] 虚拟文件系统
     - [x] 数据结构
     - [x] 账户

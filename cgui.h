@@ -110,6 +110,7 @@ namespace clib {
         int cycles{0};
         int cycle_speed{0};
         int cycle_stable{0};
+        bool cycle_set{false};
     };
 }
 

@@ -6,6 +6,7 @@
 #include <ctime>
 #include <iterator>
 #include <algorithm>
+#include <fstream>
 #include "cvfs.h"
 #include "cexception.h"
 
@@ -587,5 +588,16 @@ namespace clib {
             return false;
         }
         return true;
+    }
+
+    void cvfs::load(const string_t &path) {
+        std::ifstream t("../code" + path);
+        if (t) {
+            std::stringstream buffer;
+            buffer << t.rdbuf();
+            auto str = buffer.str();
+            std::vector<byte> data(str.begin(), str.end());
+            write_vfs(path, data);
+        }
     }
 }

@@ -76,6 +76,7 @@ namespace clib {
         fs.func("/dev/random", this);
         fs.func("/dev/null", this);
         fs.as_root(false);
+        fs.load("/usr/badapple.txt");
     }
 
     // 虚页映射
@@ -645,6 +646,10 @@ namespace clib {
                 global_state.input_content.clear();
                 global_state.input_success = false;
                 cgui::singleton().reset_cmd();
+            }
+            if (set_cycle_id == ctx->id) {
+                cgui::singleton().set_cycle(0);
+                set_cycle_id = -1;
             }
             if (ctx->output_redirect != -1 && tasks[ctx->output_redirect].flag & CTX_VALID) {
                 if (tasks[id].input_redirect != -1) {
@@ -1241,6 +1246,15 @@ namespace clib {
                 } else {
                     ctx->flag |= CTX_FOREGROUND;
                 }
+                break;
+            }
+            case 59: {
+                if (ctx->ax) {
+                    set_cycle_id = ctx->id;
+                } else {
+                    set_cycle_id = -1;
+                }
+                cgui::singleton().set_cycle(ctx->ax);
                 break;
             }
             case 60:

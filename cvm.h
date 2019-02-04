@@ -232,6 +232,7 @@ namespace clib {
         };
         int handle_ids{0};
         int available_handles{0};
+        int set_cycle_id{-1};
         std::array<handle_t, HANDLE_NUM> handles;
 
     public:

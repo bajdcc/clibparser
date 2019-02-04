@@ -87,6 +87,8 @@ namespace clib {
         if (!paused) {
             if (cvm::global_state.interrupt) {
                 cycle = GUI_CYCLES;
+            } else if (cycle_set) {
+                // ...
             } else if (cycle_stable > 0) {
                 if (fps > GUI_MAX_FPS_RATE) {
                     cycle = std::min(cycle << 1, GUI_MAX_CYCLE);
@@ -344,7 +346,13 @@ namespace clib {
     }
 
     void cgui::set_cycle(int cycle) {
-        this->cycle = cycle;
+        if (cycle == 0) {
+            cycle_set = false;
+            this->cycle = GUI_CYCLES;
+        } else {
+            cycle_set = true;
+            this->cycle = cycle;
+        }
     }
 
     void cgui::set_ticks(int ticks) {

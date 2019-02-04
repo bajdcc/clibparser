@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
     put_string("    test_input      - test ui input\n");
     put_string("    test_resize     - test resize screen\n");
     put_string("    test_malloc     - test malloc and free\n");
+    put_string("    badapple        - test badapple animation\n");
     restore_fg();
     return 0;
 }

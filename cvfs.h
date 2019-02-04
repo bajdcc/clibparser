@@ -145,6 +145,7 @@ namespace clib {
         int func(const string_t &path, vfs_func_t *f);
         int rm(const string_t &path);
         int rm_safe(const string_t &path);
+        void load(const string_t &path);
 
         static void split_path(const string_t &path, std::vector<string_t> &args, char c);
         static string_t get_filename(const string_t &path);
