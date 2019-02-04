@@ -143,7 +143,7 @@ namespace clib {
             for (auto j = 0; j < cols; ++j) {
                 if (colors_bg[i * cols + j]) {
                     glColor4ubv((GLubyte *) &colors_bg[i * cols + j]);
-                    glRectf(x, y + GUI_FONT_H_1, x + GUI_FONT_W, y + GUI_FONT_H_2);
+                    glRecti(x, y + GUI_FONT_H_1, x + GUI_FONT_W, y + GUI_FONT_H_2);
                 }
                 if (std::isprint(buffer[i * cols + j])) {
                     glColor4ubv((GLubyte *) &colors_fg[i * cols + j]);
@@ -151,7 +151,7 @@ namespace clib {
                     glutBitmapCharacter(GUI_FONT, buffer[i * cols + j]);
                 } else if (buffer[i * cols + j] == '\7') {
                     glColor4ubv((GLubyte *) &colors_fg[i * cols + j]);
-                    glRectf(x, y + GUI_FONT_H_1, x + GUI_FONT_W, y + GUI_FONT_H_2);
+                    glRecti(x, y + GUI_FONT_H_1, x + GUI_FONT_W, y + GUI_FONT_H_2);
                 }
                 x += GUI_FONT_W;
             }

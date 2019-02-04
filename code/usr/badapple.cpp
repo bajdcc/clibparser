@@ -9,11 +9,19 @@ int hex2char(int n) {
         return 10 + n - (int) 'A';
     return 0;
 }
+int print_frame(int frame) {
+    set_bg(75, 77, 77);
+    put_string("@clibos                   BADAPPLE ASCII-ART ANIMATION              Frame: ");
+    put_int(frame);
+    restore_bg();
+    put_string("\n");
+}
 int read_file(int handle) {
-    int c, flag = 0, num, pixels = 80 * 25, px = 0, j;
+    int c, flag = 0, num, pixels = 80 * 25, px = 0, j, frame = 1;
     char p;
-    resize(25, 80);
+    resize(30, 80);
     put_char('\f');
+    print_frame(frame);
     set_cycle(1000000);
     while (c = read(handle), c >= 0) {
         if (c == (int) ' ' || c == (int) '\r' || c == (int) '\n') { // skip
@@ -37,8 +45,10 @@ int read_file(int handle) {
                     put_char(p);
                 }
                 px += num - pixels;
+                print_frame(frame);
                 sleep(30);
                 put_char('\f');
+                print_frame(++frame);
                 for (j = 0; j < px; j++) {
                     put_char(p);
                 }
