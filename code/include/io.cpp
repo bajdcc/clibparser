@@ -68,6 +68,9 @@ int gui_cfg(char c) {
     put_char(c);
     put_char('\033');
 }
+int newline() {
+    gui_cfg('0');
+}
 int save_bg() {
     gui_cfg('1');
 }

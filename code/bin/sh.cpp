@@ -114,6 +114,7 @@ int main(int argc, char **argv) {
         switch_task();
         if (!direct_input)
             break;
+        newline();
     }
     free((int) text);
     free((int) _whoami);

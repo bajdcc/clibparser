@@ -11,17 +11,17 @@ int write_file(int handle) {
             switch (r) {
                 case -1:
                     set_fg(240, 0, 0);
-                    put_string("[ERROR] File not exists.\n");
+                    put_string("[ERROR] File not exists.");
                     restore_fg();
                     break;
                 case -2:
                     set_fg(240, 0, 0);
-                    put_string("[ERROR] Forbidden.\n");
+                    put_string("[ERROR] Forbidden.");
                     restore_fg();
                     break;
                 case -3:
                     set_fg(240, 0, 0);
-                    put_string("[ERROR] Invalid handle.\n");
+                    put_string("[ERROR] Invalid handle.");
                     restore_fg();
                     break;
             }
@@ -50,23 +50,23 @@ int main(int argc, char **argv) {
         int handle = open(name);
         switch (handle) {
             default:
-                // put_string("[INFO] Success.\n");
+                // put_string("[INFO] Success.");
                 truncate(handle);
                 write_file(handle);
                 break;
             case -1:
                 set_fg(240, 0, 0);
-                put_string("[ERROR] File not exists.\n");
+                put_string("[ERROR] File not exists.");
                 restore_fg();
                 break;
             case -2:
                 set_fg(240, 0, 0);
-                put_string("[ERROR] Path is not file.\n");
+                put_string("[ERROR] Path is not file.");
                 restore_fg();
                 break;
             case -3:
                 set_fg(240, 0, 0);
-                put_string("[ERROR] File is locked.\n");
+                put_string("[ERROR] File is locked.");
                 restore_fg();
                 break;
         }

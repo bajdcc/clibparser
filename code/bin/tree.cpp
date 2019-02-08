@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
         free((int) cmd);
     } else {
         set_fg(240, 0, 0);
-        put_string("[Error] Invalid argument.\n");
+        put_string("[Error] Invalid argument.");
         restore_fg();
     }
     return 0;

@@ -17,6 +17,5 @@ int main(int argc, char **argv) {
     put_int(lines);
     put_string(" ");
     put_int(chars);
-    put_string("\n");
     return 0;
 }

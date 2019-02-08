@@ -196,13 +196,19 @@ namespace clib {
     void cvfs::ll(const string_t &name, const vfs_node::ref &node, std::ostream &os) const {
         if (!node)
             return;
+        static const char *types[] = {
+            "35EA3F", // file
+            "44FC7D", // dir
+            "76FC44", // func
+        };
         static char fmt[256];
-        sprintf(fmt, "\033FFFA0A0A0\033%c%9s \033FFFB3B920\033%4s \033S4\033%9d \033FFF51C2A8\033%s \033FFF35EA3F\033%s\033S4\033",
+        sprintf(fmt, "\033FFFA0A0A0\033%c%9s \033FFFB3B920\033%4s \033S4\033%9d \033FFF51C2A8\033%s \033FFF%s\033%s\033S4\033",
                 node->type == fs_dir ? 'd' : '-',
                 (char *) node->mod,
                 account[node->owner].name.data(),
                 node->data.size(),
                 file_time(node->time.create),
+                types[(int) node->type],
                 name.data());
         os << fmt << std::endl;
     }
