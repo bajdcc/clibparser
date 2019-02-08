@@ -46,8 +46,6 @@ namespace clib {
 
         void put_string(const string_t &str);
         void put_char(char c);
-        void put_int(int number);
-        void put_hex(int number);
 
         void set_cycle(int cycle);
         void set_ticks(int ticks);

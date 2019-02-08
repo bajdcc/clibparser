@@ -21,6 +21,14 @@ int put_hex(int number) {
     number;
     interrupt 2;
 }
+float put_float(float number) {
+    number;
+    interrupt 4;
+}
+double put_double(double number) {
+    number;
+    interrupt 6;
+}
 
 // 输入部分
 int input_char() {

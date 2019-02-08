@@ -125,8 +125,8 @@ namespace clib {
         int vmm_ismap(uint32_t va, uint32_t *pa) const;
 
         template<class T = int>
-        T vmm_get(uint32_t va);
-        string_t vmm_getstr(uint32_t va);
+        T vmm_get(uint32_t va) const;
+        string_t vmm_getstr(uint32_t va) const;
         template<class T = int>
         T vmm_set(uint32_t va, T);
         void vmm_setstr(uint32_t va, const string_t &str);
@@ -139,12 +139,14 @@ namespace clib {
         template<class T = int>
         T vmm_popstack(uint32_t &sp);
 
-        void error(const string_t &);
+        void error(const string_t &) const;
         void exec(int cycle, int &cycles);
         void destroy(int id);
         int exec_file(const string_t &path);
         int fork();
 
+        char *output_fmt(int id) const;
+        int output(int id);
         bool interrupt();
 
         void init_fs();
@@ -156,7 +158,7 @@ namespace clib {
 
         int new_pid();
         int new_handle(handle_type);
-        int destroy_handle(int handle);
+        void destroy_handle(int handle);
 
     private:
         /* 内核页表 = PTE_SIZE*PAGE_SIZE */
@@ -198,8 +200,17 @@ namespace clib {
             uint base;
             uint heap;
             uint pc;
-            int ax;
-            int bx;
+            union {
+                int _i;
+                uint _ui;
+                void *_p;
+                float _f;
+                double _d;
+                uint64 _q;
+                struct {
+                    int _1, _2;
+                } _u;
+            } ax;
             uint bp;
             uint sp;
             bool debug;

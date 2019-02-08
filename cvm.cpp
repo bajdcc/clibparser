@@ -13,8 +13,8 @@
 #include "cexception.h"
 #include "cgui.h"
 
-#define LOG_INS 1
-#define LOG_STACK 1
+#define LOG_INS 0
+#define LOG_STACK 0
 #define LOG_SYSTEM 1
 
 int g_argc;
@@ -139,7 +139,7 @@ namespace clib {
         return 0; // 页表项不存在
     }
 
-    string_t cvm::vmm_getstr(uint32_t va) {
+    string_t cvm::vmm_getstr(uint32_t va) const {
         std::stringstream ss;
         char c;
         while (c = vmm_get<char>(va++), c) ss << c;
@@ -147,7 +147,7 @@ namespace clib {
     }
 
     template<class T>
-    T cvm::vmm_get(uint32_t va) {
+    T cvm::vmm_get(uint32_t va) const {
         if (!(ctx->flag & CTX_KERNEL))
             va |= ctx->mask;
         uint32_t pa;
@@ -243,14 +243,14 @@ namespace clib {
 
     template<class T>
     void cvm::vmm_pushstack(uint32_t &sp, T value) {
-        ctx->sp -= sizeof(T);
-        vmm_set(ctx->sp, value);
+        sp -= sizeof(T);
+        vmm_set(sp, value);
     }
 
     template<class T>
     T cvm::vmm_popstack(uint32_t &sp) {
-        T t = vmm_get(ctx->sp);
-        ctx->sp += sizeof(T);
+        T t = vmm_get(sp);
+        sp += sizeof(T);
         return t;
     }
 
@@ -323,7 +323,10 @@ namespace clib {
             if (ctx->debug) {
                 printf("%04d> [%08X] %02d %.4s", i, ctx->pc, op, INS_STRING((ins_t) op).c_str());
                 if (op == PUSH)
-                    printf(" %08X\n", (uint32_t) ctx->ax);
+                    printf(" %08X\n", (uint32_t) ctx->ax._i);
+                else if (op == IMX)
+                    printf(" %08X(%d) %08X(%d)\n", vmm_get(ctx->pc), vmm_get(ctx->pc),
+                           vmm_get(ctx->pc + INC_PTR), vmm_get(ctx->pc + INC_PTR));
                 else if (op <= ADJ)
                     printf(" %08X(%d)\n", vmm_get(ctx->pc), vmm_get(ctx->pc));
                 else
@@ -332,72 +335,76 @@ namespace clib {
 #endif
             switch (op) {
                 case IMM: {
-                    ctx->ax = vmm_get(ctx->pc);
+                    ctx->ax._i = vmm_get(ctx->pc);
                     ctx->pc += INC_PTR;
-                } /* load immediate value to ctx->ax */
+                } /* load immediate value to ctx->ax._i */
                     break;
                 case IMX: {
-                    ctx->ax = vmm_get(ctx->pc);
+                    ctx->ax._u._1 = vmm_get(ctx->pc);
                     ctx->pc += INC_PTR;
-                    ctx->bx = vmm_get(ctx->pc);
+                    ctx->ax._u._2 = vmm_get(ctx->pc);
                     ctx->pc += INC_PTR;
-                } /* load immediate value to ctx->ax */
+                } /* load immediate value to ctx->ax._i */
                     break;
                 case LOAD: {
                     switch (vmm_get(ctx->pc)) {
                         case 1:
-                            ctx->ax = vmm_get<byte>((uint32_t) ctx->ax);
+                            ctx->ax._i = vmm_get<byte>((uint32_t) ctx->ax._i);
                             break;
                         case 2:
                         case 3:
                         case 4:
-                            ctx->ax = vmm_get((uint32_t) ctx->ax);
+                            ctx->ax._i = vmm_get((uint32_t) ctx->ax._i);
+                            break;
+                        case 8:
+                            ctx->ax._q = vmm_get<uint64>((uint32_t) ctx->ax._i);
                             break;
                         default:
-                            // NOT SUPPORT LONG TYPE NOW
-                            ctx->ax = vmm_get((uint32_t) ctx->ax);
+                            error("not supported");
                             break;
                     }
                     ctx->pc += INC_PTR;
-                } /* load integer to ctx->ax, address in ctx->ax */
+                } /* load integer to ctx->ax._i, address in ctx->ax._i */
                     break;
                 case SAVE: {
                     switch (vmm_get(ctx->pc)) {
                         case 1:
-                            vmm_set<byte>((uint32_t) vmm_popstack(ctx->sp), (byte) ctx->ax);
+                            vmm_set<byte>((uint32_t) vmm_popstack(ctx->sp), (byte) ctx->ax._i);
                             break;
                         case 2:
                         case 3:
                         case 4:
-                            vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax);
+                            vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax._i);
+                            break;
+                        case 8:
+                            vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax._q);
                             break;
                         default:
-                            // NOT SUPPORT LONG TYPE NOW
-                            vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax);
+                            error("not supported");
                             break;
                     }
                     ctx->pc += INC_PTR;
-                } /* save integer to address, value in ctx->ax, address on stack */
+                } /* save integer to address, value in ctx->ax._i, address on stack */
                     break;
                 case PUSH: {
-                    vmm_pushstack(ctx->sp, ctx->ax);
-                } /* push the value of ctx->ax onto the stack */
+                    vmm_pushstack(ctx->sp, ctx->ax._i);
+                } /* push the value of ctx->ax._i onto the stack */
                     break;
                 case POP: {
-                    ctx->ax = vmm_popstack(ctx->sp);
-                } /* pop the value of ctx->ax from the stack */
+                    ctx->ax._i = vmm_popstack(ctx->sp);
+                } /* pop the value of ctx->ax._i from the stack */
                     break;
                 case JMP: {
                     ctx->pc = ctx->base + vmm_get(ctx->pc) * INC_PTR;
                 } /* jump to the address */
                     break;
                 case JZ: {
-                    ctx->pc = ctx->ax ? ctx->pc + INC_PTR : (ctx->base + vmm_get(ctx->pc) * INC_PTR);
-                } /* jump if ctx->ax is zero */
+                    ctx->pc = ctx->ax._i ? ctx->pc + INC_PTR : (ctx->base + vmm_get(ctx->pc) * INC_PTR);
+                } /* jump if ctx->ax._i is zero */
                     break;
                 case JNZ: {
-                    ctx->pc = ctx->ax ? (ctx->base + vmm_get(ctx->pc) * INC_PTR) : ctx->pc + INC_PTR;
-                } /* jump if ctx->ax is zero */
+                    ctx->pc = ctx->ax._i ? (ctx->base + vmm_get(ctx->pc) * INC_PTR) : ctx->pc + INC_PTR;
+                } /* jump if ctx->ax._i is zero */
                     break;
                 case CALL: {
                     vmm_pushstack(ctx->sp, ctx->pc + INC_PTR);
@@ -430,69 +437,69 @@ namespace clib {
                 } /* restore call frame and PC */
                     break;
                 case LEA: {
-                    ctx->ax = ctx->bp + vmm_get(ctx->pc);
+                    ctx->ax._i = ctx->bp + vmm_get(ctx->pc);
                     ctx->pc += INC_PTR;
                 } /* load address for arguments. */
                     break;
                 case OR:
-                    ctx->ax = vmm_popstack(ctx->sp) | ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) | ctx->ax._i;
                     break;
                 case XOR:
-                    ctx->ax = vmm_popstack(ctx->sp) ^ ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) ^ ctx->ax._i;
                     break;
                 case AND:
-                    ctx->ax = vmm_popstack(ctx->sp) & ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) & ctx->ax._i;
                     break;
                 case EQ:
-                    ctx->ax = vmm_popstack(ctx->sp) == ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) == ctx->ax._i;
                     break;
                 case CASE:
-                    if (vmm_get(ctx->sp) == ctx->ax) {
+                    if (vmm_get(ctx->sp) == ctx->ax._i) {
                         ctx->sp += INC_PTR;
-                        ctx->ax = 0; // 0 for same
+                        ctx->ax._i = 0; // 0 for same
                     } else {
-                        ctx->ax = 1;
+                        ctx->ax._i = 1;
                     }
                     break;
                 case NE:
-                    ctx->ax = vmm_popstack(ctx->sp) != ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) != ctx->ax._i;
                     break;
                 case LT:
-                    ctx->ax = vmm_popstack(ctx->sp) < ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) < ctx->ax._i;
                     break;
                 case LE:
-                    ctx->ax = vmm_popstack(ctx->sp) <= ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) <= ctx->ax._i;
                     break;
                 case GT:
-                    ctx->ax = vmm_popstack(ctx->sp) > ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) > ctx->ax._i;
                     break;
                 case GE:
-                    ctx->ax = vmm_popstack(ctx->sp) >= ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) >= ctx->ax._i;
                     break;
                 case SHL:
-                    ctx->ax = vmm_popstack(ctx->sp) << ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) << ctx->ax._i;
                     break;
                 case SHR:
-                    ctx->ax = vmm_popstack(ctx->sp) >> ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) >> ctx->ax._i;
                     break;
                 case ADD:
-                    ctx->ax = vmm_popstack(ctx->sp) + ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) + ctx->ax._i;
                     break;
                 case SUB:
-                    ctx->ax = vmm_popstack(ctx->sp) - ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) - ctx->ax._i;
                     break;
                 case MUL:
-                    ctx->ax = vmm_popstack(ctx->sp) * ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) * ctx->ax._i;
                     break;
                 case DIV:
-                    ctx->ax = vmm_popstack(ctx->sp) / ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) / ctx->ax._i;
                     break;
                 case MOD:
-                    ctx->ax = vmm_popstack(ctx->sp) % ctx->ax;
+                    ctx->ax._i = vmm_popstack(ctx->sp) % ctx->ax._i;
                     break;
                 case EXIT: {
 #if LOG_SYSTEM
-                    printf("[SYSTEM] PROC | Exit: PID= #%d, CODE= %d\n", ctx->id, ctx->ax);
+                    printf("[SYSTEM] PROC | Exit: PID= #%d, CODE= %d\n", ctx->id, ctx->ax._i);
 #endif
                     destroy(ctx->id);
                     return;
@@ -503,7 +510,7 @@ namespace clib {
                     break;
                 default: {
 #if LOG_SYSTEM
-                    printf("[SYSTEM] ERR  | AX: %08X BP: %08X SP: %08X PC: %08X\n", ctx->ax, ctx->bp, ctx->sp, ctx->pc);
+                    printf("[SYSTEM] ERR  | AX: %08X BP: %08X SP: %08X PC: %08X\n", ctx->ax._i, ctx->bp, ctx->sp, ctx->pc);
                     for (uint32_t j = ctx->sp; j < STACK_BASE + PAGE_SIZE; j += 4) {
                         printf("[SYSTEM] ERR  | [%08X]> %08X\n", j, vmm_get<uint32_t>(j));
                     }
@@ -516,7 +523,7 @@ namespace clib {
 #if LOG_STACK
             if (ctx->debug) {
                 printf("\n---------------- STACK BEGIN <<<< \n");
-                printf("AX: %08X BP: %08X SP: %08X PC: %08X\n", ctx->ax, ctx->bp, ctx->sp, ctx->pc);
+                printf("AX: %08X BX: %08X BP: %08X SP: %08X PC: %08X\n", ctx->ax._u._1, ctx->ax._u._2, ctx->bp, ctx->sp, ctx->pc);
                 for (uint32_t j = ctx->sp; j < STACK_BASE + PAGE_SIZE; j += 4) {
                     printf("[%08X]> %08X\n", j, vmm_get<uint32_t>(j));
                 }
@@ -526,7 +533,7 @@ namespace clib {
         }
     }
 
-    void cvm::error(const string_t &str) {
+    void cvm::error(const string_t &str) const {
         throw cexception(ex_vm, str);
     }
 
@@ -605,8 +612,7 @@ namespace clib {
             ctx->heap = HEAP_BASE;
             ctx->sp = ctx->stack + ctx->poolsize; // 4KB / sizeof(int) = 1024
             ctx->pc = ctx->base | (ctx->entry * INC_PTR);
-            ctx->ax = 0;
-            ctx->bx = 0;
+            ctx->ax._i = 0;
             ctx->bp = 0;
 
             auto _argc = args.size();
@@ -865,8 +871,7 @@ namespace clib {
         ctx->base = old_ctx->base;
         ctx->heap = old_ctx->heap;
         ctx->pc = old_ctx->pc;
-        ctx->ax = -1;
-        ctx->bx = 0;
+        ctx->ax._i = -1;
         ctx->bp = old_ctx->bp;
         ctx->debug = old_ctx->debug;
         ctx->waiting_ms = 0;
@@ -1026,7 +1031,7 @@ namespace clib {
         error("max handle num!");
     }
 
-    int cvm::destroy_handle(int handle) {
+    void cvm::destroy_handle(int handle) {
         if (handles[handle].type != h_none) {
             auto h = &handles[handle];
             if (h->type == h_file) {
@@ -1040,64 +1045,71 @@ namespace clib {
         }
     }
 
+    char *cvm::output_fmt(int id) const {
+        static char str[256];
+        switch (id) {
+            case 1:
+                sprintf(str, "%d", ctx->ax._i);
+                break;
+            case 2:
+                sprintf(str, "%p", ctx->ax._p);
+                break;
+            case 4:
+                sprintf(str, "%f", ctx->ax._f);
+                break;
+            case 6:
+                sprintf(str, "%f", ctx->ax._d);
+                break;
+            default:
+                sprintf(str, "[Invalid format]");
+                break;
+        }
+        return str;
+    }
+
+    int cvm::output(int id) {
+        if (ctx->output_redirect != -1) {
+            if (id == 0) {
+                tasks[ctx->output_redirect].input_queue.push_back((char) ctx->ax._i);
+            } else {
+                auto s = output_fmt(id);
+                while (*s) tasks[ctx->output_redirect].input_queue.push_back(*s++);
+            }
+        } else if (global_state.input_lock == -1) {
+            if (id == 0) {
+                cgui::singleton().put_char((char) ctx->ax._i);
+            } else {
+                auto s = output_fmt(id);
+                while (*s) cgui::singleton().put_char(*s++);
+            }
+        } else {
+            if (global_state.input_lock != ctx->id)
+                global_state.input_waiting_list.push_back(ctx->id);
+            ctx->state = CTS_WAIT;
+            ctx->pc -= INC_PTR;
+            return 1;
+        }
+        return 0;
+    }
+
     bool cvm::interrupt() {
         switch (vmm_get(ctx->pc)) {
             case 0:
-                if (ctx->output_redirect != -1) {
-                    tasks[ctx->output_redirect].input_queue.push_back((char) ctx->ax);
-                } else if (global_state.input_lock == -1) {
-                    cgui::singleton().put_char((char) ctx->ax);
-                } else {
-                    if (global_state.input_lock != ctx->id)
-                        global_state.input_waiting_list.push_back(ctx->id);
-                    ctx->state = CTS_WAIT;
-                    ctx->pc -= INC_PTR;
-                    return true;
-                }
-                break;
             case 1:
-                if (ctx->output_redirect != -1) {
-                    static char str[256];
-                    sprintf(str, "%d", (int) ctx->ax);
-                    auto s = str;
-                    while (*s)
-                        tasks[ctx->output_redirect].input_queue.push_back(*s++);
-                } else if (global_state.input_lock == -1) {
-                    cgui::singleton().put_int((int) ctx->ax);
-                } else {
-                    if (global_state.input_lock != ctx->id)
-                        global_state.input_waiting_list.push_back(ctx->id);
-                    ctx->state = CTS_WAIT;
-                    ctx->pc -= INC_PTR;
-                    return true;
-                }
-                break;
             case 2:
-                if (ctx->output_redirect != -1) {
-                    static char str[256];
-                    sprintf(str, "%p", (void *) ctx->ax);
-                    auto s = str;
-                    while (*s)
-                        tasks[ctx->output_redirect].input_queue.push_back(*s++);
-                } else if (global_state.input_lock == -1) {
-                    cgui::singleton().put_hex((int) ctx->ax);
-                } else {
-                    if (global_state.input_lock != ctx->id)
-                        global_state.input_waiting_list.push_back(ctx->id);
-                    ctx->state = CTS_WAIT;
-                    ctx->pc -= INC_PTR;
-                    return true;
-                }
+            case 4:
+            case 6:
+                if (output(vmm_get(ctx->pc))) return true;
                 break;
             case 3:
                 ctx->debug = !ctx->debug;
                 break;
             case 5:
-                vmm_setstr((uint32_t) ctx->ax, global_state.hostname);
+                vmm_setstr((uint32_t) ctx->ax._i, global_state.hostname);
                 break;
             case 10: {
                 if (ctx->input_redirect != -1) {
-                    ctx->ax = ctx->input_stop ? 0 : 1;
+                    ctx->ax._i = ctx->input_stop ? 0 : 1;
                     ctx->pc += INC_PTR;
                 } else {
                     if (global_state.input_lock == -1) {
@@ -1115,7 +1127,7 @@ namespace clib {
             case 11: {
                 if (ctx->input_redirect != -1) {
                     if (!ctx->input_queue.empty()) {
-                        ctx->ax = ctx->input_queue.front();
+                        ctx->ax._i = ctx->input_queue.front();
                         ctx->input_queue.pop_front();
                         break;
                     } else if (!ctx->input_stop) {
@@ -1125,7 +1137,7 @@ namespace clib {
                 } else if (global_state.input_lock == ctx->id) {
                     if (global_state.input_success) {
                         if (global_state.input_read_ptr >= global_state.input_content.length()) {
-                            ctx->ax = -1;
+                            ctx->ax._i = -1;
                             ctx->pc += INC_PTR;
                             // INPUT COMPLETE
                             for (auto &_id : global_state.input_waiting_list) {
@@ -1142,7 +1154,7 @@ namespace clib {
                             cgui::singleton().input_set(false);
                             return true;
                         } else {
-                            ctx->ax = global_state.input_content[global_state.input_read_ptr++];
+                            ctx->ax._i = global_state.input_content[global_state.input_read_ptr++];
                             break;
                         }
                     } else {
@@ -1150,7 +1162,7 @@ namespace clib {
                         return true;
                     }
                 }
-                ctx->ax = -1;
+                ctx->ax._i = -1;
                 ctx->pc += INC_PTR;
                 return true;
             }
@@ -1175,13 +1187,13 @@ namespace clib {
             }
                 break;
             case 13: {
-                ctx->ax = ctx->input_redirect != -1 ? 0 : 1;
+                ctx->ax._i = ctx->input_redirect != -1 ? 0 : 1;
             }
                 break;
             case 20: {
                 if (global_state.input_lock == -1) {
                     set_resize_id = ctx->id;
-                    cgui::singleton().resize(ctx->ax >> 16, ctx->ax & 0xFFFF);
+                    cgui::singleton().resize(ctx->ax._i >> 16, ctx->ax._i & 0xFFFF);
                 } else {
                     if (global_state.input_lock != ctx->id)
                         global_state.input_waiting_list.push_back(ctx->id);
@@ -1192,18 +1204,18 @@ namespace clib {
                 break;
             }
             case 30:
-                if (ctx->ax != 0)
-                    ctx->ax = vmm_malloc((uint32_t) ctx->ax);
+                if (ctx->ax._i != 0)
+                    ctx->ax._i = vmm_malloc((uint32_t) ctx->ax._i);
                 break;
             case 31:
-                ctx->ax = vmm_free((uint32_t) ctx->ax);
+                ctx->ax._i = vmm_free((uint32_t) ctx->ax._i);
                 break;
             case 51:
-                ctx->ax = exec_file(vmm_getstr((uint32_t) ctx->ax));
+                ctx->ax._i = exec_file(vmm_getstr((uint32_t) ctx->ax._i));
                 ctx->pc += INC_PTR;
                 return true;
             case 50:
-                ctx->ax = ctx->id;
+                ctx->ax._i = ctx->id;
                 break;
             case 52: {
                 if (!ctx->child.empty()) {
@@ -1211,27 +1223,27 @@ namespace clib {
                     ctx->pc += INC_PTR;
                     return true;
                 } else {
-                    ctx->ax = -1;
+                    ctx->ax._i = -1;
                 }
             }
                 break;
             case 53: {
-                ctx->ax = exec_file(vmm_getstr((uint32_t) ctx->ax));
-                tasks[ctx->ax].state = CTS_WAIT;
+                ctx->ax._i = exec_file(vmm_getstr((uint32_t) ctx->ax._i));
+                tasks[ctx->ax._i].state = CTS_WAIT;
                 break;
             }
             case 54: {
-                tasks[ctx->ax].state = CTS_RUNNING;
+                tasks[ctx->ax._i].state = CTS_RUNNING;
                 break;
             }
             case 55: {
                 ctx->pc += INC_PTR;
-                ctx->ax = fork();
+                ctx->ax._i = fork();
                 return true;
             }
             case 56: {
-                auto left = ctx->ax >> 16;
-                auto right = ctx->ax & 0xFFFF;
+                auto left = ctx->ax._i >> 16;
+                auto right = ctx->ax._i & 0xFFFF;
                 if ((left == ctx->id || ctx->child.find(left) != ctx->child.end()) &&
                     (right == ctx->id || ctx->child.find(right) != ctx->child.end())) {
                     tasks[right].input_redirect = left;
@@ -1255,91 +1267,91 @@ namespace clib {
                 break;
             }
             case 59: {
-                if (ctx->ax) {
+                if (ctx->ax._i) {
                     set_cycle_id = ctx->id;
                 } else {
                     set_cycle_id = -1;
                 }
-                cgui::singleton().set_cycle(ctx->ax);
+                cgui::singleton().set_cycle(ctx->ax._i);
                 break;
             }
             case 60:
-                vmm_setstr((uint32_t) ctx->ax, fs.get_pwd());
+                vmm_setstr((uint32_t) ctx->ax._i, fs.get_pwd());
                 break;
             case 61:
-                vmm_setstr((uint32_t) ctx->ax, fs.get_user());
+                vmm_setstr((uint32_t) ctx->ax._i, fs.get_user());
                 break;
             case 62:
-                ctx->ax = fs.cd(trim(vmm_getstr((uint32_t) ctx->ax)));
+                ctx->ax._i = fs.cd(trim(vmm_getstr((uint32_t) ctx->ax._i)));
                 break;
             case 63:
-                ctx->ax = fs.mkdir(trim(vmm_getstr((uint32_t) ctx->ax)));
+                ctx->ax._i = fs.mkdir(trim(vmm_getstr((uint32_t) ctx->ax._i)));
                 break;
             case 64:
-                ctx->ax = fs.touch(trim(vmm_getstr((uint32_t) ctx->ax)));
+                ctx->ax._i = fs.touch(trim(vmm_getstr((uint32_t) ctx->ax._i)));
                 break;
             case 65: {
-                auto path = trim(vmm_getstr((uint32_t) ctx->ax));
+                auto path = trim(vmm_getstr((uint32_t) ctx->ax._i));
                 vfs_node_dec *dec;
                 auto s = fs.get(path, &dec, this);
                 if (s != 0) {
-                    ctx->ax = s;
+                    ctx->ax._i = s;
                     break;
                 }
                 auto h = new_handle(h_file);
                 handles[h].name = path;
                 handles[h].data.file = dec;
-                ctx->ax = h;
+                ctx->ax._i = h;
             }
                 break;
             case 66: {
-                auto h = ctx->ax;
+                auto h = ctx->ax._i;
                 if (ctx->handles.find(h) != ctx->handles.end()) {
                     auto dec = handles[h].data.file;
-                    ctx->ax = dec->index();
-                    if (ctx->ax >= 0)
+                    ctx->ax._i = dec->index();
+                    if (ctx->ax._i >= 0)
                         dec->advance();
                 } else {
-                    ctx->ax = -3;
+                    ctx->ax._i = -3;
                 }
             }
                 break;
             case 67: {
-                auto h = ctx->ax;
+                auto h = ctx->ax._i;
                 if (ctx->handles.find(h) != ctx->handles.end()) {
                     destroy_handle(h);
                 } else {
-                    ctx->ax = -1;
+                    ctx->ax._i = -1;
                 }
             }
                 break;
             case 68: {
-                ctx->ax = fs.rm_safe(trim(vmm_getstr((uint32_t) ctx->ax)));
+                ctx->ax._i = fs.rm_safe(trim(vmm_getstr((uint32_t) ctx->ax._i)));
             }
             case 69: {
-                auto h = ctx->ax >> 16;
-                auto c = ctx->ax & 0xFFFF;
+                auto h = ctx->ax._i >> 16;
+                auto c = ctx->ax._i & 0xFFFF;
                 if (ctx->handles.find(h) != ctx->handles.end()) {
                     auto dec = handles[h].data.file;
-                    ctx->ax = dec->write((byte) c);
+                    ctx->ax._i = dec->write((byte) c);
                 } else {
-                    ctx->ax = -3;
+                    ctx->ax._i = -3;
                 }
             }
                 break;
             case 70: {
-                auto h = ctx->ax;
+                auto h = ctx->ax._i;
                 if (ctx->handles.find(h) != ctx->handles.end()) {
                     auto dec = handles[h].data.file;
-                    ctx->ax = dec->truncate();
+                    ctx->ax._i = dec->truncate();
                 } else {
-                    ctx->ax = -3;
+                    ctx->ax._i = -3;
                 }
             }
                 break;
             case 100:
                 ctx->record_now = std::chrono::high_resolution_clock::now();
-                ctx->waiting_ms = ctx->ax * 0.001;
+                ctx->waiting_ms = ctx->ax._i * 0.001;
                 break;
             case 101: {
                 auto now = std::chrono::high_resolution_clock::now();
@@ -1352,7 +1364,7 @@ namespace clib {
                 break;
             default:
 #if LOG_SYSTEM
-                printf("[SYSTEM] ERR  | unknown interrupt: %d\n", ctx->ax);
+                printf("[SYSTEM] ERR  | unknown interrupt: %d\n", ctx->ax._i);
 #endif
                 error("unknown interrupt");
                 break;

@@ -311,22 +311,6 @@ namespace clib {
         }
     }
 
-    void cgui::put_int(int number) {
-        static char str[256];
-        sprintf(str, "%d", number);
-        auto s = str;
-        while (*s)
-            put_char(*s++);
-    }
-
-    void cgui::put_hex(int number) {
-        static char str[256];
-        sprintf(str, "%p", (void*) number);
-        auto s = str;
-        while (*s)
-            put_char(*s++);
-    }
-
     void cgui::new_line() {
         ptr_x = 0;
         memcpy(buffer, buffer + cols, (uint) cols * (rows - 1));
