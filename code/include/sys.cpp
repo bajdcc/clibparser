@@ -15,3 +15,6 @@ int set_cycle(int cycle) {
 int reset_cycle(int cycle) {
     set_cycle(0);
 }
+long timestamp() {
+    interrupt 102;
+}

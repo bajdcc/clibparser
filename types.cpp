@@ -276,6 +276,7 @@ namespace clib {
         std::make_tuple(LOAD, "LOAD"),
         std::make_tuple(SAVE, "SAVE"),
         std::make_tuple(INTR, "INTR"),
+        std::make_tuple(CAST, "CAST"),
         std::make_tuple(ADJ, "ADJ"),
         std::make_tuple(LEV, "LEV"),
         std::make_tuple(PUSH, "PUSH"),

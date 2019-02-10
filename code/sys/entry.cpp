@@ -1,5 +1,3 @@
-#include "/include/proc"
-#include "/include/exec"
 #include "/include/io"
 #include "/include/shell"
 // WELCOME

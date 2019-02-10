@@ -357,7 +357,7 @@ namespace clib {
                             ctx->ax._i = vmm_get((uint32_t) ctx->ax._i);
                             break;
                         case 8:
-                            ctx->ax._q = vmm_get<uint64>((uint32_t) ctx->ax._i);
+                            ctx->ax._uq = vmm_get<uint64>((uint32_t) ctx->ax._i);
                             break;
                         default:
                             error("not supported");
@@ -377,7 +377,7 @@ namespace clib {
                             vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax._i);
                             break;
                         case 8:
-                            vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax._q);
+                            vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax._uq);
                             break;
                         default:
                             error("not supported");
@@ -507,6 +507,9 @@ namespace clib {
                 case INTR: // 中断调用，以寄存器ax传参
                     if (interrupt())
                         return;
+                    break;
+                case CAST: // 类型转换，以寄存器ax传参
+                    cast();
                     break;
                 default: {
 #if LOG_SYSTEM
@@ -1060,6 +1063,9 @@ namespace clib {
             case 6:
                 sprintf(str, "%f", ctx->ax._d);
                 break;
+            case 7:
+                sprintf(str, "%lld", ctx->ax._q);
+                break;
             default:
                 sprintf(str, "[Invalid format]");
                 break;
@@ -1092,6 +1098,105 @@ namespace clib {
         return 0;
     }
 
+    void cvm::cast() {
+        switch (vmm_get(ctx->pc)) {
+            case 1:
+                ctx->ax._ui = (uint) ctx->ax._i;
+                break;
+            case 2:
+                ctx->ax._i = (int) ctx->ax._ui;
+                break;
+            case 3:
+                ctx->ax._uq = (uint64) ctx->ax._i;
+                break;
+            case 4:
+                ctx->ax._q = (int64) ctx->ax._ui;
+                break;
+            case 5:
+                ctx->ax._ui = (uint) ctx->ax._q;
+                break;
+            case 6:
+                ctx->ax._i = (int) ctx->ax._uq;
+                break;
+            case 7:
+                ctx->ax._uq = (uint64) ctx->ax._q;
+                break;
+            case 8:
+                ctx->ax._q = (int64) ctx->ax._uq;
+                break;
+            case 9:
+                ctx->ax._q = (int64) ctx->ax._i;
+                break;
+            case 10:
+                ctx->ax._uq = (uint64) ctx->ax._ui;
+                break;
+            case 11:
+                ctx->ax._i = (int) ctx->ax._q;
+                break;
+            case 12:
+                ctx->ax._ui = (uint) ctx->ax._uq;
+                break;
+            case 20:
+                ctx->ax._f = (float) ctx->ax._ui;
+                break;
+            case 21:
+                ctx->ax._f = (float) ctx->ax._i;
+                break;
+            case 22:
+                ctx->ax._f = (float) ctx->ax._uq;
+                break;
+            case 23:
+                ctx->ax._f = (float) ctx->ax._q;
+                break;
+            case 24:
+                ctx->ax._ui = (uint) ctx->ax._f;
+                break;
+            case 25:
+                ctx->ax._i = (int) ctx->ax._f;
+                break;
+            case 26:
+                ctx->ax._uq = (uint64) ctx->ax._f;
+                break;
+            case 27:
+                ctx->ax._q = (int64) ctx->ax._f;
+                break;
+            case 28:
+                ctx->ax._d = (double) ctx->ax._f;
+                break;
+            case 30:
+                ctx->ax._d = (double) ctx->ax._ui;
+                break;
+            case 31:
+                ctx->ax._d = (double) ctx->ax._i;
+                break;
+            case 32:
+                ctx->ax._d = (double) ctx->ax._uq;
+                break;
+            case 33:
+                ctx->ax._d = (double) ctx->ax._q;
+                break;
+            case 34:
+                ctx->ax._ui = (uint) ctx->ax._d;
+                break;
+            case 35:
+                ctx->ax._i = (int) ctx->ax._d;
+                break;
+            case 36:
+                ctx->ax._uq = (uint64) ctx->ax._d;
+                break;
+            case 37:
+                ctx->ax._q = (int64) ctx->ax._d;
+                break;
+            case 38:
+                ctx->ax._f = (float) ctx->ax._d;
+                break;
+            default:
+                error("unsupported cast");
+                break;
+        }
+        ctx->pc += INC_PTR;
+    }
+
     bool cvm::interrupt() {
         switch (vmm_get(ctx->pc)) {
             case 0:
@@ -1099,6 +1204,7 @@ namespace clib {
             case 2:
             case 4:
             case 6:
+            case 7:
                 if (output(vmm_get(ctx->pc))) return true;
                 break;
             case 3:
@@ -1349,18 +1455,27 @@ namespace clib {
                 }
             }
                 break;
-            case 100:
-                ctx->record_now = std::chrono::high_resolution_clock::now();
-                ctx->waiting_ms = ctx->ax._i * 0.001;
+            case 100: {
+                if (ctx->ax._i < 0) {
+                    ctx->waiting_ms += (-ctx->ax._i) * 0.001;
+                } else {
+                    ctx->record_now = std::chrono::high_resolution_clock::now();
+                    ctx->waiting_ms = ctx->ax._i * 0.001;
+                }
+            }
                 break;
             case 101: {
                 auto now = std::chrono::high_resolution_clock::now();
                 if (std::chrono::duration_cast<std::chrono::duration<decimal>>(
-                    now - ctx->record_now).count() <= ctx->waiting_ms) {
+                        now - ctx->record_now).count() <= ctx->waiting_ms) {
                     ctx->pc -= INC_PTR;
                     return true;
                 }
             }
+                break;
+            case 102:
+                // 单位为微秒
+                ctx->ax._q = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000;
                 break;
             default:
 #if LOG_SYSTEM

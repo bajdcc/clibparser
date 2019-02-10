@@ -9,7 +9,23 @@ int hex2char(int n) {
         return 10 + n - (int) 'A';
     return 0;
 }
-int print_frame(int frame) {
+int frame, last_frame;
+long time;
+int fps;
+int print_fps() {
+    long now = timestamp();
+    if (now - time > 1000000) { // 间隔一秒
+        if (frame > last_frame) {
+            fps = frame - last_frame;
+        }
+        time = now;
+        last_frame = frame;
+    }
+    put_string("FPS: ");
+    put_int(fps);
+    put_string("\n");
+}
+int print_frame() {
     set_bg(75, 77, 77);
     put_string("@clibos                   BADAPPLE ASCII-ART ANIMATION              Frame: ");
     put_int(frame);
@@ -17,12 +33,16 @@ int print_frame(int frame) {
     put_string("\n");
 }
 int read_file(int handle) {
-    int c, flag = 0, num, pixels = 80 * 25, px = 0, j, frame = 1;
+    int c, flag = 0, num, pixels = 80 * 25, px = 0, j;
     char p;
+    fps = 0;
+    frame = last_frame = 1;
+    time = timestamp();
     resize(30, 80);
     put_char('\f');
-    print_frame(frame);
+    print_frame();
     set_cycle(1000000);
+    sleep(0);
     while (c = read(handle), c >= 0) {
         if (c == (int) ' ' || c == (int) '\r' || c == (int) '\n') { // skip
             continue;
@@ -45,10 +65,12 @@ int read_file(int handle) {
                     put_char(p);
                 }
                 px += num - pixels;
-                print_frame(frame);
-                sleep(30);
+                print_frame();
+                print_fps();
+                sleep(-33);
+                frame++;
                 put_char('\f');
-                print_frame(++frame);
+                print_frame();
                 for (j = 0; j < px; j++) {
                     put_char(p);
                 }

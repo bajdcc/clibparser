@@ -29,6 +29,10 @@ double put_double(double number) {
     number;
     interrupt 6;
 }
+long put_long(long number) {
+    number;
+    interrupt 7;
+}
 
 // 输入部分
 int input_char() {

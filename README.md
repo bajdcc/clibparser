@@ -270,7 +270,8 @@ int main(int argc, char **argv) {
     - [x] break和continue
     - [x] 取址和解引用（及左值）
     - [x] 强制类型转换
-    - [ ] 类型转换指令
+    - [x] 类型转换指令
+    - [ ] 运算时类型提升
     - [x] float和double
 - [x] 虚拟机
     - [x] 设计指令（寄存器式分配）

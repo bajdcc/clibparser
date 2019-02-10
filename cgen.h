@@ -35,6 +35,22 @@ namespace clib {
         s_statement,
     };
 
+    enum cast_t {
+        t_char,
+        t_uchar,
+        t_short,
+        t_ushort,
+        t_int,
+        t_uint,
+        t_long,
+        t_ulong,
+        t_float,
+        t_double,
+        t_ptr,
+        t_struct,
+        t_error,
+    };
+
     enum gen_t {
         g_ok,
         g_error,
@@ -72,6 +88,7 @@ namespace clib {
         virtual gen_t gen_lvalue(igen &gen);
         virtual gen_t gen_rvalue(igen &gen);
         virtual gen_t gen_invoke(igen &gen, ref &list);
+        virtual cast_t get_cast() const;
         int line{0}, column{0};
     };
 
@@ -93,6 +110,7 @@ namespace clib {
         int size(sym_size_t t) const override;
         string_t get_name() const override;
         string_t to_string() const override;
+        cast_t get_cast() const override;
         type_t::ref clone() const override;
         lexer_t type;
     };
@@ -103,6 +121,7 @@ namespace clib {
         symbol_t get_type() const override;
         int size(sym_size_t t) const override;
         string_t to_string() const override;
+        cast_t get_cast() const override;
         ref clone() const override;
         sym_t::weak_ref refer;
     };
@@ -126,6 +145,7 @@ namespace clib {
         symbol_t get_type() const override;
         symbol_t get_base_type() const override;
         int size(sym_size_t t) const override;
+        cast_t get_cast() const override;
         type_t::ref base;
     };
 
@@ -140,6 +160,7 @@ namespace clib {
         string_t to_string() const override;
         gen_t gen_lvalue(igen &gen) override;
         gen_t gen_rvalue(igen &gen) override;
+        cast_t get_cast() const override;
         type_t::ref base;
         type_exp_t::ref init;
         string_t id;
@@ -157,6 +178,7 @@ namespace clib {
         int size(sym_size_t t) const override;
         string_t get_name() const override;
         string_t to_string() const override;
+        cast_t get_cast() const override;
         bool _struct{true};
         string_t id;
         int _size{0};
@@ -171,6 +193,7 @@ namespace clib {
         int size(sym_size_t t) const override;
         string_t to_string() const override;
         gen_t gen_invoke(igen &gen, sym_t::ref &list) override;
+        cast_t get_cast() const override;
         std::vector<sym_id_t::ref> params;
         int ebp{0}, ebp_local{0};
         int entry{0};
@@ -186,6 +209,7 @@ namespace clib {
         string_t to_string() const override;
         gen_t gen_lvalue(igen &gen) override;
         gen_t gen_rvalue(igen &gen) override;
+        cast_t get_cast() const override;
         ast_node *node{nullptr};
     };
 
@@ -200,6 +224,7 @@ namespace clib {
         gen_t gen_lvalue(igen &gen) override;
         gen_t gen_rvalue(igen &gen) override;
         gen_t gen_invoke(igen &gen, sym_t::ref &list) override;
+        cast_t get_cast() const override;
         sym_t::weak_ref id;
     };
 

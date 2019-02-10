@@ -106,6 +106,10 @@ namespace clib {
         return g_error;
     }
 
+    cast_t sym_t::get_cast() const {
+        return t_error;
+    }
+
     type_t::type_t(int ptr) : ptr(ptr), matrix(0) {}
 
     symbol_t type_t::get_type() const {
@@ -181,6 +185,16 @@ namespace clib {
         return ss.str();
     }
 
+    static cast_t lexer2cast(lexer_t type) {
+        int t = type - 2;
+        assert(t >= t_char && t < t_error);
+        return (cast_t) t;
+    }
+
+    cast_t type_base_t::get_cast() const {
+        return ptr > 0 ? t_ptr : lexer2cast(type);
+    }
+
     type_t::ref type_base_t::clone() const {
         auto obj = std::make_shared<type_base_t>(type, ptr);
         if (!matrix.empty())
@@ -207,6 +221,10 @@ namespace clib {
             ss << '*';
         }
         return ss.str();
+    }
+
+    cast_t type_typedef_t::get_cast() const {
+        return ptr > 0 ? t_ptr : refer.lock()->get_cast();
     }
 
     type_t::ref type_typedef_t::clone() const {
@@ -277,6 +295,10 @@ namespace clib {
         return g_ok;
     }
 
+    cast_t sym_id_t::get_cast() const {
+        return base->get_cast();
+    }
+
     sym_struct_t::sym_struct_t(bool _struct, const string_t &id) : _struct(_struct), id(id) {}
 
     symbol_t sym_struct_t::get_type() const {
@@ -316,6 +338,10 @@ namespace clib {
         ss << "struct " << id << ", ";
         ss << "decls: [" << string_join(decls, "; ") << "], ";
         return ss.str();
+    }
+
+    cast_t sym_struct_t::get_cast() const {
+        return t_struct;
     }
 
     sym_func_t::sym_func_t(const type_t::ref &base, const string_t &id) : sym_id_t(base, id) {}
@@ -367,6 +393,10 @@ namespace clib {
         }
     }
 
+    cast_t sym_func_t::get_cast() const {
+        return t_ptr;
+    }
+
     type_exp_t::type_exp_t(const type_t::ref &base) : base(base) {}
 
     symbol_t type_exp_t::get_type() const {
@@ -379,6 +409,10 @@ namespace clib {
 
     int type_exp_t::size(sym_size_t t) const {
         return base->size(t);
+    }
+
+    cast_t type_exp_t::get_cast() const {
+        return base->get_cast();
     }
 
     sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : type_exp_t(base), node(node) {
@@ -413,18 +447,15 @@ namespace clib {
 
     gen_t sym_var_t::gen_rvalue(igen &gen) {
         switch ((ast_t) node->flag) {
-#define DEFINE_VAR(t) \
-            case ast_##t: \
-                gen.emit(IMM, (LEX_T(int))(node->data._##t)); \
+            case ast_char:
+            case ast_uchar:
+            case ast_short:
+            case ast_ushort:
+            case ast_int:
+            case ast_uint:
+            case ast_float:
+                gen.emit(IMM, node->data._ins._1); // 载入4字节
                 break;
-            DEFINE_VAR(char)
-            DEFINE_VAR(uchar)
-            DEFINE_VAR(short)
-            DEFINE_VAR(ushort)
-            DEFINE_VAR(int)
-            DEFINE_VAR(uint)
-            DEFINE_VAR(float)
-#undef DEFINE_VAR
             case ast_long:
             case ast_ulong:
             case ast_double:
@@ -447,6 +478,10 @@ namespace clib {
                 break;
         }
         return g_ok;
+    }
+
+    cast_t sym_var_t::get_cast() const {
+        return lexer2cast(cast::ast_lexer((ast_t) node->flag));
     }
 
     sym_var_id_t::sym_var_id_t(const type_t::ref &base, ast_node *node, const sym_t::ref &symbol)
@@ -480,6 +515,10 @@ namespace clib {
         return id.lock()->gen_invoke(gen, list);
     }
 
+    cast_t sym_var_id_t::get_cast() const {
+        return id.lock()->get_cast();
+    }
+
     sym_cast_t::sym_cast_t(const type_exp_t::ref &exp, const type_t::ref &base) : type_exp_t(base), exp(exp) {}
 
     symbol_t sym_cast_t::get_type() const {
@@ -501,11 +540,87 @@ namespace clib {
     }
 
     gen_t sym_cast_t::gen_lvalue(igen &gen) {
-        return exp->gen_lvalue(gen);
+        gen.error("cast: unsupported lvalue");
+        return g_error;
     }
 
     gen_t sym_cast_t::gen_rvalue(igen &gen) {
-        return exp->gen_rvalue(gen);
+        auto r = exp->gen_rvalue(gen);
+        /*
+         * 按照编号分别为：
+         * char     0
+         * uchar    1
+         * short    2
+         * ushort   3
+         * int      4
+         * uint     5
+         * long     6
+         * ulong    7
+         * float    8
+         * double   9
+         * ptr      10
+         * struct   11
+         * 操作：
+         * [-1] 出错
+         * [00] 不转换
+         * [01] 4B-4B 有符号转无符号
+         * [02] 4B-4B 无符号转有符号
+         * [03] 4B-8B 有符号转无符号
+         * [04] 4B-8B 无符号转有符号
+         * [05] 8B-4B 有符号转无符号
+         * [06] 8B-4B 无符号转有符号
+         * [07] 8B-8B 有符号转无符号
+         * [08] 8B-8B 无符号转有符号
+         * [09] 4B-8B 有符号转有符号
+         * [10] 4B-8B 无符号转无符号
+         * [11] 8B-4B 有符号转有符号
+         * [12] 8B-4B 无符号转无符号
+         * [20] 4B-4B 无符号转float
+         * [21] 4B-4B 有符号转float
+         * [22] 8B-4B 无符号转float
+         * [23] 8B-4B 有符号转float
+         * [24] 4B-4B float转无符号
+         * [25] 4B-4B float转有符号
+         * [26] 4B-8B float转无符号
+         * [27] 4B-8B float转有符号
+         * [28] 4B-8B float转double
+         * [30] 4B-8B 无符号转double
+         * [31] 4B-8B 有符号转double
+         * [32] 8B-8B 无符号转double
+         * [33] 8B-8B 有符号转double
+         * [34] 8B-4B double转无符号
+         * [35] 8B-4B double转有符号
+         * [36] 8B-8B double转无符号
+         * [37] 8B-8B double转有符号
+         * [38] 8B-4B double转float
+         */
+        int _cast[][12] = { // 转换矩阵
+                 /* [SRC] [DST]  C   UC  S   US  I   UI  L   UL  F   D   P   T */
+                 /* char    */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+                 /* uchar   */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+                 /* short   */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+                 /* ushort  */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+                 /* int     */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+                 /* uint    */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+                 /* long    */ { 11, 5,  11, 5,  11, 5,  0,  7,  23, 33, 5,  -1},
+                 /* ulong   */ { 6,  12, 6,  12, 6,  12, 8,  0,  22, 32, 12, -1},
+                 /* float   */ { 25, 24, 25, 24, 25, 24, 27, 26, 0,  28, -1, -1},
+                 /* double  */ { 35, 34, 35, 34, 35, 34, 37, 36, 38, 0,  -1, -1},
+                 /* ptr     */ { 2,  0,  2,  0,  2,  0,  4,  10, -1, -1, 0,  -1},
+                 /* struct  */ { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0},
+        };
+        auto src = exp->base->get_cast();
+        auto dst = base->get_cast();
+        if (src == t_error)
+            gen.error("cast: src error");
+        if (dst == t_error)
+            gen.error("cast: dst error");
+        auto s = _cast[src][dst];
+        if (s == -1)
+            gen.error("cast: unsupported cast");
+        if (s != 0)
+            gen.emit(CAST, s);
+        return r;
     }
 
     sym_unop_t::sym_unop_t(const type_exp_t::ref &exp, ast_node *op)

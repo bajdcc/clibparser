@@ -384,15 +384,23 @@ namespace clib {
     };
 
     const string_t &cast::ast_str(ast_t type) {
+        assert(type >= ast_root && type <= ast_double);
         return std::get<1>(ast_list[type]);
     }
 
     bool cast::ast_equal(ast_t type, lexer_t lex) {
+        assert(type >= ast_root && type <= ast_double);
         return std::get<2>(ast_list[type]) == lex;
     }
 
     int cast::ast_prior(ast_t type) {
+        assert(type >= ast_root && type <= ast_double);
         return std::get<3>(ast_list[type]);
+    }
+
+    lexer_t cast::ast_lexer(ast_t type) {
+        assert(type >= ast_root && type <= ast_double);
+        return std::get<2>(ast_list[type]);
     }
 
     void cast::unlink(ast_node *node) {
