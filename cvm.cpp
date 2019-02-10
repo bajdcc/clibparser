@@ -334,6 +334,8 @@ namespace clib {
             }
 #endif
             switch (op) {
+                case NOP:
+                    break;
                 case IMM: {
                     ctx->ax._i = vmm_get(ctx->pc);
                     ctx->pc += INC_PTR;
@@ -443,15 +445,19 @@ namespace clib {
                     break;
                 case OR:
                     ctx->ax._i = vmm_popstack(ctx->sp) | ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case XOR:
                     ctx->ax._i = vmm_popstack(ctx->sp) ^ ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case AND:
                     ctx->ax._i = vmm_popstack(ctx->sp) & ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case EQ:
                     ctx->ax._i = vmm_popstack(ctx->sp) == ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case CASE:
                     if (vmm_get(ctx->sp) == ctx->ax._i) {
@@ -463,39 +469,63 @@ namespace clib {
                     break;
                 case NE:
                     ctx->ax._i = vmm_popstack(ctx->sp) != ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case LT:
                     ctx->ax._i = vmm_popstack(ctx->sp) < ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case LE:
                     ctx->ax._i = vmm_popstack(ctx->sp) <= ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case GT:
                     ctx->ax._i = vmm_popstack(ctx->sp) > ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case GE:
                     ctx->ax._i = vmm_popstack(ctx->sp) >= ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case SHL:
                     ctx->ax._i = vmm_popstack(ctx->sp) << ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case SHR:
                     ctx->ax._i = vmm_popstack(ctx->sp) >> ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case ADD:
                     ctx->ax._i = vmm_popstack(ctx->sp) + ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case SUB:
                     ctx->ax._i = vmm_popstack(ctx->sp) - ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case MUL:
                     ctx->ax._i = vmm_popstack(ctx->sp) * ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case DIV:
                     ctx->ax._i = vmm_popstack(ctx->sp) / ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case MOD:
                     ctx->ax._i = vmm_popstack(ctx->sp) % ctx->ax._i;
+                    ctx->pc += INC_PTR;
+                    break;
+                case NEG:
+                    ctx->ax._i = -ctx->ax._i;
+                    ctx->pc += INC_PTR;
+                    break;
+                case NOT:
+                    ctx->ax._i = ~ctx->ax._i;
+                    ctx->pc += INC_PTR;
+                    break;
+                case LNT:
+                    ctx->ax._i = !ctx->ax._i;
+                    ctx->pc += INC_PTR;
                     break;
                 case EXIT: {
 #if LOG_SYSTEM

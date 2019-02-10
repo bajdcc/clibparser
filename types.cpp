@@ -298,6 +298,9 @@ namespace clib {
         std::make_tuple(MUL, "MUL"),
         std::make_tuple(DIV, "DIV"),
         std::make_tuple(MOD, "MOD"),
+        std::make_tuple(NEG, "NEG"),
+        std::make_tuple(NOT, "NOT"),
+        std::make_tuple(LNT, "LNT"),
         std::make_tuple(EXIT, "EXIT"),
     };
 
