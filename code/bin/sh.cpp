@@ -142,7 +142,9 @@ int main(int argc, char **argv) {
             continue;
         }
         if (strcmp(text, "?") == 0) {
+            switch_task();
             shell("help");
+            switch_task();
             continue;
         }
         push(&head, text);

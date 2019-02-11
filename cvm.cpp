@@ -1781,6 +1781,8 @@ namespace clib {
                     } else if (!ctx->input_stop) {
                         ctx->pc -= INC_PTR;
                         return true;
+                    } else {
+                        ctx->input_redirect = -1;
                     }
                 } else if (global_state.input_lock == ctx->id) {
                     if (global_state.input_success) {
@@ -1815,7 +1817,6 @@ namespace clib {
                 return true;
             }
             case 12: {
-                ctx->input_stop = false;
                 if (ctx->input_redirect == -1 && global_state.input_lock == ctx->id) {
                     if (global_state.input_success) {
                         // INPUT INTERRUPT
@@ -1832,6 +1833,8 @@ namespace clib {
                         global_state.input_success = false;
                         cgui::singleton().input_set(false);
                     }
+                } else {
+                    ctx->input_stop = false;
                 }
             }
                 break;
