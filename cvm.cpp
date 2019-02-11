@@ -1190,10 +1190,11 @@ namespace clib {
                 set_resize_id = -1;
             }
             if (ctx->output_redirect != -1 && tasks[ctx->output_redirect].flag & CTX_VALID) {
-                if (tasks[id].input_redirect != -1) {
-                    std::copy(tasks[id].input_queue.begin(), tasks[id].input_queue.end(),
-                         std::back_inserter(tasks[tasks[id].output_redirect].input_queue));
-                    tasks[id].input_queue.clear();
+                if (ctx->input_redirect != -1) {
+                    std::copy(ctx->input_queue.begin(), ctx->input_queue.end(),
+                              std::back_inserter(tasks[ctx->output_redirect].input_queue));
+                    ctx->input_queue.clear();
+                    ctx->input_redirect = -1;
                 }
                 tasks[ctx->output_redirect].input_stop = true;
                 ctx->output_redirect = -1;
@@ -1737,6 +1738,11 @@ namespace clib {
             case 5:
                 vmm_setstr((uint32_t) ctx->ax._i, global_state.hostname);
                 break;
+            case 8:
+                if (global_state.input_lock == ctx->id) {
+                    cgui::singleton().input_char((char) ctx->ax._i);
+                }
+                break;
             case 10: {
                 if (ctx->input_redirect != -1) {
                     ctx->ax._i = ctx->input_stop ? 0 : 1;
@@ -1763,6 +1769,9 @@ namespace clib {
                     } else if (!ctx->input_stop) {
                         ctx->pc -= INC_PTR;
                         return true;
+                    } else {
+                        ctx->input_redirect = -1;
+                        break;
                     }
                 } else if (global_state.input_lock == ctx->id) {
                     if (global_state.input_success) {

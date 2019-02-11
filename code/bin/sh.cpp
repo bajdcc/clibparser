@@ -4,6 +4,7 @@
 #include "/include/memory"
 #include "/include/proc"
 #include "/include/string"
+#include "/include/shell"
 #include "/include/sys"
 int process(char *text) {
     char *tmp = malloc(256), c;
@@ -53,12 +54,41 @@ int exec_start(char *text, int *total) {
         return left;
     }
 }
+struct node {
+    char *text;
+    node *prev;
+    node *next;
+};
+node *push(node **head, char *text) {
+    node *new_node = (node *) malloc(sizeof(node));
+    int len = strlen(text);
+    char *new_text = malloc(len + 1);
+    strcpy(new_text, text);
+    new_node->text = new_text;
+    new_node->prev = 0;
+    new_node->next = *head;
+    if (new_node->next)
+        new_node->next->prev = new_node;
+    *head = new_node;
+    return new_node;
+}
+int print_history(node *head) {
+    set_fg(240, 200, 220);
+    put_string("Command History:\n\n");
+    while (head) {
+        put_string(head->text);
+        put_string("\n");
+        head = head->next;
+    }
+}
 int main(int argc, char **argv) {
     int i, j, total, state = 1, direct_input = input_state();
     char *text = malloc(256);
     char *_whoami = malloc(100);
     char *_hostname = malloc(100);
     char *_pwd = malloc(100);
+    node *head;
+    node *cur;
     while (state) {
         total = 0;
         if (direct_input) {
@@ -78,15 +108,45 @@ int main(int argc, char **argv) {
             put_string("]# ");
             restore_fg();
         }
+        *text = 0;
         while (true) {
             state = input(text, 100);
             if (state > INPUT_BEGIN)
                 break;
+            if (cur) {
+                switch (state) {
+                    case INPUT_UP:
+                        if (cur->next)
+                            cur = cur->next;
+                        strcpy(text, cur->text);
+                        break;
+                    case INPUT_DOWN:
+                        if (cur->prev)
+                            cur = cur->prev;
+                        strcpy(text, cur->text);
+                        break;
+                }
+            } else {
+                if (head) {
+                    cur = head;
+                    strcpy(text, cur->text);
+                }
+            }
         }
         if (strlen(text) == 0)
             continue;
         if (strcmp(text, "exit") == 0)
             break;
+        if (strcmp(text, "history") == 0) {
+            print_history(head);
+            continue;
+        }
+        if (strcmp(text, "?") == 0) {
+            shell("help");
+            continue;
+        }
+        push(&head, text);
+        cur = 0;
         process(text);
         switch_task();
         int pid = exec_start(text, &total);
@@ -120,9 +180,9 @@ int main(int argc, char **argv) {
             break;
         newline();
     }
-    free((int) text);
-    free((int) _whoami);
-    free((int) _hostname);
-    free((int) _pwd);
+    free(text);
+    free(_whoami);
+    free(_hostname);
+    free(_pwd);
     return 0;
 }

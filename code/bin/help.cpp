@@ -2,6 +2,8 @@
 int main(int argc, char **argv) {
     set_fg(240, 200, 220);
     put_string("Commands:\n");
+    put_string("\nSHELL\n");
+    put_string("    history         - show command history\n");
     put_string("\nDIR ==> /bin\n");
     put_string("    help            - command help\n");
     put_string("    sh              - shell\n");

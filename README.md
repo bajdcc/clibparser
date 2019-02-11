@@ -309,7 +309,7 @@ int main(int argc, char **argv) {
     - [x] sys
     - [x] shell
 - [ ] 用户例程
-    - [x] Shell(`sh`, 支持“>”“>>”)
+    - [x] Shell(`sh`, 支持“>”“>>”，**历史记录与查询**)
     - [x] 测试用例(`/usr/test`)
     - [x] echo
     - [x] pwd, whoami

@@ -47,6 +47,7 @@ namespace clib {
 
         void put_string(const string_t &str);
         void put_char(char c);
+        void input_char(char c);
 
         void set_cycle(int cycle);
         void set_ticks(int ticks);

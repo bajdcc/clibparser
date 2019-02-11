@@ -311,6 +311,11 @@ namespace clib {
         }
     }
 
+    void cgui::input_char(char c) {
+        if (c > 0)
+            input(c);
+    }
+
     void cgui::new_line() {
         ptr_x = 0;
         memcpy(buffer, buffer + cols, (uint) cols * (rows - 1));
@@ -657,6 +662,8 @@ namespace clib {
                     break;
                 case GLUT_KEY_INSERT:
                     break;
+                case 0x71: // SHIFT
+                    return;
                 default:
                     // error("invalid special key");
                     break;
@@ -666,6 +673,15 @@ namespace clib {
             cvm::global_state.input_read_ptr = 0;
             cvm::global_state.input_success = true;
             input_state = false;
+            auto begin = ptr_mx + ptr_my * cols;
+            auto end = ptr_x + ptr_y * cols;
+            for (int i = begin; i <= end; ++i) {
+                buffer[i] = 0;
+                colors_bg[i] = color_bg;
+                colors_fg[i] = color_fg;
+            }
+            ptr_x = ptr_mx;
+            ptr_y = ptr_my;
         } else {
             put_char((char) (c & 0xff));
             input_string.push_back((char) (c & 0xff));

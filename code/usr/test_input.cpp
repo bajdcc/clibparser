@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
     put_string("\n");
     put_string("Input: ");
     char *text = malloc(100);
+    *text = 0;
     input((char *) &text, 100);
     put_string("Output: ");
     put_string((char *) &text);

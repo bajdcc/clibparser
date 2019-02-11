@@ -33,11 +33,18 @@ long put_long(long number) {
     number;
     interrupt 7;
 }
+int input_character(char c) {
+    c;
+    interrupt 8;
+}
+int input_string(char *text) {
+    while (input_character(*text++));
+}
 
 // 输入部分
 enum input_special {
     INPUT_BEGIN = -9,
-    INPUT_TOP = -10,
+    INPUT_UP = -10,
     INPUT_DOWN = -11,
     INPUT_LEFT = -12,
     INPUT_RIGHT = -13,
@@ -57,10 +64,11 @@ int input_state() {
 int input(char *text, int len) {
     int i, c;
     int state = input_lock();
+    input_string(text);
     for (i = 0; i < len && ((c = input_char()) != -1); ++i) {
         if (c <= INPUT_BEGIN) {
             input_unlock();
-            text[i++] = '\0';
+            text[i] = '\0';
             return c;
         }
         text[i] = c;
