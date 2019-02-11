@@ -468,6 +468,7 @@ namespace clib {
             gen.error("invoke: argument size not equal, required: " + to_string() +
                       ", but got: " + args->to_string());
         }
+        auto total_size = 0;
         for (auto i = 0; i < exps.size(); ++i) {
             exps[i]->gen_rvalue(gen);
             auto exp_type = exps[i]->base->get_cast();
@@ -480,10 +481,11 @@ namespace clib {
                 gen.emit(CAST, s);
             }
             gen.emit(PUSH, cast_size(param_type));
+            total_size += cast_size(param_type);
         }
         gen.emit(CALL, addr);
         if (!exps.empty()) {
-            gen.emit(ADJ, exps.size());
+            gen.emit(ADJ, total_size / 4);
         }
     }
 
@@ -535,6 +537,11 @@ namespace clib {
     }
 
     gen_t sym_var_t::gen_lvalue(igen &gen) {
+        if (node->flag == ast_string) {
+            gen.emit(IMM, DATA_BASE | gen.load_string(node->data._string));
+            base = std::make_shared<type_base_t>(l_char, 1);
+            return g_no_load;
+        }
         gen.error("invalid lvalue: " + to_string());
         return g_error;
     }
@@ -691,7 +698,7 @@ namespace clib {
             case op_logical_not:
             case op_bit_not:
             case op_bit_and:
-                gen.error("invalid lvalue: " + to_string());
+                gen.error("[unop] invalid lvalue: " + to_string());
                 break;
             case op_plus_plus:
             case op_minus_minus: {
@@ -714,7 +721,7 @@ namespace clib {
                 exp->gen_rvalue(gen);
                 base = exp->base->clone();
                 if (base->get_cast() != t_ptr)
-                    gen.error("invalid deref: " + to_string());
+                    gen.error("[unop] invalid deref: " + to_string());
                 base->ptr--;
                 break;
             default:
@@ -1043,6 +1050,7 @@ namespace clib {
                             } else {
                                 gen.edit(idx, CAST);
                                 gen.edit(idx + 1, s); // CAST s
+                                gen.edit(idx + 3, cast_size(max_type));
                             }
                         }
                         base = use_first ? exp1->base->clone() : exp2->base->clone();

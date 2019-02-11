@@ -1,6 +1,6 @@
 # clibparser（C++ GLR Parser and VM）
 
-C++实现的**LR编译器**及**C语言虚拟机**。代码量：约11k。
+C++实现的**LR编译器**及**C语言虚拟机**。代码量：约13k。
 
 - 文法书写方式：以C++重载为基础的Parser Generator。
 - 语义分析：在LR解析的过程中，状态机向符号表提供分析接口，使得状态转换可手动干涉，解决“`A*b`”问题
@@ -40,6 +40,10 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约11k。
 **【badapple动画】**
 
 ![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/10.gif)
+
+**【画爱心】**
+
+![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/11.gif)
 
 ## 计划
 
@@ -308,9 +312,11 @@ int main(int argc, char **argv) {
     - [x] string
     - [x] sys
     - [x] shell
+    - [x] math
 - [ ] 用户例程
     - [x] Shell(`sh`, 支持“>”“>>”，**历史记录与查询**)
     - [x] 测试用例(`/usr/test`)
+    - [x] 测试用例-控制台绘画(`/usr/draw`)
     - [x] echo
     - [x] pwd, whoami
     - [x] VFS: cd, mkdir, touch, cat, ls(-l), ll, rm, tree, write, append
@@ -358,6 +364,7 @@ int main(int argc, char **argv) {
 - [x] 用户键盘输入交互功能
 - [x] 解决命令行参数的读取问题
 - [x] 解决显示缓存因异常时出错的问题
+- [ ] 进程退出时管道未及时处理的问题
 
 ## 参考
 

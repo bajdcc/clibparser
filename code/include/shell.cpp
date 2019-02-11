@@ -11,7 +11,7 @@ int intern_pipe() {
     int c;
     input_lock();
     while ((c = input_char()) != -1) {
-        put_char((char) c);
+        if (c > 0) put_char((char) c);
     }
     input_unlock();
     return 0;

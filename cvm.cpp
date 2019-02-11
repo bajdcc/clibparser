@@ -155,8 +155,8 @@ namespace clib {
             return *(T *) ((byte *) pa + OFFSET_INDEX(va));
         }
         //vmm_map(va, pmm_alloc(), PTE_U | PTE_P | PTE_R);
-#if 0
-        printf("VMMGET> Invalid VA: %08X\n", va);
+#if 1
+        printf("[SYSTEM] MEM  | Invalid VA: %08X\n", va);
 #endif
         error("vmm::get error");
         return vmm_get<T>(va);
@@ -177,7 +177,7 @@ namespace clib {
         }
         //vmm_map(va, pmm_alloc(), PTE_U | PTE_P | PTE_R);
 #if 1
-        printf("VMMSET> Invalid VA: %08X\n", va);
+        printf("[SYSTEM] MEM  | Invalid VA: %08X\n", va);
 #endif
         error("vmm::set error");
         return vmm_set(va, value);
@@ -1190,7 +1190,7 @@ namespace clib {
                 set_resize_id = -1;
             }
             if (ctx->output_redirect != -1 && tasks[ctx->output_redirect].flag & CTX_VALID) {
-                if (ctx->input_redirect != -1) {
+                if (!ctx->input_queue.empty()) {
                     std::copy(ctx->input_queue.begin(), ctx->input_queue.end(),
                               std::back_inserter(tasks[ctx->output_redirect].input_queue));
                     ctx->input_queue.clear();
@@ -1722,15 +1722,34 @@ namespace clib {
         ctx->pc += INC_PTR;
     }
 
+    bool cvm::math(int id) {
+        switch (id) {
+            case 201:
+                ctx->ax._d = std::sqrt(std::abs(ctx->ax._d));
+                break;
+            default:
+#if LOG_SYSTEM
+                printf("[SYSTEM] ERR  | unknown interrupt: %d\n", ctx->ax._i);
+#endif
+                error("unknown interrupt");
+                break;
+        }
+        ctx->pc += INC_PTR;
+        return false;
+    }
+
     bool cvm::interrupt() {
-        switch (vmm_get(ctx->pc)) {
+        auto id = vmm_get(ctx->pc);
+        if (id > 200 && id < 300)
+            return math(id);
+        switch (id) {
             case 0:
             case 1:
             case 2:
             case 4:
             case 6:
             case 7:
-                if (output(vmm_get(ctx->pc))) return true;
+                if (output(id)) return true;
                 break;
             case 3:
                 ctx->debug = !ctx->debug;

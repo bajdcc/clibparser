@@ -148,6 +148,7 @@ namespace clib {
         char *output_fmt(int id) const;
         int output(int id);
         bool interrupt();
+        bool math(int id);
         void cast();
 
         void init_fs();
