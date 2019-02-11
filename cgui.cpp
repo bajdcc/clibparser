@@ -574,7 +574,7 @@ namespace clib {
         input_string.clear();
     }
 
-    void cgui::input(unsigned char c) {
+    void cgui::input(int c) {
         if (c == 3) {
             cvm::global_state.interrupt = true;
             if (input_state) {
@@ -588,7 +588,8 @@ namespace clib {
         }
         if (!input_state)
             return;
-        if (!(std::isprint(c) || c == '\b' || c == '\n' || c == '\r' || c == 4 || c == 7 || c == 26)) {
+        if (!(std::isprint(c) || c == '\b' || c == '\n' || c == '\r' || c == 4 || c == 7 || c == 26 ||
+                c & GUI_SPECIAL_MASK)) {
             printf("[SYSTEM] GUI  | Input: %d\n", (int) c);
             return;
         }
@@ -607,8 +608,68 @@ namespace clib {
             input_state = false;
             return;
         }
-        put_char(c);
-        input_string.push_back(c);
+        if (c & GUI_SPECIAL_MASK) {
+            char C = (char) -9;
+            switch (c & 0xff) {
+                case GLUT_KEY_F1:
+                    break;
+                case GLUT_KEY_F2:
+                    break;
+                case GLUT_KEY_F3:
+                    break;
+                case GLUT_KEY_F4:
+                    break;
+                case GLUT_KEY_F5:
+                    break;
+                case GLUT_KEY_F6:
+                    break;
+                case GLUT_KEY_F7:
+                    break;
+                case GLUT_KEY_F8:
+                    break;
+                case GLUT_KEY_F9:
+                    break;
+                case GLUT_KEY_F10:
+                    break;
+                case GLUT_KEY_F11:
+                    break;
+                case GLUT_KEY_F12:
+                    break;
+                case GLUT_KEY_LEFT:
+                    C = (char) -12;
+                    break;
+                case GLUT_KEY_UP:
+                    C = (char) -10;
+                    break;
+                case GLUT_KEY_RIGHT:
+                    C = (char) -13;
+                    break;
+                case GLUT_KEY_DOWN:
+                    C = (char) -11;
+                    break;
+                case GLUT_KEY_PAGE_UP:
+                    break;
+                case GLUT_KEY_PAGE_DOWN:
+                    break;
+                case GLUT_KEY_HOME:
+                    break;
+                case GLUT_KEY_END:
+                    break;
+                case GLUT_KEY_INSERT:
+                    break;
+                default:
+                    // error("invalid special key");
+                    break;
+            }
+            input_string.push_back(C);
+            cvm::global_state.input_content = string_t(input_string.begin(), input_string.end());
+            cvm::global_state.input_read_ptr = 0;
+            cvm::global_state.input_success = true;
+            input_state = false;
+        } else {
+            put_char((char) (c & 0xff));
+            input_string.push_back((char) (c & 0xff));
+        }
     }
 
     void cgui::reset_cmd() {

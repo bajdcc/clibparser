@@ -104,6 +104,10 @@ void keyboard(unsigned char key, int x, int y) {
     clib::cgui::singleton().input(key);
 }
 
+void special(int key, int x, int y) {
+    clib::cgui::singleton().input(GUI_SPECIAL_MASK | key);
+}
+
 void mouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON) {
     }
@@ -151,6 +155,7 @@ int main(int argc, char **argv) {
     glutMouseFunc(&mouse); // 鼠标点击事件
     glutMotionFunc(&motion); // 鼠标拖动事件
     glutKeyboardFunc(&keyboard); // 键盘输入
+    glutSpecialFunc(&special); // 特殊输入
     glutIdleFunc(&idle); // 没有事件输入时调用，这里不用它
     glutEntryFunc(&entry); // 没有事件输入时调用，这里不用它
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_CONTINUE_EXECUTION);

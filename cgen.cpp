@@ -2606,6 +2606,25 @@ namespace clib {
                     if (delta > 0) {
                         *(((int*) (data.data() + data.size())) - 1) += delta;
                     }
+                } else if (init->get_type() == s_unop) {
+                    auto v1 = std::dynamic_pointer_cast<sym_unop_t>(init);
+                    if (AST_IS_OP_N(v1->op, op_minus) && v1->exp->get_type() == s_var) {
+                        auto var = std::dynamic_pointer_cast<sym_var_t>(v1->exp);
+                        auto &node = var->node;
+                        if (node->flag != ast_string) {
+                            std::copy((char *) &node->data._ins,
+                                      ((char *) &node->data._ins) + size,
+                                      std::back_inserter(data));
+                            *(((int*) (data.data() + data.size())) - 1) = -*(((int*) (data.data() + data.size())) - 1);
+                            if (delta > 0) {
+                                *(((int*) (data.data() + data.size())) - 1) += delta;
+                            }
+                        } else {
+                            error(id, "allocate: unop not supported string");
+                        }
+                    } else {
+                        error(id, "allocate: unop not supported");
+                    }
                 } else {
                     error(id, "allocate: not supported");
                 }

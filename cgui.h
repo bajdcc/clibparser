@@ -30,6 +30,7 @@
 #define GUI_TICKS 1
 #define GUI_INPUT_CARET 15
 #define GUI_MEMORY (256 * 1024)
+#define GUI_SPECIAL_MASK 0x1000
 
 namespace clib {
 
@@ -52,7 +53,7 @@ namespace clib {
         void resize(int rows, int cols);
 
         void input_set(bool valid);
-        void input(unsigned char c);
+        void input(int c);
         void reset_cmd();
         int reset_cycles();
 

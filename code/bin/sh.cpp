@@ -78,7 +78,11 @@ int main(int argc, char **argv) {
             put_string("]# ");
             restore_fg();
         }
-        state = input(text, 100);
+        while (true) {
+            state = input(text, 100);
+            if (state > INPUT_BEGIN)
+                break;
+        }
         if (strlen(text) == 0)
             continue;
         if (strcmp(text, "exit") == 0)
