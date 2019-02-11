@@ -1021,9 +1021,13 @@ namespace clib {
                     exp1->base->get_cast() == t_ptr &&
                     exp2->base->get_cast() == t_int) { // 指针+常量
                     base = exp1->base->clone();
-                    gen.emit(PUSH, cast_size(exp2->base->get_cast()));
-                    exp2->gen_rvalue(gen);
-                    gen.emit(MUL, exp2->base->get_cast());
+                    auto inc = exp1->size(x_inc);
+                    if (inc > 1) {
+                        auto size = cast_size(exp2->base->get_cast());
+                        gen.emit(PUSH, size);
+                        gen.emit(IMM, inc);
+                        gen.emit(MUL, exp2->base->get_cast());
+                    }
                     gen.emit(OP_INS(op->data._op), base->get_cast());
                 } else {
                     auto t1 = exp1->base->get_cast();

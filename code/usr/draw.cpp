@@ -10,9 +10,9 @@ int waiting(int second) {
     put_string("\n");
 }
 int main(int argc, char **argv) {
-    shell("/usr/draw_3dball"); waiting(1);
-    shell("/usr/draw_heart1"); waiting(1);
-    shell("/usr/draw_heart2"); waiting(1);
-    shell("/usr/draw_heart3"); waiting(1);
+    shell("/usr/draw_3dball"); waiting(2);
+    shell("/usr/draw_heart1"); waiting(2);
+    shell("/usr/draw_heart2"); waiting(2);
+    shell("/usr/draw_heart3"); waiting(2);
     return 0;
 }

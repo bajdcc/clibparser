@@ -271,12 +271,6 @@ namespace clib {
                 if (tasks[i].state == CTS_RUNNING) {
                     ctx = &tasks[i];
                     exec(cycle, cycles);
-                } else if (tasks[i].state == CTS_WAIT &&
-                           tasks[i].input_redirect != -1 &&
-                           tasks[i].output_redirect != -1) {
-                    copy(tasks[i].input_queue.begin(), tasks[i].input_queue.end(),
-                         std::back_inserter(tasks[tasks[i].output_redirect].input_queue));
-                    tasks[i].input_queue.clear();
                 }
             }
         }
@@ -1193,7 +1187,6 @@ namespace clib {
                 if (!ctx->input_queue.empty()) {
                     std::copy(ctx->input_queue.begin(), ctx->input_queue.end(),
                               std::back_inserter(tasks[ctx->output_redirect].input_queue));
-                    ctx->input_queue.clear();
                     ctx->input_redirect = -1;
                 }
                 tasks[ctx->output_redirect].input_stop = true;
@@ -1788,9 +1781,6 @@ namespace clib {
                     } else if (!ctx->input_stop) {
                         ctx->pc -= INC_PTR;
                         return true;
-                    } else {
-                        ctx->input_redirect = -1;
-                        break;
                     }
                 } else if (global_state.input_lock == ctx->id) {
                     if (global_state.input_success) {
@@ -1825,6 +1815,7 @@ namespace clib {
                 return true;
             }
             case 12: {
+                ctx->input_stop = false;
                 if (ctx->input_redirect == -1 && global_state.input_lock == ctx->id) {
                     if (global_state.input_success) {
                         // INPUT INTERRUPT
