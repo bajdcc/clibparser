@@ -72,6 +72,26 @@ namespace clib {
         return node;
     }
 
+    static int cast_size(cast_t type) {
+        switch (type) {
+            case t_char:
+            case t_uchar:
+            case t_short:
+            case t_ushort:
+            case t_int:
+            case t_uint:
+            case t_float:
+            case t_ptr:
+                return 4;
+            case t_long:
+            case t_ulong:
+            case t_double:
+                return 8;
+        }
+        assert(!"invalid size");
+        return -1;
+    }
+
     int sym_t::size(sym_size_t t) const {
         assert(!"invalid size");
         return 0;
@@ -369,6 +389,77 @@ namespace clib {
         return ss.str();
     }
 
+    int cast_find(cast_t src, cast_t dst) {
+        if (src == t_error)
+            return -1;
+        if (dst == t_error)
+            return -1;
+        /*
+         * 按照编号分别为：
+         * char     0
+         * uchar    1
+         * short    2
+         * ushort   3
+         * int      4
+         * uint     5
+         * long     6
+         * ulong    7
+         * float    8
+         * double   9
+         * ptr      10
+         * struct   11
+         * 操作：
+         * [-1] 出错
+         * [00] 不转换
+         * [01] 4B-4B 有符号转无符号
+         * [02] 4B-4B 无符号转有符号
+         * [03] 4B-8B 有符号转无符号
+         * [04] 4B-8B 无符号转有符号
+         * [05] 8B-4B 有符号转无符号
+         * [06] 8B-4B 无符号转有符号
+         * [07] 8B-8B 有符号转无符号
+         * [08] 8B-8B 无符号转有符号
+         * [09] 4B-8B 有符号转有符号
+         * [10] 4B-8B 无符号转无符号
+         * [11] 8B-4B 有符号转有符号
+         * [12] 8B-4B 无符号转无符号
+         * [20] 4B-4B 无符号转float
+         * [21] 4B-4B 有符号转float
+         * [22] 8B-4B 无符号转float
+         * [23] 8B-4B 有符号转float
+         * [24] 4B-4B float转无符号
+         * [25] 4B-4B float转有符号
+         * [26] 4B-8B float转无符号
+         * [27] 4B-8B float转有符号
+         * [28] 4B-8B float转double
+         * [30] 4B-8B 无符号转double
+         * [31] 4B-8B 有符号转double
+         * [32] 8B-8B 无符号转double
+         * [33] 8B-8B 有符号转double
+         * [34] 8B-4B double转无符号
+         * [35] 8B-4B double转有符号
+         * [36] 8B-8B double转无符号
+         * [37] 8B-8B double转有符号
+         * [38] 8B-4B double转float
+         */
+        static int _cast[][12] = { // 转换矩阵
+                /* [SRC] [DST]  C   UC  S   US  I   UI  L   UL  F   D   P   T */
+                /* char    */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+                /* uchar   */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+                /* short   */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+                /* ushort  */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+                /* int     */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+                /* uint    */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+                /* long    */ { 11, 5,  11, 5,  11, 5,  0,  7,  23, 33, 5,  -1},
+                /* ulong   */ { 6,  12, 6,  12, 6,  12, 8,  0,  22, 32, 12, -1},
+                /* float   */ { 25, 24, 25, 24, 25, 24, 27, 26, 0,  28, -1, -1},
+                /* double  */ { 35, 34, 35, 34, 35, 34, 37, 36, 38, 0,  -1, -1},
+                /* ptr     */ { 2,  0,  2,  0,  2,  0,  4,  10, -1, -1, 0,  -1},
+                /* struct  */ { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0},
+        };
+        return _cast[src][dst];
+    }
+
     gen_t sym_func_t::gen_invoke(igen &gen, sym_t::ref &list) {
         assert(list->get_type() == s_list);
         auto args = std::dynamic_pointer_cast<sym_list_t>(list);
@@ -381,11 +472,14 @@ namespace clib {
             exps[i]->gen_rvalue(gen);
             auto exp_type = exps[i]->base->get_cast();
             auto param_type = params[i]->base->get_cast();
-            if (exp_type != param_type) {
-                gen.error("invoke: argument type not equal, required: " + params[i]->to_string() +
+            auto s = cast_find(exp_type, param_type);
+            if (s == -1)
+                gen.error("invoke: argument unsupported cast, required: " + params[i]->to_string() +
                           ", but got: " + exps[i]->to_string() + ", func: " + to_string());
+            if (s != 0) {
+                gen.emit(CAST, s);
             }
-            gen.emit(PUSH);
+            gen.emit(PUSH, cast_size(param_type));
         }
         gen.emit(CALL, addr);
         if (!exps.empty()) {
@@ -544,77 +638,6 @@ namespace clib {
         return g_error;
     }
 
-    int cast_find(cast_t src, cast_t dst) {
-        if (src == t_error)
-            return -1;
-        if (dst == t_error)
-            return -1;
-        /*
-         * 按照编号分别为：
-         * char     0
-         * uchar    1
-         * short    2
-         * ushort   3
-         * int      4
-         * uint     5
-         * long     6
-         * ulong    7
-         * float    8
-         * double   9
-         * ptr      10
-         * struct   11
-         * 操作：
-         * [-1] 出错
-         * [00] 不转换
-         * [01] 4B-4B 有符号转无符号
-         * [02] 4B-4B 无符号转有符号
-         * [03] 4B-8B 有符号转无符号
-         * [04] 4B-8B 无符号转有符号
-         * [05] 8B-4B 有符号转无符号
-         * [06] 8B-4B 无符号转有符号
-         * [07] 8B-8B 有符号转无符号
-         * [08] 8B-8B 无符号转有符号
-         * [09] 4B-8B 有符号转有符号
-         * [10] 4B-8B 无符号转无符号
-         * [11] 8B-4B 有符号转有符号
-         * [12] 8B-4B 无符号转无符号
-         * [20] 4B-4B 无符号转float
-         * [21] 4B-4B 有符号转float
-         * [22] 8B-4B 无符号转float
-         * [23] 8B-4B 有符号转float
-         * [24] 4B-4B float转无符号
-         * [25] 4B-4B float转有符号
-         * [26] 4B-8B float转无符号
-         * [27] 4B-8B float转有符号
-         * [28] 4B-8B float转double
-         * [30] 4B-8B 无符号转double
-         * [31] 4B-8B 有符号转double
-         * [32] 8B-8B 无符号转double
-         * [33] 8B-8B 有符号转double
-         * [34] 8B-4B double转无符号
-         * [35] 8B-4B double转有符号
-         * [36] 8B-8B double转无符号
-         * [37] 8B-8B double转有符号
-         * [38] 8B-4B double转float
-         */
-        static int _cast[][12] = { // 转换矩阵
-                /* [SRC] [DST]  C   UC  S   US  I   UI  L   UL  F   D   P   T */
-                /* char    */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
-                /* uchar   */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-                /* short   */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
-                /* ushort  */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-                /* int     */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
-                /* uint    */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-                /* long    */ { 11, 5,  11, 5,  11, 5,  0,  7,  23, 33, 5,  -1},
-                /* ulong   */ { 6,  12, 6,  12, 6,  12, 8,  0,  22, 32, 12, -1},
-                /* float   */ { 25, 24, 25, 24, 25, 24, 27, 26, 0,  28, -1, -1},
-                /* double  */ { 35, 34, 35, 34, 35, 34, 37, 36, 38, 0,  -1, -1},
-                /* ptr     */ { 2,  0,  2,  0,  2,  0,  4,  10, -1, -1, 0,  -1},
-                /* struct  */ { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0},
-        };
-        return _cast[src][dst];
-    }
-
     gen_t sym_cast_t::gen_rvalue(igen &gen) {
         auto r = exp->gen_rvalue(gen);
         auto src = exp->base->get_cast();
@@ -673,16 +696,18 @@ namespace clib {
             case op_plus_plus:
             case op_minus_minus: {
                 exp->gen_lvalue(gen);
-                gen.emit(PUSH);
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(t_ptr));
+                gen.emit(PUSH, cast_size(t_ptr));
                 exp->gen_rvalue(gen);
                 base = exp->base->clone();
-                gen.emit(PUSH);
+                auto size = base->get_cast();
+                auto c = cast_size(size);
+                gen.emit(PUSH, c);
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
-                gen.emit(OP_INS(op->data._op));
+                gen.emit(OP_INS(op->data._op), size);
                 gen.emit(SAVE, exp->size(x_load));
-                gen.emit(POP);
+                gen.emit(POP, c);
                 return g_ok;
             }
             case op_times: // 解引用
@@ -717,27 +742,35 @@ namespace clib {
             case op_plus_plus:
             case op_minus_minus: {
                 exp->gen_lvalue(gen);
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(t_ptr));
                 exp->gen_rvalue(gen);
                 base = exp->base->clone();
-                gen.emit(PUSH);
+                auto size = base->get_cast();
+                auto c = cast_size(size);
+                gen.emit(PUSH, c);
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
-                gen.emit(OP_INS(op->data._op), base->get_cast());
+                gen.emit(OP_INS(op->data._op), size);
                 gen.emit(SAVE, exp->size(x_load));
                 return g_ok;
             }
-            case op_logical_not:
+            case op_logical_not: {
                 exp->gen_rvalue(gen);
                 base = exp->base->clone();
-                gen.emit(PUSH);
-                gen.emit(LNT, base->get_cast());
+                auto size = base->get_cast();
+                auto c = cast_size(size);
+                gen.emit(PUSH, c);
+                gen.emit(LNT, size);
+            }
                 break;
-            case op_bit_not:
+            case op_bit_not: {
                 exp->gen_rvalue(gen);
                 base = exp->base->clone();
-                gen.emit(PUSH);
-                gen.emit(NOT, base->get_cast());
+                auto size = base->get_cast();
+                auto c = cast_size(size);
+                gen.emit(PUSH, c);
+                gen.emit(NOT, size);
+            }
                 break;
             case op_bit_and: // 取地址
                 exp->gen_lvalue(gen);
@@ -787,16 +820,18 @@ namespace clib {
             case op_plus_plus:
             case op_minus_minus: {
                 exp->gen_lvalue(gen);
-                gen.emit(PUSH);
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(t_ptr));
+                gen.emit(PUSH, cast_size(t_ptr));
                 exp->gen_rvalue(gen);
                 base = exp->base->clone();
-                gen.emit(PUSH);
+                auto size = base->get_cast();
+                auto c = cast_size(size);
+                gen.emit(PUSH, c);
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
                 gen.emit(OP_INS(op->data._op), base->get_cast());
                 gen.emit(SAVE, exp->size(x_load));
-                gen.emit(POP);
+                gen.emit(POP, c);
             }
                 break;
             default:
@@ -812,16 +847,18 @@ namespace clib {
             case op_minus_minus: {
                 exp->gen_rvalue(gen);
                 base = exp->base->clone();
-                gen.emit(PUSH);
+                auto size = base->get_cast();
+                auto c = cast_size(size);
+                gen.emit(PUSH, c);
                 exp->gen_lvalue(gen);
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(t_ptr));
                 exp->gen_rvalue(gen);
-                gen.emit(PUSH);
+                gen.emit(PUSH, c);
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
-                gen.emit(OP_INS(op->data._op), base->get_cast());
+                gen.emit(OP_INS(op->data._op), size);
                 gen.emit(SAVE, exp->size(x_load));
-                gen.emit(POP);
+                gen.emit(POP, c);
             }
                 break;
             default:
@@ -866,22 +903,26 @@ namespace clib {
                 if (r != g_no_load && exp1->size(x_matrix) == 0)
                     gen.emit(LOAD, exp1->size(x_size));
                 base = exp1->base->clone();
-                if (base->get_cast() != t_ptr)
+                auto size = base->get_cast();
+                auto c = cast_size(size);
+                if (size != t_ptr)
                     gen.error("invalid address by []: " + exp1->base->to_string());
                 base->ptr--;
                 if (!base->matrix.empty()) {
                     base->matrix.pop_back();
                 }
-                gen.emit(PUSH); // 压入数组地址
+                gen.emit(PUSH, c); // 压入数组地址
                 exp2->gen_rvalue(gen); // index
+                size = exp2->base->get_cast();
+                c = cast_size(size);
                 auto n = exp1->size(x_inc);
                 if (n > 1) {
-                    gen.emit(PUSH);
+                    gen.emit(PUSH, c);
                     gen.emit(IMM, n);
-                    gen.emit(MUL, base->get_cast());
-                    gen.emit(ADD, base->get_cast());
+                    gen.emit(MUL, size);
+                    gen.emit(ADD, size);
                 } else {
-                    gen.emit(ADD, base->get_cast());
+                    gen.emit(ADD, size);
                 }
             }
                 break;
@@ -905,7 +946,7 @@ namespace clib {
                 }
                 if (!field)
                     gen.error("[binop] invalid struct field");
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(t_ptr));
                 field->gen_lvalue(gen);
                 base = field->base;
                 gen.emit(ADD, t_ptr);
@@ -933,7 +974,7 @@ namespace clib {
                 }
                 if (!field)
                     gen.error("[binop] invalid struct field");
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(t_ptr));
                 field->gen_lvalue(gen);
                 base = field->base;
                 gen.emit(ADD, t_ptr);
@@ -967,13 +1008,13 @@ namespace clib {
                 auto idx = gen.current();
                 gen.emit(NOP); // insert CAST inst
                 gen.emit(NOP);
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(exp1->base->get_cast()));
                 exp2->gen_rvalue(gen); // exp2
                 if ((op->data._op == op_plus || op->data._op == op_minus) &&
                     exp1->base->get_cast() == t_ptr &&
                     exp2->base->get_cast() == t_int) { // 指针+常量
                     base = exp1->base->clone();
-                    gen.emit(PUSH);
+                    gen.emit(PUSH, cast_size(exp2->base->get_cast()));
                     exp2->gen_rvalue(gen);
                     gen.emit(MUL, exp2->base->get_cast());
                     gen.emit(OP_INS(op->data._op), base->get_cast());
@@ -998,10 +1039,10 @@ namespace clib {
                                       ", exp2= " + exp2->to_string());
                         if (s != 0) {
                             if (use_first) {
+                                gen.emit(CAST, s);
+                            } else {
                                 gen.edit(idx, CAST);
                                 gen.edit(idx + 1, s); // CAST s
-                            } else {
-                                gen.emit(CAST, s);
                             }
                         }
                         base = use_first ? exp1->base->clone() : exp2->base->clone();
@@ -1015,18 +1056,18 @@ namespace clib {
                 break;
             case op_assign: {
                 exp1->gen_lvalue(gen);
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(t_ptr));
                 exp2->gen_rvalue(gen);
                 auto t1 = exp1->base->get_cast();
                 auto t2 = exp2->base->get_cast();
                 if (t1 != t2) {
                     if (t1 == t_error)
-                        gen.error("assign binop: src error");
+                        gen.error("assign assign: src error");
                     if (t2 == t_error)
-                        gen.error("assign binop: dst error");
-                    auto s = cast_find(t1, t2);
+                        gen.error("assign assign: dst error");
+                    auto s = cast_find(t2, t1);
                     if (s == -1)
-                        gen.error("assign binop: invalid cast, exp1= " + exp1->to_string() +
+                        gen.error("assign assign: invalid cast, exp1= " + exp1->to_string() +
                                   ", exp2= " + exp2->to_string());
                     if (s != 0)
                         gen.emit(CAST, s);
@@ -1051,9 +1092,9 @@ namespace clib {
             case op_left_shift_assign:
             case op_right_shift_assign: {
                 exp1->gen_lvalue(gen);
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(t_ptr));
                 exp1->gen_rvalue(gen);
-                gen.emit(PUSH);
+                gen.emit(PUSH, cast_size(exp1->base->get_cast()));
                 exp2->gen_rvalue(gen);
                 auto t1 = exp1->base->get_cast();
                 auto t2 = exp2->base->get_cast();
@@ -1062,7 +1103,7 @@ namespace clib {
                         gen.error("assign binop: src error");
                     if (t2 == t_error)
                         gen.error("assign binop: dst error");
-                    auto s = cast_find(t1, t2);
+                    auto s = cast_find(t2, t1);
                     if (s == -1)
                         gen.error("assign binop: invalid cast, exp1= " + exp1->to_string() +
                                   ", exp2= " + exp2->to_string());
@@ -2470,7 +2511,8 @@ namespace clib {
             auto L1 = (int) text.size(); // break
             emit(JMP, -1);
             exp->gen_rvalue(*this);
-            emit(PUSH); // PUSH cond
+            auto c2 = cast_size(exp->base->get_cast());
+            emit(PUSH, c2); // PUSH cond
             emit(JMP, -1); // jump cases
             auto L2 = (int) text.size(); // cases
             cycle_t c{L1, -1};
@@ -2493,7 +2535,7 @@ namespace clib {
                     error(k, "conflict default: ", true);
                 }
             }
-            emit(POP);
+            emit(POP, c2);
             if (_default != -1) {
                 emit(JMP, _cases[_default].addr);
             }
@@ -2586,10 +2628,10 @@ namespace clib {
                 // R_VALUE
                 // SAVE
                 id->gen_lvalue(*this);
-                emit(PUSH);
+                emit(PUSH, cast_size(t_ptr));
                 init->gen_rvalue(*this);
                 if (delta > 0) {
-                    emit(PUSH);
+                    emit(PUSH, cast_size(t_ptr));
                     emit(IMM, delta);
                     emit(ADD);
                 }
@@ -2602,9 +2644,9 @@ namespace clib {
                 error(id, "allocate: invalid init value");
             auto size = align4(type->size(x_size));
             auto func = std::dynamic_pointer_cast<sym_func_t>(ctx.lock());
-            id->addr = func->ebp;
+            id->addr = func->ebp + size - 4;
+            id->addr_end = func->ebp;
             func->ebp += size;
-            id->addr_end = id->addr + size;
         } else if (id->clazz == z_struct_var) {
             if (init)
                 error(id, "allocate: invalid init value");

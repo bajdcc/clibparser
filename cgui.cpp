@@ -412,6 +412,11 @@ namespace clib {
                 if (res[1].str() == path) {
                     error("cannot include self: " + path);
                 }
+                if (offset + res.position() > 0) {
+                    if (code[offset + res.position() - 1] != '\n') {
+                        error("invalid include: " + res[1].str());
+                    }
+                }
                 records.emplace_back(offset + res.position(),
                                      offset + res.position() + res.length(),
                                      res[1].str());

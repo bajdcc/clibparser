@@ -53,7 +53,7 @@ namespace clib {
         } while (token == l_newline || token == l_space || token == l_error || token == l_comment);
 #if 0
         if (token != l_end) {
-            qDebug("[%04d:%03d] %-12s - %s\n",
+            printf("[%04d:%03d] %-12s - %s\n",
                    lexer->get_last_line(),
                    lexer->get_last_column(),
                    LEX_STRING(lexer->get_type()).c_str(),

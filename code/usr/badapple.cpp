@@ -11,18 +11,25 @@ int hex2char(int n) {
 }
 int frame, last_frame;
 long time;
-int fps;
+float fps;
 int print_fps() {
     long now = timestamp();
     if (now - time > 1000000) { // 间隔一秒
+        if (now - time > 3000000) { // 间隔三秒以上，重置计时
+            sleep(0);
+        }
         if (frame > last_frame) {
-            fps = frame - last_frame;
+            fps = 1000000.0f * (float) (frame - last_frame) / (float) (now - time);
         }
         time = now;
         last_frame = frame;
     }
-    put_string("FPS: ");
-    put_int(fps);
+    set_bg(125,130,130);
+    put_string("[INFO] FPS: ");
+    put_float(fps);
+    put_string(" TIME: ");
+    put_long(time);
+    restore_bg();
     put_string("\n");
 }
 int print_frame() {

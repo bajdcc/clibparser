@@ -303,12 +303,16 @@ LEX_T(t) clexer::get_store_##t(int index) const \
                 return l_error;
             }
             ++i;
+            while (i < length && isalnum(str[i]))
+                ++i;
             return t;
         } else {
             if ((t = digit_type_postfix(str[i])) == l_error) {
                 return l_error;
             }
             ++i;
+            while (i < length && isalnum(str[i]))
+                ++i;
             return t;
         }
     }

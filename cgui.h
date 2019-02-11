@@ -15,8 +15,8 @@
 #define GUI_FONT GLUT_BITMAP_9_BY_15
 #define GUI_FONT_W 9
 #define GUI_FONT_H 15
-#define GUI_FONT_H_1 -10
-#define GUI_FONT_H_2 5
+#define GUI_FONT_H_1 -11
+#define GUI_FONT_H_2 4
 #define GUI_ROWS 30
 #define GUI_COLS 84
 #define GUI_SIZE (GUI_ROWS * GUI_COLS)

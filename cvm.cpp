@@ -244,12 +244,12 @@ namespace clib {
     template<class T>
     void cvm::vmm_pushstack(uint32_t &sp, T value) {
         sp -= sizeof(T);
-        vmm_set(sp, value);
+        vmm_set<T>(sp, value);
     }
 
     template<class T>
     T cvm::vmm_popstack(uint32_t &sp) {
-        T t = vmm_get(sp);
+        T t = vmm_get<T>(sp);
         sp += sizeof(T);
         return t;
     }
@@ -307,7 +307,7 @@ namespace clib {
             cycles++;
             if (global_state.interrupt) break;
             if ((ctx->pc & 0xF0000000) != USER_BASE) {
-                if (ctx->pc != 0xE0000FF8 && ctx->pc != 0xE0000FFC) {
+                if (ctx->pc != 0xE0000FF4 && ctx->pc != 0xE0000FFC) {
 #if LOG_SYSTEM
                     printf("[SYSTEM] ERR  | Invalid PC: %p\n", (void *) ctx->pc);
 #endif
@@ -323,7 +323,8 @@ namespace clib {
             if (ctx->debug) {
                 printf("%04d> [%08X] %02d %.4s", i, ctx->pc, op, INS_STRING((ins_t) op).c_str());
                 if (op == PUSH)
-                    printf(" %08X\n", (uint32_t) ctx->ax._i);
+                    printf(" %08X(%d) %08X(%d)\n", (uint32_t) ctx->ax._u._1, (uint32_t) ctx->ax._u._1,
+                           (uint32_t) ctx->ax._u._2, (uint32_t) ctx->ax._u._2);
                 else if (op == IMX)
                     printf(" %08X(%d) %08X(%d)\n", vmm_get(ctx->pc), vmm_get(ctx->pc),
                            vmm_get(ctx->pc + INC_PTR), vmm_get(ctx->pc + INC_PTR));
@@ -389,11 +390,34 @@ namespace clib {
                 } /* save integer to address, value in ctx->ax._i, address on stack */
                     break;
                 case PUSH: {
-                    vmm_pushstack(ctx->sp, ctx->ax._i);
+                    switch (vmm_get(ctx->pc)) {
+                        case 4:
+                            vmm_pushstack(ctx->sp, ctx->ax._i);
+                            break;
+                        case 8:
+                            vmm_pushstack(ctx->sp, ctx->ax._u._2);
+                            vmm_pushstack(ctx->sp, ctx->ax._u._1);
+                            break;
+                        default:
+                            error("invalid push");
+                            break;
+                    }
+                    ctx->pc += INC_PTR;
                 } /* push the value of ctx->ax._i onto the stack */
                     break;
                 case POP: {
-                    ctx->ax._i = vmm_popstack(ctx->sp);
+                    switch (vmm_get(ctx->pc)) {
+                        case 4:
+                            ctx->ax._i = vmm_popstack(ctx->sp);
+                            break;
+                        case 8:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp);
+                            break;
+                        default:
+                            error("invalid pop");
+                            break;
+                    }
+                    ctx->pc += INC_PTR;
                 } /* pop the value of ctx->ax._i from the stack */
                     break;
                 case JMP: {
@@ -433,31 +457,12 @@ namespace clib {
                     ctx->sp = ctx->bp;
                     ctx->bp = (uint32_t) vmm_popstack(ctx->sp);
                     ctx->pc = (uint32_t) vmm_popstack(ctx->sp);
-#if 0
-                    printf("RETURN> PC=%08X\n", ctx->pc);
-#endif
                 } /* restore call frame and PC */
                     break;
                 case LEA: {
                     ctx->ax._i = ctx->bp + vmm_get(ctx->pc);
                     ctx->pc += INC_PTR;
                 } /* load address for arguments. */
-                    break;
-                case OR:
-                    ctx->ax._i = vmm_popstack(ctx->sp) | ctx->ax._i;
-                    ctx->pc += INC_PTR;
-                    break;
-                case XOR:
-                    ctx->ax._i = vmm_popstack(ctx->sp) ^ ctx->ax._i;
-                    ctx->pc += INC_PTR;
-                    break;
-                case AND:
-                    ctx->ax._i = vmm_popstack(ctx->sp) & ctx->ax._i;
-                    ctx->pc += INC_PTR;
-                    break;
-                case EQ:
-                    ctx->ax._i = vmm_popstack(ctx->sp) == ctx->ax._i;
-                    ctx->pc += INC_PTR;
                     break;
                 case CASE:
                     if (vmm_get(ctx->sp) == ctx->ax._i) {
@@ -467,64 +472,552 @@ namespace clib {
                         ctx->ax._i = 1;
                     }
                     break;
+                    // OPERATOR
+                case OR:
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) | ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) | ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) | ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) | ctx->ax._uq;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
+                    ctx->pc += INC_PTR;
+                    break;
+                case XOR:
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) ^ ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) ^ ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) ^ ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) ^ ctx->ax._uq;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
+                    ctx->pc += INC_PTR;
+                    break;
+                case AND:
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) & ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) & ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) & ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) & ctx->ax._uq;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
+                    ctx->pc += INC_PTR;
+                    break;
+                case EQ:
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) == ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                        case t_ptr:
+                            ctx->ax._i = vmm_popstack<uint>(ctx->sp) == ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._i = vmm_popstack<int64>(ctx->sp) == ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._i = vmm_popstack<uint64>(ctx->sp) == ctx->ax._uq;
+                            break;
+                        case t_float:
+                            ctx->ax._i = vmm_popstack<float>(ctx->sp) == ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._i = vmm_popstack<double>(ctx->sp) == ctx->ax._d;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
+                    ctx->pc += INC_PTR;
+                    break;
                 case NE:
-                    ctx->ax._i = vmm_popstack(ctx->sp) != ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) != ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                        case t_ptr:
+                            ctx->ax._i = vmm_popstack<uint>(ctx->sp) != ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._i = vmm_popstack<int64>(ctx->sp) != ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._i = vmm_popstack<uint64>(ctx->sp) != ctx->ax._uq;
+                            break;
+                        case t_float:
+                            ctx->ax._i = vmm_popstack<float>(ctx->sp) != ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._i = vmm_popstack<double>(ctx->sp) != ctx->ax._d;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case LT:
-                    ctx->ax._i = vmm_popstack(ctx->sp) < ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) < ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                        case t_ptr:
+                            ctx->ax._i = vmm_popstack<uint>(ctx->sp) < ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._i = vmm_popstack<int64>(ctx->sp) < ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._i = vmm_popstack<uint64>(ctx->sp) < ctx->ax._uq;
+                            break;
+                        case t_float:
+                            ctx->ax._i = vmm_popstack<float>(ctx->sp) < ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._i = vmm_popstack<double>(ctx->sp) < ctx->ax._d;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case LE:
-                    ctx->ax._i = vmm_popstack(ctx->sp) <= ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) <= ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                        case t_ptr:
+                            ctx->ax._i = vmm_popstack<uint>(ctx->sp) <= ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._i = vmm_popstack<int64>(ctx->sp) <= ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._i = vmm_popstack<uint64>(ctx->sp) <= ctx->ax._uq;
+                            break;
+                        case t_float:
+                            ctx->ax._i = vmm_popstack<float>(ctx->sp) <= ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._i = vmm_popstack<double>(ctx->sp) <= ctx->ax._d;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case GT:
-                    ctx->ax._i = vmm_popstack(ctx->sp) > ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) > ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                        case t_ptr:
+                            ctx->ax._i = vmm_popstack<uint>(ctx->sp) > ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._i = vmm_popstack<int64>(ctx->sp) > ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._i = vmm_popstack<uint64>(ctx->sp) > ctx->ax._uq;
+                            break;
+                        case t_float:
+                            ctx->ax._i = vmm_popstack<float>(ctx->sp) > ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._i = vmm_popstack<double>(ctx->sp) > ctx->ax._d;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case GE:
-                    ctx->ax._i = vmm_popstack(ctx->sp) >= ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) >= ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                        case t_ptr:
+                            ctx->ax._i = vmm_popstack<uint>(ctx->sp) >= ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._i = vmm_popstack<int64>(ctx->sp) >= ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._i = vmm_popstack<uint64>(ctx->sp) >= ctx->ax._uq;
+                            break;
+                        case t_float:
+                            ctx->ax._i = vmm_popstack<float>(ctx->sp) >= ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._i = vmm_popstack<double>(ctx->sp) >= ctx->ax._d;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case SHL:
-                    ctx->ax._i = vmm_popstack(ctx->sp) << ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) << ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) << ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) << ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) << ctx->ax._uq;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case SHR:
-                    ctx->ax._i = vmm_popstack(ctx->sp) >> ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) >> ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) >> ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) >> ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) >> ctx->ax._uq;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case ADD:
-                    ctx->ax._i = vmm_popstack(ctx->sp) + ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) + ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) + ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) + ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) + ctx->ax._uq;
+                            break;
+                        case t_float:
+                            ctx->ax._f = vmm_popstack<float>(ctx->sp) + ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._d = vmm_popstack<double>(ctx->sp) + ctx->ax._d;
+                            break;
+                        case t_ptr:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) + (uint) ctx->ax._i;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case SUB:
-                    ctx->ax._i = vmm_popstack(ctx->sp) - ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) - ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) - ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) - ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) - ctx->ax._uq;
+                            break;
+                        case t_float:
+                            ctx->ax._f = vmm_popstack<float>(ctx->sp) - ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._d = vmm_popstack<double>(ctx->sp) - ctx->ax._d;
+                            break;
+                        case t_ptr:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) - (uint) ctx->ax._i;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case MUL:
-                    ctx->ax._i = vmm_popstack(ctx->sp) * ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) * ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) * ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) * ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) * ctx->ax._uq;
+                            break;
+                        case t_float:
+                            ctx->ax._f = vmm_popstack<float>(ctx->sp) * ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._d = vmm_popstack<double>(ctx->sp) * ctx->ax._d;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case DIV:
-                    ctx->ax._i = vmm_popstack(ctx->sp) / ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            if (ctx->ax._i == 0)
+                                error("divide zero exception");
+                            ctx->ax._i = vmm_popstack(ctx->sp) / ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            if (ctx->ax._ui == 0)
+                                error("divide zero exception");
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) / ctx->ax._ui;
+                            break;
+                        case t_long:
+                            if (ctx->ax._q == 0)
+                                error("divide zero exception");
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) / ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            if (ctx->ax._uq == 0)
+                                error("divide zero exception");
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) / ctx->ax._uq;
+                            break;
+                        case t_float:
+                            if (ctx->ax._f == 0)
+                                error("divide zero exception");
+                            ctx->ax._f = vmm_popstack<float>(ctx->sp) / ctx->ax._f;
+                            break;
+                        case t_double:
+                            if (ctx->ax._d == 0)
+                                error("divide zero exception");
+                            ctx->ax._d = vmm_popstack<double>(ctx->sp) / ctx->ax._d;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case MOD:
-                    ctx->ax._i = vmm_popstack(ctx->sp) % ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = vmm_popstack(ctx->sp) % ctx->ax._i;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = vmm_popstack<uint>(ctx->sp) % ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = vmm_popstack<int64>(ctx->sp) % ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = vmm_popstack<uint64>(ctx->sp) % ctx->ax._uq;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case NEG:
-                    ctx->ax._i = -ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = -ctx->ax._i;
+                            break;
+                        case t_long:
+                            ctx->ax._q = -ctx->ax._q;
+                            break;
+                        case t_float:
+                            ctx->ax._f = -ctx->ax._f;
+                            break;
+                        case t_double:
+                            ctx->ax._d = -ctx->ax._d;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case NOT:
-                    ctx->ax._i = ~ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = ~ctx->ax._i;
+                            break;
+                            case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._ui = ~ctx->ax._ui;
+                            break;
+                        case t_long:
+                            ctx->ax._q = ~ctx->ax._q;
+                            break;
+                        case t_ulong:
+                            ctx->ax._uq = ~ctx->ax._uq;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case LNT:
-                    ctx->ax._i = !ctx->ax._i;
+                    switch ((cast_t) vmm_get(ctx->pc)) {
+                        case t_char:
+                        case t_short:
+                        case t_int:
+                            ctx->ax._i = ctx->ax._i ? 0 : 1;
+                            break;
+                        case t_uchar:
+                        case t_ushort:
+                        case t_uint:
+                            ctx->ax._i = ctx->ax._ui ? 0 : 1;
+                            break;
+                        case t_long:
+                            ctx->ax._i = ctx->ax._q ? 0 : 1;
+                            break;
+                        case t_ulong:
+                            ctx->ax._i = ctx->ax._uq ? 0 : 1;
+                            break;
+                        case t_float:
+                            ctx->ax._i = ctx->ax._f == 0.0f ? 0 : 1;
+                            break;
+                        case t_double:
+                            ctx->ax._i = ctx->ax._d == 0 ? 0 : 1;
+                            break;
+                        case t_ptr:
+                            ctx->ax._i = ctx->ax._ui ? 0 : 1;
+                            break;
+                        default:
+                            error("unsupport operator: " + INS_STRING((ins_t) op));
+                            break;
+                    }
                     ctx->pc += INC_PTR;
                     break;
                 case EXIT: {
@@ -651,6 +1144,7 @@ namespace clib {
             auto _argc = args.size();
             assert(_argc > 0);
             vmm_pushstack(ctx->sp, EXIT);
+            vmm_pushstack(ctx->sp, 4);
             vmm_pushstack(ctx->sp, PUSH);
             auto tmp = ctx->sp;
             auto argvs = vmm_malloc(_argc * INC_PTR);
