@@ -1247,7 +1247,8 @@ namespace clib {
             ctx->allocation.clear();
             ctx->pool.reset();
             ctx->flag = 0;
-            for (auto &h : ctx->handles) {
+            auto handles = ctx->handles;
+            for (auto &h : handles) {
                 destroy_handle(h);
             }
             ctx->handles.clear();
@@ -1553,6 +1554,8 @@ namespace clib {
     }
 
     void cvm::destroy_handle(int handle) {
+        if (handle < 0 || handle >= HANDLE_NUM)
+            error("invalid handle");
         if (handles[handle].type != h_none) {
             auto h = &handles[handle];
             if (h->type == h_file) {
@@ -1562,7 +1565,7 @@ namespace clib {
             ctx->handles.erase(handle);
             available_handles--;
         } else {
-            assert(!"destroy handle failed!");
+            error("destroy handle failed!");
         }
     }
 
