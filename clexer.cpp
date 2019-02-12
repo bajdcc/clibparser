@@ -461,7 +461,7 @@ LEX_T(t) clexer::get_store_##t(int index) const \
         }
         if ((_postfix = digit_type(_type, i)) != l_error) { // 判断有无后缀
             move(i - index);
-            if (_type == l_int)
+            if (_type >= l_char && _type <= l_ulong)
                 return digit_from_integer(_postfix, n) ? _postfix : _type;
             else
                 return digit_from_double(_postfix, d) ? _postfix : _type;
@@ -483,7 +483,7 @@ LEX_T(t) clexer::get_store_##t(int index) const \
         }
         if ((_postfix = digit_type(_type, i)) != l_error) { // 判断有无后缀
             move(i - index);
-            if (_type == l_int)
+            if (_type >= l_char && _type <= l_ulong)
                 return digit_from_integer(_postfix, n) ? _postfix : _type;
             else
                 return digit_from_double(_postfix, d) ? _postfix : _type;
@@ -518,7 +518,7 @@ LEX_T(t) clexer::get_store_##t(int index) const \
         }
         if ((_postfix = digit_type(_type, i)) != l_error) { // 判断有无后缀
             move(i - index);
-            if (_type == l_int)
+            if (_type >= l_char && _type <= l_ulong)
                 return digit_from_integer(_postfix, n) ? _postfix : _type;
             else
                 return digit_from_double(_postfix, d) ? _postfix : _type;

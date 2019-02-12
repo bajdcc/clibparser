@@ -206,6 +206,8 @@ namespace clib {
     }
 
     static cast_t lexer2cast(lexer_t type) {
+        if (type == l_string)
+            return t_ptr;
         int t = type - 2;
         assert(t >= t_char && t < t_error);
         return (cast_t) t;
@@ -311,6 +313,8 @@ namespace clib {
             gen.emit(LOAD, base->size(x_load));
         } else if (clazz == z_struct_var) {
             gen.error("not implemented");
+        } else if (clazz == z_function) {
+            gen.emit(IMM, USER_BASE | addr);
         }
         return g_ok;
     }
@@ -483,7 +487,8 @@ namespace clib {
             gen.emit(PUSH, cast_size(param_type));
             total_size += cast_size(param_type);
         }
-        gen.emit(CALL, addr);
+        gen.emit(IMM, addr);
+        gen.emit(CALL);
         if (!exps.empty()) {
             gen.emit(ADJ, total_size / 4);
         }
@@ -508,6 +513,7 @@ namespace clib {
     }
 
     cast_t type_exp_t::get_cast() const {
+        assert(base);
         return base->get_cast();
     }
 
@@ -613,7 +619,24 @@ namespace clib {
     }
 
     gen_t sym_var_id_t::gen_invoke(igen &gen, sym_t::ref &list) {
-        return id.lock()->gen_invoke(gen, list);
+        auto c = get_cast();
+        if (c != t_ptr)
+            return id.lock()->gen_invoke(gen, list);
+        assert(list->get_type() == s_list);
+        auto args = std::dynamic_pointer_cast<sym_list_t>(list);
+        auto &exps = args->exps;
+        auto total_size = 0;
+        for (auto &exp : exps) {
+            exp->gen_rvalue(gen);
+            auto exp_type = exp->base->get_cast();
+            gen.emit(PUSH, cast_size(exp_type));
+            total_size += cast_size(exp_type);
+        }
+        id.lock()->gen_rvalue(gen);
+        gen.emit(CALL);
+        if (!exps.empty()) {
+            gen.emit(ADJ, total_size / 4);
+        }
     }
 
     cast_t sym_var_id_t::get_cast() const {
@@ -712,6 +735,9 @@ namespace clib {
                 gen.emit(PUSH, c);
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
+                auto t = cast_find(t_int, size);
+                if (t > 0)
+                    gen.emit(CAST, t);
                 gen.emit(OP_INS(op->data._op), size);
                 gen.emit(SAVE, exp->size(x_load));
                 gen.emit(POP, c);
@@ -757,6 +783,9 @@ namespace clib {
                 gen.emit(PUSH, c);
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
+                auto t = cast_find(t_int, size);
+                if (t > 0)
+                    gen.emit(CAST, t);
                 gen.emit(OP_INS(op->data._op), size);
                 gen.emit(SAVE, exp->size(x_load));
                 return g_ok;
@@ -773,10 +802,7 @@ namespace clib {
             case op_bit_not: {
                 exp->gen_rvalue(gen);
                 base = exp->base->clone();
-                auto size = base->get_cast();
-                auto c = cast_size(size);
-                gen.emit(PUSH, c);
-                gen.emit(NOT, size);
+                gen.emit(NOT, base->get_cast());
             }
                 break;
             case op_bit_and: // 取地址
@@ -836,6 +862,9 @@ namespace clib {
                 gen.emit(PUSH, c);
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
+                auto t = cast_find(t_int, size);
+                if (t > 0)
+                    gen.emit(CAST, t);
                 gen.emit(OP_INS(op->data._op), base->get_cast());
                 gen.emit(SAVE, exp->size(x_load));
                 gen.emit(POP, c);
@@ -863,6 +892,9 @@ namespace clib {
                 gen.emit(PUSH, c);
                 auto inc = exp->size(x_inc);
                 gen.emit(IMM, std::max(inc, 1));
+                auto t = cast_find(t_int, size);
+                if (t > 0)
+                    gen.emit(CAST, t);
                 gen.emit(OP_INS(op->data._op), size);
                 gen.emit(SAVE, exp->size(x_load));
                 gen.emit(POP, c);
@@ -1807,6 +1839,7 @@ namespace clib {
                         case op_logical_and:
                         case op_logical_not:
                         case op_bit_and:
+                        case op_bit_not:
                         case op_times: {
                             auto &_exp = tmp.back().back();
                             auto exp = to_exp(_exp);
@@ -1817,7 +1850,7 @@ namespace clib {
                         }
                             break;
                         default:
-                            error("invalid unary exp: op");
+                            error(asts[0], "invalid unary exp: op");
                             break;
                     }
                 } else if (AST_IS_KEYWORD_N(op, k_sizeof)) {
@@ -1835,7 +1868,7 @@ namespace clib {
                     }
                     asts.clear();
                 } else {
-                    error("invalid unary exp: coll");
+                    error(asts[0], "invalid unary exp: coll");
                 }
             }
                 break;
@@ -2005,6 +2038,7 @@ namespace clib {
                             type = l_float;
                             break;
                         case k_int:
+                        case k_void:
                             type = l_int;
                             break;
                         case k_long:
@@ -2666,8 +2700,8 @@ namespace clib {
                     emit(IMM, delta);
                     emit(ADD);
                 }
-                if (type->get_cast() != init->base->get_cast())
-                    error(init, "not equal init type");
+                if (type->get_cast() != init->get_cast())
+                    error(init, "allocate: not equal init type");
                 emit(SAVE, size);
             }
         } else if (id->clazz == z_param_var) {
@@ -2698,9 +2732,11 @@ namespace clib {
         new_id->column = node->column;
         new_id->clazz = clazz;
         new_id->init = init;
-        if (init) {
-            if (init->base && type->get_cast() != init->base->get_cast())
-                error(node, "not equal init type, ", true);
+        if (init && init->base && type->get_cast() != init->get_cast()) {
+            auto j = type->get_cast();
+            auto i = init->get_cast();
+
+            error(node, "id: not equal init type, ", true);
         }
         allocate(new_id, init, delta);
 #if LOG_TYPE

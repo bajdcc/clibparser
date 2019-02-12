@@ -427,11 +427,8 @@ namespace clib {
                 } /* jump if ctx->ax._i is zero */
                     break;
                 case CALL: {
-                    vmm_pushstack(ctx->sp, ctx->pc + INC_PTR);
-                    ctx->pc = ctx->base + vmm_get(ctx->pc) * INC_PTR;
-#if 0
-                    printf("CALL> PC=%08X\n", ctx->pc);
-#endif
+                    vmm_pushstack(ctx->sp, ctx->pc);
+                    ctx->pc = ctx->base + (ctx->ax._ui) * INC_PTR;
                 } /* call subroutine */
                     /* break;case RET: {pc = (int *)*sp++;} // return from subroutine; */
                     break;

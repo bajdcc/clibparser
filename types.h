@@ -167,7 +167,7 @@ namespace clib {
     };
 
     enum ins_t {
-        NOP, LEA, IMM, IMX, JMP, CALL, JZ, JNZ, ENT, LOAD, SAVE, INTR, CAST, ADJ, LEV,
+        NOP, LEA, IMM, IMX, JMP, JZ, JNZ, ENT, LOAD, SAVE, INTR, CAST, ADJ, CALL, LEV,
         PUSH, POP, OR, XOR, AND, EQ, CASE, NE, LT, GT, LE, GE, SHL, SHR, ADD, SUB, MUL, DIV, MOD, NEG, NOT, LNT,
         EXIT,
     };

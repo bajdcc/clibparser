@@ -9,7 +9,7 @@
 #include "types.h"
 #include "memory.h"
 
-#define AST_NODE_MEM (64 * 1024)
+#define AST_NODE_MEM (128 * 1024)
 #define AST_STR_MEM (16 * 1024)
 
 namespace clib {
