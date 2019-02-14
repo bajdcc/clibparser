@@ -2308,7 +2308,14 @@ namespace clib {
                 break;
             case c_typedefName:
                 break;
-            case c_initializer:
+            case c_initializer: {
+                if (AST_IS_OP_N(nodes[0], op_lbrace)) {
+                    auto list = exp_list(tmp.back());
+                    tmp.back().clear();
+                    tmp.back().push_back(list);
+                    asts.clear();
+                }
+            }
                 break;
             case c_initializerList:
                 break;
@@ -2661,15 +2668,103 @@ namespace clib {
                             std::copy((char *) &node->data._ins,
                                       ((char *) &node->data._ins) + size,
                                       std::back_inserter(data));
-                            *(((int*) (data.data() + data.size())) - 1) = -*(((int*) (data.data() + data.size())) - 1);
-                            if (delta > 0) {
-                                *(((int*) (data.data() + data.size())) - 1) += delta;
+                            switch ((ast_t) node->flag) {
+                                case ast_char:
+                                case ast_short:
+                                case ast_int:
+                                    *(((int*) (data.data() + data.size())) - 1) = -*(((int*) (data.data() + data.size())) - 1);
+                                    if (delta > 0) {
+                                        *(((int*) (data.data() + data.size())) - 1) += delta;
+                                    }
+                                    break;
+                                case ast_long:
+                                    *(((int64*) (data.data() + data.size())) - 1) = -*(((int64*) (data.data() + data.size())) - 1);
+                                    if (delta > 0) {
+                                        *(((int64*) (data.data() + data.size())) - 1) += (int64) delta;
+                                    }
+                                    break;
+                                case ast_float:
+                                    *(((float*) (data.data() + data.size())) - 1) = -*(((float*) (data.data() + data.size())) - 1);
+                                    if (delta > 0) {
+                                        *(((float*) (data.data() + data.size())) - 1) += (float) delta;
+                                    }
+                                    break;
+                                case ast_double:
+                                    *(((double*) (data.data() + data.size())) - 1) = -*(((double*) (data.data() + data.size())) - 1);
+                                    if (delta > 0) {
+                                        *(((double*) (data.data() + data.size())) - 1) += (double) delta;
+                                    }
+                                    break;
+                                default:
+                                    error(id, "allocate: unop not supported");
+                                    break;
                             }
                         } else {
                             error(id, "allocate: unop not supported string");
                         }
                     } else {
                         error(id, "allocate: unop not supported");
+                    }
+                } else if (init->get_type() == s_list) {
+                    auto list = std::dynamic_pointer_cast<sym_list_t>(init);
+                    if (id->base->matrix.empty())
+                        error(id, "allocate: need array type");
+                    if (id->base->matrix[0] != list->exps.size())
+                        error(id, "allocate: array size not equal");
+                    auto old_ptr = id->base->ptr;
+                    id->base->ptr = 0;
+                    auto c = id->get_cast(); // GET TYPE
+                    id->base->ptr = old_ptr;
+                    for (auto &exp : list->exps) {
+                        if (exp->get_type() == s_unop) {
+                            auto v1 = std::dynamic_pointer_cast<sym_unop_t>(exp);
+                            if (AST_IS_OP_N(v1->op, op_minus) && v1->exp->get_type() == s_var) {
+                                auto var = std::dynamic_pointer_cast<sym_var_t>(v1->exp);
+                                auto &node = var->node;
+                                if (node->flag != ast_string) {
+                                    std::copy((char *) &node->data._ins,
+                                              ((char *) &node->data._ins) + var->base->size(x_size),
+                                              std::back_inserter(data));
+                                    switch ((ast_t) node->flag) {
+                                        case ast_char:
+                                        case ast_short:
+                                        case ast_int:
+                                            *(((int*) (data.data() + data.size())) - 1) = -*(((int*) (data.data() + data.size())) - 1);
+                                            break;
+                                        case ast_long:
+                                            *(((int64*) (data.data() + data.size())) - 1) = -*(((int64*) (data.data() + data.size())) - 1);
+                                            break;
+                                        case ast_float:
+                                            *(((float*) (data.data() + data.size())) - 1) = -*(((float*) (data.data() + data.size())) - 1);
+                                            break;
+                                        case ast_double:
+                                            *(((double*) (data.data() + data.size())) - 1) = -*(((double*) (data.data() + data.size())) - 1);
+                                            break;
+                                        default:
+                                            error(id, "allocate: unop not supported");
+                                            break;
+                                    }
+                                } else {
+                                    error(id, "allocate: array item not support string");
+                                }
+                            } else {
+                                error(id, "allocate: array item unop not supported");
+                            }
+                        } else {
+                            if (exp->get_type() != s_var)
+                                error(exp, "allocate: array item exp not equal");
+                            if (exp->get_cast() != c)
+                                error(exp, "allocate: array item type not equal");
+                            auto var = std::dynamic_pointer_cast<sym_var_t>(exp);
+                            auto &node = var->node;
+                            if (node->flag != ast_string) {
+                                std::copy((char *) &node->data._ins,
+                                          ((char *) &node->data._ins) + align4(var->base->size(x_size)),
+                                          std::back_inserter(data));
+                            } else {
+                                error(var, "allocate: array item not support string");
+                            }
+                        }
                     }
                 } else {
                     error(id, "allocate: not supported");
@@ -2688,21 +2783,53 @@ namespace clib {
             id->addr = func->ebp - func->ebp_local;
             id->addr_end = id->addr - size;
             if (init) {
-                // L_VALUE
-                // PUSH
-                // R_VALUE
-                // SAVE
-                id->gen_lvalue(*this);
-                emit(PUSH, cast_size(t_ptr));
-                init->gen_rvalue(*this);
-                if (delta > 0) {
+                if (init->get_type() == s_list) {
+                    auto list = std::dynamic_pointer_cast<sym_list_t>(init);
+                    if (id->base->matrix.empty())
+                        error(id, "allocate: need array type");
+                    if (id->base->matrix[0] != list->exps.size())
+                        error(id, "allocate: array size not equal");
+                    auto old_ptr = id->base->ptr;
+                    id->base->ptr = 0;
+                    auto c = id->get_cast(); // GET TYPE
+                    id->base->ptr = old_ptr;
+                    // L_VALUE
+                    // LOOP:
+                    // PUSH
+                    // PUSH
+                    // R_VALUE
+                    // SAVE
+                    // IMM SIZE
+                    // ADD
+                    id->gen_lvalue(*this);
+                    for (auto &exp : list->exps) {
+                        emit(PUSH, cast_size(t_ptr));
+                        emit(PUSH, cast_size(t_ptr));
+                        exp->gen_rvalue(*this);
+                        if (exp->get_cast() != c)
+                            error(init, "allocate: array item type not equal");
+                        auto s = align4(exp->base->size(x_size));
+                        emit(SAVE, s);
+                        emit(IMM, s);
+                        emit(ADD, t_ptr);
+                    }
+                } else {
+                    // L_VALUE
+                    // PUSH
+                    // R_VALUE
+                    // SAVE
+                    id->gen_lvalue(*this);
                     emit(PUSH, cast_size(t_ptr));
-                    emit(IMM, delta);
-                    emit(ADD);
+                    init->gen_rvalue(*this);
+                    if (delta > 0) {
+                        emit(PUSH, cast_size(t_ptr));
+                        emit(IMM, delta);
+                        emit(ADD);
+                    }
+                    if (type->get_cast() != init->get_cast())
+                        error(init, "allocate: not equal init type");
+                    emit(SAVE, size);
                 }
-                if (type->get_cast() != init->get_cast())
-                    error(init, "allocate: not equal init type");
-                emit(SAVE, size);
             }
         } else if (id->clazz == z_param_var) {
             if (init)
@@ -2733,9 +2860,6 @@ namespace clib {
         new_id->clazz = clazz;
         new_id->init = init;
         if (init && init->base && type->get_cast() != init->get_cast()) {
-            auto j = type->get_cast();
-            auto i = init->get_cast();
-
             error(node, "id: not equal init type, ", true);
         }
         allocate(new_id, init, delta);
