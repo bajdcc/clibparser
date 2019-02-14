@@ -114,10 +114,12 @@ namespace clib {
     }
 
     gen_t sym_t::gen_lvalue(igen &gen) {
+        gen.error("unsupport lvalue: " + to_string());
         return g_ok;
     }
 
     gen_t sym_t::gen_rvalue(igen &gen) {
+        gen.error("unsupport rvalue: " + to_string());
         return g_ok;
     }
 
@@ -484,8 +486,9 @@ namespace clib {
             if (s != 0) {
                 gen.emit(CAST, s);
             }
-            gen.emit(PUSH, cast_size(param_type));
-            total_size += cast_size(param_type);
+            auto c = param_type == t_struct ? params[i]->size(x_size) : cast_size(param_type);
+            gen.emit(PUSH, c);
+            total_size += c;
         }
         gen.emit(IMM, addr);
         gen.emit(CALL);
@@ -508,13 +511,13 @@ namespace clib {
         return s_expression;
     }
 
-    int type_exp_t::size(sym_size_t t) const {
-        return base->size(t);
-    }
-
     cast_t type_exp_t::get_cast() const {
         assert(base);
         return base->get_cast();
+    }
+
+    int type_exp_t::size(sym_size_t t) const {
+        return base->size(t);
     }
 
     sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : type_exp_t(base), node(node) {
@@ -619,8 +622,7 @@ namespace clib {
     }
 
     gen_t sym_var_id_t::gen_invoke(igen &gen, sym_t::ref &list) {
-        auto c = get_cast();
-        if (c != t_ptr)
+        if (id.lock()->get_type() == s_function)
             return id.lock()->gen_invoke(gen, list);
         assert(list->get_type() == s_list);
         auto args = std::dynamic_pointer_cast<sym_list_t>(list);
@@ -629,8 +631,9 @@ namespace clib {
         for (auto &exp : exps) {
             exp->gen_rvalue(gen);
             auto exp_type = exp->base->get_cast();
-            gen.emit(PUSH, cast_size(exp_type));
-            total_size += cast_size(exp_type);
+            auto c = exp_type == t_struct ? exp->size(x_size) : cast_size(exp_type);
+            gen.emit(PUSH, c);
+            total_size += c;
         }
         id.lock()->gen_rvalue(gen);
         gen.emit(CALL);
@@ -920,7 +923,7 @@ namespace clib {
     int sym_binop_t::size(sym_size_t t) const {
         if (t == x_inc)
             return 0;
-        return std::max(exp1->size(t), exp2->size(t));
+        return base->size(t);
     }
 
     string_t sym_binop_t::get_name() const {
@@ -969,11 +972,13 @@ namespace clib {
                 exp1->gen_lvalue(gen);
                 base = exp1->base;
                 if (base->get_type() != s_type_typedef)
-                    gen.error("[binop] need struct type");
+                    gen.error("[binop] need struct type: " + exp1->to_string());
                 auto type_def = std::dynamic_pointer_cast<type_typedef_t>(base);
                 auto _type = type_def->refer.lock();
                 if (_type->get_type() != s_struct)
-                    gen.error("[binop] need struct type");
+                    gen.error("[binop] need struct type: " + exp1->to_string());
+                if (exp1->get_cast() == t_ptr)
+                    gen.error("[binop] need non-pointer type: " + exp1->to_string());
                 auto _struct = std::dynamic_pointer_cast<sym_struct_t>(_type);
                 auto dec = exp2->get_name();
                 sym_id_t::ref field;
@@ -994,8 +999,9 @@ namespace clib {
             case op_pointer: {
                 exp1->gen_rvalue(gen);
                 base = exp1->base;
-                if (base->get_cast() != t_ptr)
+                if (base->get_cast() != t_ptr) {
                     gen.error("[binop] need struct pointer");
+                }
                 if (base->get_type() != s_type_typedef)
                     gen.error("[binop] need struct type");
                 auto type_def = std::dynamic_pointer_cast<type_typedef_t>(base);
@@ -1095,6 +1101,20 @@ namespace clib {
                         base = exp1->base->clone();
                         gen.emit(OP_INS(op->data._op), base->get_cast());
                     }
+                    switch (op->data._op) {
+                        case op_equal:
+                        case op_less_than:
+                        case op_less_than_or_equal:
+                        case op_greater_than:
+                        case op_greater_than_or_equal:
+                        case op_not_equal: {
+                            base.reset();
+                            base = std::make_shared<type_base_t>(l_int);
+                        }
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
                 break;
@@ -1168,6 +1188,7 @@ namespace clib {
                 auto t1 = exp1->base->get_cast();
                 auto t2 = exp2->base->get_cast();
                 if (std::max(t1, t2) >= t_long) {
+                    printf("%d %d\n",t1,t2);
                     gen.error("logical binop: unsupported cast, exp1= " + exp1->to_string() +
                               ", exp2= " + exp2->to_string());
                 }
@@ -2415,7 +2436,10 @@ namespace clib {
                 break;
             case c_translationUnit:
                 break;
-            case c_externalDeclaration:
+            case c_externalDeclaration: {
+                ctx_stack.clear();
+                ctx.reset();
+            }
                 break;
             case c_functionDefinition: {
                 ctx_stack.clear();
@@ -2425,6 +2449,8 @@ namespace clib {
             }
                 break;
             case c_structOrUnionSpecifier: {
+                if (ctx.lock()->get_type() == s_struct)
+                    ctx.lock()->size(x_size);
                 if (!ctx_stack.empty()) {
                     ctx = ctx_stack.back();
                     ctx_stack.pop_back();
@@ -2709,6 +2735,8 @@ namespace clib {
                     auto list = std::dynamic_pointer_cast<sym_list_t>(init);
                     if (id->base->matrix.empty())
                         error(id, "allocate: need array type");
+                    if (id->base->matrix[0] == 0)
+                        id->base->matrix[0] = list->exps.size();
                     if (id->base->matrix[0] != list->exps.size())
                         error(id, "allocate: array size not equal");
                     auto old_ptr = id->base->ptr;
@@ -2787,6 +2815,8 @@ namespace clib {
                     auto list = std::dynamic_pointer_cast<sym_list_t>(init);
                     if (id->base->matrix.empty())
                         error(id, "allocate: need array type");
+                    if (id->base->matrix[0] == 0)
+                        id->base->matrix[0] = list->exps.size();
                     if (id->base->matrix[0] != list->exps.size())
                         error(id, "allocate: array size not equal");
                     auto old_ptr = id->base->ptr;

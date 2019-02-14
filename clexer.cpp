@@ -361,10 +361,14 @@ LEX_T(t) clexer::get_store_##t(int index) const \
     lexer_t clexer::digit_return(lexer_t t, LEX_T(ulong) n, LEX_T(double) d, uint i) {
         if (t == l_int) {
             bags._int = (int) n;
+        } else if (t == l_uint) {
+            bags._uint = (uint) n;
         } else if (t == l_double) {
             bags._double = d;
         } else if (t == l_long) {
             bags._long = n;
+        } else if (t == l_ulong) {
+            bags._ulong = n;
         } else {
             bags._double = d;
         }
@@ -408,6 +412,7 @@ LEX_T(t) clexer::get_store_##t(int index) const \
         auto n = 0ULL, _n = 0ULL;
         auto d = 0.0;
         if (local() == '0' && (local(1) == 'x' || local(1) == 'x')) {
+            _type = l_uint;
             auto cc = 0;
             // 预先判断十六进制
             for (i += 2; i < length && ((cc = hex2dec(str[i])) != -1); i++) { // 解析整数部分
@@ -419,10 +424,10 @@ LEX_T(t) clexer::get_store_##t(int index) const \
                     n <<= 4;
                     n += cc;
                 }
-                if (_type == l_int) { // 超过int范围，转为long
+                if (_type == l_uint) { // 超过uint范围，转为ulong
                     if (n > INT_MAX)
-                        _type = l_long;
-                } else if (_type == l_long) { // 超过long范围，转为double
+                        _type = l_ulong;
+                } else if (_type == l_ulong) { // 超过ulong范围，转为double
                     if (n >> 4 != _n) {
                         d = (double) _n;
                         d *= 16.0;

@@ -6,7 +6,7 @@ C++实现的**LR编译器**及**C语言虚拟机**。代码量：约13k。
 - 语义分析：在LR解析的过程中，状态机向符号表提供分析接口，使得状态转换可手动干涉，解决“`A*b`”问题
 - 识别方式：**以下推自动机为基础，向看查看一个字符、带回溯的LR分析**。
 - 内存管理：自制内存池。
-- 自建库函数：itoa（已实现），dtoa和sprintf（待实现）。
+- 自建库函数：**已实现itoa和dtoa**，sprintf（待实现）。
 
 **仿制了exec和fork调用，自动运行code文件夹下的代码。**
 
@@ -317,6 +317,7 @@ int main(int argc, char **argv) {
     - [x] shell
     - [x] math
     - [x] itoa（参考自[itoa-benchmark](https://github.com/miloyip/itoa-benchmark)）
+    - [x] dtoa（参考自[dtoa-benchmark](https://github.com/miloyip/dtoa-benchmark)）
 - [ ] 用户例程
     - [x] Shell(`sh`, 支持“>”“>>”，**历史记录与查询**)
     - [x] 测试用例(`/usr/test`)

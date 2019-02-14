@@ -33,6 +33,10 @@ long put_long(long number) {
     number;
     interrupt 7;
 }
+unsigned long put_ulong(unsigned number) {
+    number;
+    interrupt 9;
+}
 int input_character(char c) {
     c;
     interrupt 8;

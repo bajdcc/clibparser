@@ -1584,6 +1584,9 @@ namespace clib {
             case 7:
                 sprintf(str, "%lld", ctx->ax._q);
                 break;
+            case 9:
+                sprintf(str, "%llu", ctx->ax._uq);
+                break;
             default:
                 sprintf(str, "[Invalid format]");
                 break;
@@ -1742,6 +1745,7 @@ namespace clib {
             case 4:
             case 6:
             case 7:
+            case 9:
                 if (output(id)) return true;
                 break;
             case 3:
