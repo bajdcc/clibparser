@@ -48,6 +48,7 @@ namespace clib {
 
         ast_node *parse(const string_t &str, csemantic *s = nullptr);
         ast_node *root() const;
+        void clear_ast();
 
     private:
         void next();
@@ -83,7 +84,7 @@ namespace clib {
         cunit unit;
         std::unique_ptr<clexer> lexer;
         csemantic *semantic{nullptr};
-        cast ast;
+        std::unique_ptr<cast> ast;
     };
 }
 #endif //CMINILANG_PARSER_H

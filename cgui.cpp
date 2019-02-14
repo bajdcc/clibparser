@@ -554,6 +554,7 @@ namespace clib {
 #endif
             gen.gen(root);
             auto file = gen.file();
+            p.clear_ast();
             cache.insert(std::make_pair(new_path, file));
             return vm->load(new_path, file, args);
         } catch (const cexception &e) {

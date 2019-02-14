@@ -22,20 +22,25 @@ namespace clib {
     ast_node *cparser::parse(const string_t &str, csemantic *s) {
         semantic = s;
         lexer = std::make_unique<clexer>(str);
+        ast = std::make_unique<cast>();
         // 清空词法分析结果
         lexer->reset();
         // 清空AST
-        ast.reset();
+        ast->reset();
         // 产生式
         if (unit.get_pda().empty())
             gen();
         // 语法分析（递归下降）
         program();
-        return ast.get_root();
+        return ast->get_root();
     }
 
     ast_node *cparser::root() const {
-        return ast.get_root();
+        return ast->get_root();
+    }
+
+    void cparser::clear_ast() {
+        ast.reset();
     }
 
     void cparser::next() {
@@ -420,10 +425,10 @@ namespace clib {
         ast_reduce_cache.clear();
         state_stack.push_back(0);
         const auto &pdas = unit.get_pda();
-        auto root = ast.new_node(ast_collection);
+        auto root = ast->new_node(ast_collection);
         root->line = root->column = 0;
         root->data._coll = pdas[0].coll;
-        cast::set_child(ast.get_root(), root);
+        cast::set_child(ast->get_root(), root);
         ast_stack.push_back(root);
         std::vector<int> jumps;
         std::vector<int> trans_ids;
@@ -606,7 +611,7 @@ namespace clib {
 #endif
                     cast::unlink(coll);
                     check_ast(coll);
-                    ast.remove(coll);
+                    ast->remove(coll);
                 }
                 ast_coll_cache.erase(ast_coll_cache.begin() + bk->coll_index, ast_coll_cache.end());
                 bk->direction = b_fallback;
@@ -623,7 +628,7 @@ namespace clib {
             return ast_cache[ast_cache_index++];
         }
         if (lexer->is_type(l_operator)) {
-            auto node = ast.new_node(ast_operator);
+            auto node = ast->new_node(ast_operator);
             node->line = lexer->get_last_line();
             node->column = lexer->get_last_column();
             node->data._op = lexer->get_operator();
@@ -633,7 +638,7 @@ namespace clib {
             return node;
         }
         if (lexer->is_type(l_keyword)) {
-            auto node = ast.new_node(ast_keyword);
+            auto node = ast->new_node(ast_keyword);
             node->line = lexer->get_last_line();
             node->column = lexer->get_last_column();
             node->data._keyword = lexer->get_keyword();
@@ -643,10 +648,10 @@ namespace clib {
             return node;
         }
         if (lexer->is_type(l_identifier)) {
-            auto node = ast.new_node(ast_literal);
+            auto node = ast->new_node(ast_literal);
             node->line = lexer->get_last_line();
             node->column = lexer->get_last_column();
-            ast.set_str(node, lexer->get_identifier());
+            ast->set_str(node, lexer->get_identifier());
             match_type(l_identifier);
             ast_cache.push_back(node);
             ast_cache_index++;
@@ -658,7 +663,7 @@ namespace clib {
             switch (type) {
 #define DEFINE_NODE_INT(t) \
             case l_##t: \
-                node = ast.new_node(ast_##t); \
+                node = ast->new_node(ast_##t); \
                 node->line = lexer->get_last_line(); \
                 node->column = lexer->get_last_column(); \
                 node->data._##t = lexer->get_##t(); \
@@ -698,10 +703,10 @@ namespace clib {
 #endif
                 match_type(l_string);
             }
-            auto node = ast.new_node(ast_string);
+            auto node = ast->new_node(ast_string);
             node->line = lexer->get_last_line();
             node->column = lexer->get_last_column();
-            ast.set_str(node, ss.str());
+            ast->set_str(node, ss.str());
             ast_cache.push_back(node);
             ast_cache_index++;
             return node;
@@ -744,7 +749,7 @@ namespace clib {
         switch (trans.type) {
             case e_shift: {
                 state_stack.push_back(state);
-                auto new_node = ast.new_node(ast_collection);
+                auto new_node = ast->new_node(ast_collection);
                 new_node->line = new_node->column = 0;
                 auto &pdas = unit.get_pda();
                 new_node->data._coll = pdas[trans.jump].coll;
