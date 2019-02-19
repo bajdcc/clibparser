@@ -665,9 +665,13 @@ namespace clib {
                     break;
                 case 0x71: // SHIFT
                     return;
+                case 0x72: // CTRL
+                    return;
+                case 0x74: // ALT
+                    return;
                 default:
-                    // error("invalid special key");
-                    break;
+                    printf("invalid special key: %d\n", c & 0xff);
+                    return;
             }
             input_string.push_back(C);
             cvm::global_state.input_content = string_t(input_string.begin(), input_string.end());

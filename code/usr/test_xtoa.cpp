@@ -111,10 +111,10 @@ int case_5() {
 }
 int main(int argc, char **argv) {
     put_string("========== [#7 TEST XTOA] ==========\n");
-    //case_1(); waiting(2);
-   // case_2(); waiting(2);
-   // case_3(); waiting(2);
-  //  case_4(); waiting(2);
+    case_1(); waiting(2);
+    case_2(); waiting(2);
+    case_3(); waiting(2);
+    case_4(); waiting(2);
     case_5(); waiting(2);
     put_string("========== [#7 TEST XTOA] ==========\n");
     return 0;
