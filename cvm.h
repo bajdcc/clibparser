@@ -90,6 +90,7 @@ namespace clib {
 
 #define TASK_NUM 256
 #define HANDLE_NUM 1024
+#define BIG_DATA_NUM 512
 
     class cvm : public imem, public vfs_func_t, public vfs_stream_call {
     public:
@@ -213,6 +214,7 @@ namespace clib {
                 struct {
                     int _1, _2;
                 } _u;
+                byte big_data[BIG_DATA_NUM];
             } ax;
             uint bp;
             uint sp;

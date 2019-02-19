@@ -1,7 +1,7 @@
 //
 // Project: clibparser
 // Created by bajdcc
-//
+//xtoa_kDiySignificandSize
 
 #include "/include/memory"
 #include "/include/xtoa_lut"
@@ -27,80 +27,80 @@ unsigned long xtoa_kDpExponentMask = 0x7FF0000000000000;
 unsigned long xtoa_kDpSignificandMask = 0x000FFFFFFFFFFFFF;
 unsigned long xtoa_kDpHiddenBit = 0x0010000000000000;
 
-void xtoa_DiyFp_Make(xtoa_DiyFp* fp, double d) {
+xtoa_DiyFp xtoa_DiyFp_Make(double d) {
     xtoa_DiyFp_Union u;
     u.d = d;
     int biased_e = (int) ((u.u64 & xtoa_kDpExponentMask) >> xtoa_kDpSignificandSize);
     unsigned long significand = (u.u64 & xtoa_kDpSignificandMask);
 
+    xtoa_DiyFp fp;
     if (biased_e != 0) {
-        fp->f = significand + xtoa_kDpHiddenBit;
-        fp->e = biased_e - xtoa_kDpExponentBias;
+        fp.f = significand + xtoa_kDpHiddenBit;
+        fp.e = biased_e - xtoa_kDpExponentBias;
     } else {
-        fp->f = significand;
-        fp->e = xtoa_kDpMinExponent + 1;
+        fp.f = significand;
+        fp.e = xtoa_kDpMinExponent + 1;
     }
+    return fp;
 }
 
-void xtoa_DiyFp_Sub(xtoa_DiyFp* a, xtoa_DiyFp* b, xtoa_DiyFp* out) {
-    out->f = a->f - b->f;
-    out->e = a->e;
+xtoa_DiyFp xtoa_DiyFp_Sub(xtoa_DiyFp a, xtoa_DiyFp b) {
+    xtoa_DiyFp out;
+    out.f = a.f - b.f;
+    out.e = a.e;
+    return out;
 }
 
-void xtoa_DiyFp_Mul(xtoa_DiyFp* a, xtoa_DiyFp* b, xtoa_DiyFp* out) {
+xtoa_DiyFp xtoa_DiyFp_Mul(xtoa_DiyFp a, xtoa_DiyFp b) {
     unsigned long M32 = (unsigned long) 0xFFFFFFFF;
-    unsigned long _a = a->f >> 32UL;
-    unsigned long _b = a->f & M32;
-    unsigned long _c = b->f >> 32UL;
-    unsigned long _d = b->f & M32;
+    unsigned long _a = a.f >> 32UL;
+    unsigned long _b = a.f & M32;
+    unsigned long _c = b.f >> 32UL;
+    unsigned long _d = b.f & M32;
     unsigned long ac = _a * _c;
     unsigned long bc = _b * _c;
     unsigned long ad = _a * _d;
     unsigned long bd = _b * _d;
     unsigned long tmp = (bd >> 32UL) + (ad & M32) + (bc & M32);
     tmp += 1UL << 31UL;  // mult_round
-    out->f = (ac + (ad >> 32UL) + (bc >> 32UL)) + (tmp >> 32UL);
-    out->e = a->e + b->e + 64;
+    xtoa_DiyFp out;
+    out.f = (ac + (ad >> 32UL) + (bc >> 32UL)) + (tmp >> 32UL);
+    out.e = a.e + b.e + 64;
+    return out;
 }
 
-void xtoa_DiyFp_Normalize(xtoa_DiyFp* fp, xtoa_DiyFp* out) {
-    unsigned long f = fp->f;
-    int e = fp->e;
-    while (!(f & xtoa_kDpHiddenBit)) {
-        f <<= 1;
-        e--;
+xtoa_DiyFp xtoa_DiyFp_Normalize(xtoa_DiyFp fp) {
+    while (!(fp.f & xtoa_kDpHiddenBit)) {
+        fp.f <<= 1;
+        fp.e--;
     }
-    out->f = f;
-    out->e = e;
-    out->f <<= (xtoa_kDiySignificandSize - xtoa_kDpSignificandSize - 1);
-    out->e = out->e - (xtoa_kDiySignificandSize - xtoa_kDpSignificandSize - 1);
+    fp.f <<= (xtoa_kDiySignificandSize - xtoa_kDpSignificandSize - 1);
+    fp.e = fp.e - (xtoa_kDiySignificandSize - xtoa_kDpSignificandSize - 1);
+    return fp;
 }
 
-void xtoa_DiyFp_NormalizeBoundary(xtoa_DiyFp* fp, xtoa_DiyFp* out) {
-    unsigned long f = fp->f;
-    int e = fp->e;
-    while (!(f & (xtoa_kDpHiddenBit << 1))) {
-        f <<= 1;
-        e--;
+xtoa_DiyFp xtoa_DiyFp_NormalizeBoundary(xtoa_DiyFp fp) {
+    while (!(fp.f & (xtoa_kDpHiddenBit << 1))) {
+        fp.f <<= 1;
+        fp.e--;
     }
-    out->f = f;
-    out->e = e;
-    out->f <<= (xtoa_kDiySignificandSize - xtoa_kDpSignificandSize - 2);
-    out->e = out->e - (xtoa_kDiySignificandSize - xtoa_kDpSignificandSize - 2);
+    fp.f <<= (xtoa_kDiySignificandSize - xtoa_kDpSignificandSize - 2);
+    fp.e = fp.e - (xtoa_kDiySignificandSize - xtoa_kDpSignificandSize - 2);
+    return fp;
 }
 
-void xtoa_DiyFp_NormalizedBoundaries(xtoa_DiyFp* fp, xtoa_DiyFp* minus, xtoa_DiyFp* plus) {
+void xtoa_DiyFp_NormalizedBoundaries(xtoa_DiyFp fp, xtoa_DiyFp* minus, xtoa_DiyFp* plus) {
     xtoa_DiyFp tmp;
-    tmp.f = (fp->f << 1UL) + 1UL;
-    tmp.e = fp->e - 1;
-    xtoa_DiyFp pl; xtoa_DiyFp_NormalizeBoundary(&tmp, &pl);
+    tmp.f = (fp.f << 1UL) + 1UL;
+    tmp.e = fp.e - 1;
+    xtoa_DiyFp pl = xtoa_DiyFp_NormalizeBoundary(tmp);
     xtoa_DiyFp mi;
-    if (fp->f == xtoa_kDpHiddenBit) {
-        mi.f = (fp->f << 2UL) - 1UL;
-        mi.e = fp->e - 2;
+    if (fp.f == xtoa_kDpHiddenBit) {
+        mi.f = (fp.f << 2UL) - 1UL;
+        mi.e = fp.e - 2;
     } else {
-        mi.f = (fp->f << 1UL) - 1UL;
-        mi.e = fp->e - 1;
+        mi.f = (fp.f << 1UL) - 1UL;
+        mi.e = fp.e - 1;
     }
     mi.f <<= mi.e - pl.e;
     mi.e = pl.e;
@@ -110,7 +110,7 @@ void xtoa_DiyFp_NormalizedBoundaries(xtoa_DiyFp* fp, xtoa_DiyFp* minus, xtoa_Diy
     minus->e = mi.e;
 }
 
-void xtoa_GetCachedPower(int e, int* K, xtoa_DiyFp* fp) {
+xtoa_DiyFp xtoa_GetCachedPower(int e, int* K) {
     double dk = (-61 - e) * 0.30102999566398114 + 347; // dk must be positive, so can do ceiling in positive
     int k = (int)(dk);
     if (k != dk)
@@ -119,8 +119,10 @@ void xtoa_GetCachedPower(int e, int* K, xtoa_DiyFp* fp) {
     unsigned index = (unsigned)((k >> 3) + 1);
     *K = -(-348 + (int)(index << 3)); // decimal exponent no need lookup table
 
-    fp->f = xtoa_kCachedPowers_F[index];
-    fp->e = xtoa_kCachedPowers_E[index];
+    xtoa_DiyFp fp;
+    fp.f = xtoa_kCachedPowers_F[index];
+    fp.e = xtoa_kCachedPowers_E[index];
+    return fp;
 }
 
 void xtoa_GrisuRound(char* buffer, int len, unsigned long delta, unsigned long rest, unsigned long ten_kappa, unsigned long wp_w) {
@@ -147,30 +149,30 @@ unsigned xtoa_CountDecimalDigit32(unsigned n) {
 }
 
 unsigned xtoa_kPow10[0] = { 1U, 10U, 100U, 1000U, 10000U, 100000U, 1000000U, 10000000U, 100000000u, 1000000000U };
-void xtoa_DigitGen(xtoa_DiyFp* W, xtoa_DiyFp* Mp, unsigned long delta, char* buffer, int* len, int* K) {
+void xtoa_DigitGen(xtoa_DiyFp W, xtoa_DiyFp Mp, unsigned long delta, char* buffer, int* len, int* K) {
     xtoa_DiyFp one;
-    one.f = 1UL << (unsigned long)(-Mp->e);
-    one.e = Mp->e;
-    xtoa_DiyFp wp_w; xtoa_DiyFp_Sub(&Mp, &W, &wp_w);
-    unsigned int p1 = (unsigned int)(Mp->f >> -one.e);
-    unsigned long p2 = Mp->f & (one.f - 1);
+    one.f = 1UL << (unsigned long)(-Mp.e);
+    one.e = Mp.e;
+    xtoa_DiyFp wp_w = xtoa_DiyFp_Sub(Mp, W);
+    unsigned int p1 = (unsigned int)(Mp.f >> -one.e);
+    unsigned long p2 = Mp.f & (one.f - 1);
     int kappa = (int)(xtoa_CountDecimalDigit32(p1));
     *len = 0;
 
     while (kappa > 0) {
         unsigned int d;
         switch (kappa) {
-            case 10: d = p1 / 1000000000; p1 %= 1000000000; break;
-            case  9: d = p1 /  100000000; p1 %=  100000000; break;
-            case  8: d = p1 /   10000000; p1 %=   10000000; break;
-            case  7: d = p1 /    1000000; p1 %=    1000000; break;
-            case  6: d = p1 /     100000; p1 %=     100000; break;
-            case  5: d = p1 /      10000; p1 %=      10000; break;
-            case  4: d = p1 /       1000; p1 %=       1000; break;
-            case  3: d = p1 /        100; p1 %=        100; break;
-            case  2: d = p1 /         10; p1 %=         10; break;
-            case  1: d = p1;              p1 =           0; break;
-            default: d = 0;                                 break;
+            case 10: d = p1 / 1000000000U; p1 %= 1000000000U; break;
+            case  9: d = p1 /  100000000U; p1 %=  100000000U; break;
+            case  8: d = p1 /   10000000U; p1 %=   10000000U; break;
+            case  7: d = p1 /    1000000U; p1 %=    1000000U; break;
+            case  6: d = p1 /     100000U; p1 %=     100000U; break;
+            case  5: d = p1 /      10000U; p1 %=      10000U; break;
+            case  4: d = p1 /       1000U; p1 %=       1000U; break;
+            case  3: d = p1 /        100U; p1 %=        100U; break;
+            case  2: d = p1 /         10U; p1 %=         10U; break;
+            case  1: d = p1;               p1 =           0U; break;
+            default: d = 0U;                                  break;
         }
 
         if (d || *len)
@@ -201,20 +203,19 @@ void xtoa_DigitGen(xtoa_DiyFp* W, xtoa_DiyFp* Mp, unsigned long delta, char* buf
 }
 
 void xtoa_Grisu2(double value, char* buffer, int* length, int* K) {
-    xtoa_DiyFp v;
-    xtoa_DiyFp_Make(&v, value);
+    xtoa_DiyFp v = xtoa_DiyFp_Make(value);
     xtoa_DiyFp w_m, w_p;
-    xtoa_DiyFp_NormalizedBoundaries(&v, &w_m, &w_p);
+    xtoa_DiyFp_NormalizedBoundaries(v, &w_m, &w_p);
 
-    xtoa_DiyFp c_mk; xtoa_GetCachedPower(w_p.e, K, &c_mk);
-    xtoa_DiyFp tmp; xtoa_DiyFp_Normalize(&v, &tmp);
-    xtoa_DiyFp W; xtoa_DiyFp_Mul(&tmp, &c_mk, &W);
-    xtoa_DiyFp Wp; xtoa_DiyFp_Mul(&w_p, &c_mk, &Wp);
-    xtoa_DiyFp Wm; xtoa_DiyFp_Mul(&w_m, &c_mk, &Wm);
+    xtoa_DiyFp c_mk = xtoa_GetCachedPower(w_p.e, K);
+    xtoa_DiyFp tmp = xtoa_DiyFp_Normalize(v);
+    xtoa_DiyFp W = xtoa_DiyFp_Mul(tmp, c_mk);
+    xtoa_DiyFp Wp = xtoa_DiyFp_Mul(w_p, c_mk);
+    xtoa_DiyFp Wm = xtoa_DiyFp_Mul(w_m, c_mk);
     Wm.f++;
     Wp.f--;
 
-    xtoa_DigitGen(&W, &Wp, Wp.f - Wm.f, buffer, length, K);
+    xtoa_DigitGen(W, Wp, Wp.f - Wm.f, buffer, length, K);
 }
 
 void xtoa_WriteExponent(int K, char* buffer) {

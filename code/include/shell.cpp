@@ -18,6 +18,8 @@ int intern_pipe() {
 }
 int shell(char *path) {
     int pid = exec_sleep(path);
+    if (pid < 0)
+        return pid;
     exec_connect(pid, get_pid());
     exec_wakeup(pid);
     intern_pipe();

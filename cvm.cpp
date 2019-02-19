@@ -316,9 +316,8 @@ namespace clib {
             // print debug info
             if (ctx->debug) {
                 printf("%04d> [%08X] %02d %.4s", i, ctx->pc, op, INS_STRING((ins_t) op).c_str());
-                if (op == PUSH)
-                    printf(" %08X(%d) %08X(%d)\n", (uint32_t) ctx->ax._u._1, (uint32_t) ctx->ax._u._1,
-                           (uint32_t) ctx->ax._u._2, (uint32_t) ctx->ax._u._2);
+                if ((op >= PUSH && op <= LNT) || op == LOAD || op == SAVE)
+                    printf(" %d\n", vmm_get(ctx->pc));
                 else if (op == IMX)
                     printf(" %08X(%d) %08X(%d)\n", vmm_get(ctx->pc), vmm_get(ctx->pc),
                            vmm_get(ctx->pc + INC_PTR), vmm_get(ctx->pc + INC_PTR));
@@ -344,72 +343,126 @@ namespace clib {
                 } /* load immediate value to ctx->ax._i */
                     break;
                 case LOAD: {
-                    switch (vmm_get(ctx->pc)) {
-                        case 1:
-                            ctx->ax._i = vmm_get<byte>((uint32_t) ctx->ax._i);
-                            break;
-                        case 2:
-                        case 3:
-                        case 4:
-                            ctx->ax._i = vmm_get((uint32_t) ctx->ax._i);
-                            break;
-                        case 8:
-                            ctx->ax._uq = vmm_get<uint64>((uint32_t) ctx->ax._i);
-                            break;
-                        default:
-                            error("not supported");
-                            break;
+                    auto n = vmm_get(ctx->pc);
+                    if (n <= 8) {
+                        switch (n) {
+                            case 1:
+                                ctx->ax._i = vmm_get<byte>((uint32_t) ctx->ax._i);
+                                break;
+                            case 2:
+                            case 3:
+                            case 4:
+                                ctx->ax._i = vmm_get((uint32_t) ctx->ax._i);
+                                break;
+                            case 8:
+                                ctx->ax._uq = vmm_get<uint64>((uint32_t) ctx->ax._i);
+                                break;
+                            default:
+                                error("load: not supported");
+                                break;
+                        }
+                    } else if (n <= BIG_DATA_NUM) {
+                        auto addr = (uint32_t) ctx->ax._i;
+                        for (auto j = 0; j < n / 4; ++j) {
+                            *((int*) &ctx->ax.big_data[j * 4]) = vmm_get((addr) + j * 4);
+                        }
+                        if (n % 4 != 0) {
+                            *((int*) &ctx->ax.big_data[n & ~3]) = vmm_get((addr) + (n & ~3));
+                            memset(&ctx->ax.big_data[n], 0, (size_t) (4 - (n % 3)));
+                        }
+                    } else {
+                        error("load: not supported big data");
                     }
                     ctx->pc += INC_PTR;
                 } /* load integer to ctx->ax._i, address in ctx->ax._i */
                     break;
                 case SAVE: {
-                    switch (vmm_get(ctx->pc)) {
-                        case 1:
-                            vmm_set<byte>((uint32_t) vmm_popstack(ctx->sp), (byte) ctx->ax._i);
-                            break;
-                        case 2:
-                        case 3:
-                        case 4:
-                            vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax._i);
-                            break;
-                        case 8:
-                            vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax._uq);
-                            break;
-                        default:
-                            error("not supported");
-                            break;
+                    auto n = vmm_get(ctx->pc);
+                    if (n <= 8) {
+                        switch (n) {
+                            case 1:
+                                vmm_set<byte>((uint32_t) vmm_popstack(ctx->sp), (byte) ctx->ax._i);
+                                break;
+                            case 2:
+                            case 3:
+                            case 4:
+                                vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax._i);
+                                break;
+                            case 8:
+                                vmm_set((uint32_t) vmm_popstack(ctx->sp), ctx->ax._uq);
+                                break;
+                            default:
+                                error("save: not supported");
+                                break;
+                        }
+                    } else if (n <= BIG_DATA_NUM) {
+                        auto addr = (uint32_t) vmm_popstack(ctx->sp);
+                        for (auto j = 0; j < n / 4; ++j) {
+                            vmm_set(addr + j * 4, *((uint32_t*) &ctx->ax.big_data[j * 4]));
+                        }
+                        if (n % 4 != 0) {
+                            memset(&ctx->ax.big_data[n], 0, (size_t) (4 - (n % 3)));
+                            vmm_set(addr + (n & ~3), *((uint32_t*) &ctx->ax.big_data[n & ~3]));
+                        }
+                    } else {
+                        error("save: not supported big data");
                     }
                     ctx->pc += INC_PTR;
                 } /* save integer to address, value in ctx->ax._i, address on stack */
                     break;
                 case PUSH: {
-                    switch (vmm_get(ctx->pc)) {
-                        case 4:
-                            vmm_pushstack(ctx->sp, ctx->ax._i);
-                            break;
-                        case 8:
-                            vmm_pushstack(ctx->sp, ctx->ax._u._2);
-                            vmm_pushstack(ctx->sp, ctx->ax._u._1);
-                            break;
-                        default:
-                            error("invalid push");
-                            break;
+                    auto n = vmm_get(ctx->pc);
+                    if (n <= 8) {
+                        switch (n) {
+                            case 4:
+                                vmm_pushstack(ctx->sp, ctx->ax._i);
+                                break;
+                            case 8:
+                                vmm_pushstack(ctx->sp, ctx->ax._u._2);
+                                vmm_pushstack(ctx->sp, ctx->ax._u._1);
+                                break;
+                            default:
+                                error("push: not supported");
+                                break;
+                        }
+                    } else if (n <= BIG_DATA_NUM) {
+                        if (n % 4 != 0) {
+                            memset(&ctx->ax.big_data[n], 0, (size_t) (4 - (n % 3)));
+                            vmm_pushstack(ctx->sp, *((uint32_t*) &ctx->ax.big_data[n & ~3]));
+                        }
+                        for (auto j = n / 4 - 1; j >= 0; --j) {
+                            vmm_pushstack(ctx->sp, *((uint32_t*) &ctx->ax.big_data[j * 4]));
+                        }
+                    } else {
+                        error("push: not supported big data");
                     }
                     ctx->pc += INC_PTR;
                 } /* push the value of ctx->ax._i onto the stack */
                     break;
                 case POP: {
-                    switch (vmm_get(ctx->pc)) {
-                        case 4:
-                            ctx->ax._i = vmm_popstack(ctx->sp);
-                            break;
-                        case 8:
-                            ctx->ax._q = vmm_popstack<int64>(ctx->sp);
-                            break;
-                        default:
-                            error("invalid pop");
-                            break;
+                    auto n = vmm_get(ctx->pc);
+                    if (n <= 8) {
+                        switch (n) {
+                            case 4:
+                                ctx->ax._i = vmm_popstack(ctx->sp);
+                                break;
+                            case 8:
+                                ctx->ax._q = vmm_popstack<int64>(ctx->sp);
+                                break;
+                            default:
+                                error("pop: not supported");
+                                break;
+                        }
+                    } else if (n <= BIG_DATA_NUM) {
+                        for (auto j = 0; j < n / 4; ++j) {
+                            *((uint32_t*) &ctx->ax.big_data[j * 4]) = vmm_popstack<uint32_t>(ctx->sp);
+                        }
+                        if (n % 4 != 0) {
+                            *((uint32_t*) &ctx->ax.big_data[n & ~3]) = vmm_popstack<uint32_t>(ctx->sp);
+                            memset(&ctx->ax.big_data[n], 0, (size_t) (4 - (n % 3)));
+                        }
+                    } else {
+                        error("pop: not supported big data");
                     }
                     ctx->pc += INC_PTR;
                 } /* pop the value of ctx->ax._i from the stack */
@@ -961,7 +1014,7 @@ namespace clib {
                         case t_int:
                             ctx->ax._i = ~ctx->ax._i;
                             break;
-                            case t_uchar:
+                        case t_uchar:
                         case t_ushort:
                         case t_uint:
                             ctx->ax._ui = ~ctx->ax._ui;
@@ -1041,9 +1094,16 @@ namespace clib {
             if (ctx->debug) {
                 printf("\n---------------- STACK BEGIN <<<< \n");
                 printf("AX: %08X BX: %08X BP: %08X SP: %08X PC: %08X\n", ctx->ax._u._1, ctx->ax._u._2, ctx->bp, ctx->sp, ctx->pc);
-                for (uint32_t j = ctx->sp; j < STACK_BASE + PAGE_SIZE; j += 4) {
-                    printf("[%08X]> %08X\n", j, vmm_get<uint32_t>(j));
+                auto k = 0;
+                for (uint32_t j = ctx->sp; j < STACK_BASE + PAGE_SIZE; j += 4, ++k) {
+                    printf("[%08X]> %08X", j, vmm_get<uint32_t>(j));
+                    if (k % 4 == 3)
+                        printf("\n");
+                    else
+                        printf("  |  ");
                 }
+                if (k % 4 != 3)
+                    printf("\n");
                 printf("---------------- STACK END >>>>\n\n");
             }
 #endif
@@ -1885,11 +1945,15 @@ namespace clib {
                 break;
             case 53: {
                 ctx->ax._i = exec_file(vmm_getstr((uint32_t) ctx->ax._i));
-                tasks[ctx->ax._i].state = CTS_WAIT;
+                if (ctx->ax._i >= 0 && ctx->ax._i < TASK_NUM)
+                    tasks[ctx->ax._i].state = CTS_WAIT;
                 break;
             }
             case 54: {
-                tasks[ctx->ax._i].state = CTS_RUNNING;
+                if (ctx->ax._i >= 0 && ctx->ax._i < TASK_NUM) {
+                    if (ctx->child.find(ctx->ax._i) != ctx->child.end())
+                        tasks[ctx->ax._i].state = CTS_RUNNING;
+                }
                 break;
             }
             case 55: {
@@ -2017,7 +2081,7 @@ namespace clib {
             case 101: {
                 auto now = std::chrono::high_resolution_clock::now();
                 if (std::chrono::duration_cast<std::chrono::duration<decimal>>(
-                        now - ctx->record_now).count() <= ctx->waiting_ms) {
+                    now - ctx->record_now).count() <= ctx->waiting_ms) {
                     ctx->pc -= INC_PTR;
                     return true;
                 }
