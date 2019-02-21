@@ -71,6 +71,9 @@ namespace clib {
         void exec_cmd(const string_t &s);
 
         static void error(const string_t &);
+        void move(bool left);
+        void forward(int &x, int &y, bool forward);
+        string_t input_buffer() const;
 
     public:
         static cgui &singleton();
@@ -98,6 +101,8 @@ namespace clib {
         int ptr_y{0};
         int ptr_mx{0};
         int ptr_my{0};
+        int ptr_rx{0};
+        int ptr_ry{0};
         int rows{GUI_ROWS};
         int cols{GUI_COLS};
         int size{GUI_SIZE};
@@ -106,7 +111,6 @@ namespace clib {
         bool input_caret{false};
         bool cmd_state{false};
         std::vector<char> cmd_string;
-        std::vector<char> input_string;
         uint32_t color_bg;
         uint32_t color_fg;
         int cycles{0};
