@@ -255,10 +255,10 @@ namespace clib {
         if (c == 0)
             return;
         if (c == '\n') {
+            ptr_x = 0;
             if (ptr_y == rows - 1) {
                 new_line();
             } else {
-                ptr_x = 0;
                 ptr_y++;
             }
         } else if (c == '\b') {
@@ -297,10 +297,20 @@ namespace clib {
             std::fill(colors_bg, colors_bg + size, color_bg);
             std::fill(colors_fg, colors_fg + size, color_fg);
         } else {
-            draw_char(c);
-            if (ptr_x == cols - 1 && ptr_y == rows - 1)
+            auto end = ptr_rx == cols - 1 && ptr_ry == rows - 1;
+            auto nl = ptr_rx == ptr_x && ptr_rx == cols - 1;
+            if (end) {
                 new_line();
-            forward(ptr_x, ptr_y, true);
+                ptr_y--;
+                draw_char(c);
+                if (nl)
+                    ptr_x = 0;
+                else
+                    ptr_x++;
+            } else {
+                draw_char(c);
+                forward(ptr_x, ptr_y, true);
+            }
         }
     }
 
@@ -310,7 +320,13 @@ namespace clib {
     }
 
     void cgui::new_line() {
-        ptr_x = 0;
+        if (ptr_my != -1) {
+            if (ptr_my == 0) {
+                ptr_mx = ptr_my = 0;
+            } else {
+                ptr_my--;
+            }
+        }
         memcpy(buffer, buffer + cols, (uint) cols * (rows - 1));
         memset(&buffer[cols * (rows - 1)], 0, (uint) cols);
         memcpy(colors_bg, colors_bg + cols, (uint) cols * (rows - 1) * sizeof(uint32_t));
@@ -640,8 +656,10 @@ namespace clib {
         if (c == 3) {
             cvm::global_state.interrupt = true;
             if (input_state) {
+                ptr_x = ptr_rx;
+                ptr_y = ptr_ry;
                 put_char('\n');
-                cvm::global_state.input_content = input_buffer();
+                cvm::global_state.input_content.clear();
                 cvm::global_state.input_read_ptr = 0;
                 cvm::global_state.input_success = true;
                 input_state = false;
@@ -660,6 +678,8 @@ namespace clib {
             return;
         }
         if (c == '\r' || c == 4 || c == 26) {
+            ptr_x = ptr_rx;
+            ptr_y = ptr_ry;
             put_char('\n');
             cvm::global_state.input_content = input_buffer();
             cvm::global_state.input_read_ptr = 0;
