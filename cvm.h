@@ -188,6 +188,8 @@ namespace clib {
             CTS_DEAD,
         };
 
+        static const char *state_string(ctx_state_t);
+
         struct context_t {
             uint flag;
             int id;

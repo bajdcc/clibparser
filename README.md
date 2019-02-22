@@ -327,6 +327,7 @@ int main(int argc, char **argv) {
     - [x] pwd, whoami
     - [x] VFS: cd, mkdir, touch, cat, ls(-l), ll, rm, tree, write, append
     - [x] wc
+    - [x] ps(`cat /sys/pc`)
     - [x] badapple（黑白动画）
 - [ ] 虚拟文件系统
     - [x] 数据结构

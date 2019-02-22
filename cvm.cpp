@@ -71,6 +71,8 @@ namespace clib {
 
     void cvm::init_fs() {
         fs.as_root(true);
+        fs.mkdir("/sys");
+        fs.func("/sys/ps", this);
         fs.mkdir("/proc");
         fs.mkdir("/dev");
         fs.func("/dev/random", this);
@@ -1507,7 +1509,16 @@ namespace clib {
         return fss_none;
     }
 
+    string_t limit_string(const string_t &s, int len) {
+        if (s.length() <= len) {
+            return s;
+        } else {
+            return s.substr(0, len);
+        }
+    }
+
     string_t cvm::stream_callback(const string_t &path) {
+        static char sz[256];
         if (path.substr(0, 5) == "/proc") {
             static string_t pat{ R"(/proc/(\d+)/([a-z_]+))" };
             static std::regex re(pat);
@@ -1515,23 +1526,44 @@ namespace clib {
             if (std::regex_match(path, res, re)) {
                 auto id = std::stoi(res[1].str());
                 if (!(tasks[id].flag & CTX_VALID)) {
-                    return "[ERROR] Invalid pid";
+                    return "\033FFF0000F0\033[ERROR] Invalid pid\033S4\033";
                 }
                 const auto &op = res[2].str();
                 if (op == "exe") {
                     return tasks[id].path;
                 } else if (op == "parent") {
-                    char sz[16];
                     sprintf(sz, "%d", tasks[id].parent);
                     return sz;
                 } else if (op == "heap_size") {
-                    char sz[16];
                     sprintf(sz, "%d", tasks[id].pool->page_size());
                     return sz;
                 }
             }
+        } else if (path.substr(0, 4) == "/sys") {
+            static string_t pat{ R"(/sys/([a-z_]+))" };
+            static std::regex re(pat);
+            std::smatch res;
+            if (std::regex_match(path, res, re)) {
+                const auto &op = res[1].str();
+                if (op == "ps") {
+                    std::stringstream ss;
+                    ss << "\033FFFA0A0A0\033[STATE] \033S4\033[PID] [PPID]\033FFFB3B920\033 [COMMAND LINE] \033FFF51C2A8\033[PAGE]\033S4\033" << std::endl;
+                    for (auto i = 0; i < TASK_NUM; ++i) {
+                        if (tasks[i].flag & CTX_VALID) {
+                            sprintf(sz, "\033FFFA0A0A0\033%7s \033S4\033 %4d   %4d \033FFFB3B920\033%-14s \033FFF51C2A8\033  %4d\033S4\033",
+                                    state_string(tasks[i].state),
+                                    i,
+                                    tasks[i].parent,
+                                    limit_string(tasks[i].path, 14).c_str(),
+                                    ctx->allocation.size());
+                            ss << sz << std::endl;
+                        }
+                    }
+                    return ss.str();
+                }
+            }
         }
-        return "[ERROR] Undefined";
+        return "\033FFF0000F0\033[ERROR] File not exists.\033S4\033";
     }
 
     vfs_node_dec *cvm::stream_create(const vfs_mod_query *mod, vfs_stream_t type) {
@@ -1556,6 +1588,22 @@ namespace clib {
                 break;
         }
         error("invalid stream type");
+    }
+
+    const char *cvm::state_string(cvm::ctx_state_t type) {
+        assert(type >= CTS_RUNNING && type < CTS_DEAD);
+        switch (type) {
+            case CTS_RUNNING:
+                return "RUNNING";
+            case CTS_WAIT:
+                return "WAITING";
+            case CTS_ZOMBIE:
+                return "ZOMBIE";
+            case CTS_DEAD:
+                return "DEAD";
+            default:
+                return "[ERROR] Invalid state string";
+        }
     }
 
     int cvm::new_pid() {

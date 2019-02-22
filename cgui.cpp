@@ -804,8 +804,10 @@ namespace clib {
                 cfg = (uint32_t) std::stoul(s.substr(1), nullptr, 10);
                 switch (cfg) {
                     case 0: { // 换行
-                        if (ptr_x > 0)
+                        if (ptr_x > 0) {
                             new_line();
+                            ptr_x = 0;
+                        }
                     }
                         break;
                     case 1: // 保存背景色
