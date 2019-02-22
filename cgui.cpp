@@ -339,7 +339,7 @@ namespace clib {
     }
 
     void cgui::draw_char(const char &c) {
-        if (c) {
+        if (input_state && c) {
             forward(ptr_rx, ptr_ry, true);
             if (!(ptr_x == ptr_rx && ptr_y == ptr_ry)) {
                 for (auto i = ptr_ry * cols + ptr_rx; i > ptr_y * cols + ptr_x; --i) {

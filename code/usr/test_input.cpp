@@ -24,12 +24,12 @@ int main(int argc, char **argv) {
     put_string("Input: ");
     char *text = malloc(100);
     *text = 0;
-    input((char *) &text, 100);
+    input((char *) text, 100);
     put_string("Output: ");
-    put_string((char *) &text);
+    put_string((char *) text);
     put_string("\n");
     put_string("Length: ");
-    put_int(strlen((char *) &text));
+    put_int(strlen((char *) text));
     put_string("\n");
     waiting(1);
     return 0;
