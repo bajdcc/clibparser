@@ -300,13 +300,16 @@ namespace clib {
             auto end = ptr_rx == cols - 1 && ptr_ry == rows - 1;
             auto nl = ptr_rx == ptr_x && ptr_rx == cols - 1;
             if (end) {
-                new_line();
-                ptr_y--;
-                draw_char(c);
-                if (nl)
+                if (nl) {
+                    draw_char(c);
+                    new_line();
                     ptr_x = 0;
-                else
+                } else {
+                    new_line();
+                    ptr_y--;
+                    draw_char(c);
                     ptr_x++;
+                }
             } else {
                 draw_char(c);
                 forward(ptr_x, ptr_y, true);
