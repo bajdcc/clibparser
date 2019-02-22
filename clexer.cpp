@@ -122,7 +122,7 @@ LEX_T(t) clexer::get_store_##t(int index) const \
                 }
                 return type;
             } else {*/
-                type = next_digit();
+            type = next_digit();
             //}
         } else if (isspace(c)) { // 空白字符
             type = next_space();
@@ -299,7 +299,10 @@ LEX_T(t) clexer::get_store_##t(int index) const \
             if (++i == length) {
                 return unsigned_type(t);
             }
-            if ((t = unsigned_type(digit_type_postfix(str[i]))) == l_error) {
+            auto t2 = digit_type_postfix(str[i]);
+            if (t2 == l_error)
+                return unsigned_type(t);
+            if ((t = unsigned_type(t2)) == l_error) {
                 return l_error;
             }
             ++i;

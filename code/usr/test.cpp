@@ -1,9 +1,9 @@
 #include "/include/shell"
+#include "/include/xtoa_atoi"
 int main(int argc, char **argv) {
     int i = 1;
     if (argc > 1) {
-        if (argv[1][0] >= '1' && argv[1][0] <= '9')
-            i = argv[1][0] - '0';
+        i = atoi32(argv[1]);
     }
     switch (i) {
         case 1: shell("/usr/test_rec");

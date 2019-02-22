@@ -82,7 +82,7 @@ void u32toa(unsigned int value, char* buffer) {
 
 void i32toa(int value, char* buffer) {
     unsigned int u = (unsigned int) value;
-    if (value < 0U) {
+    if (value < 0) {
         *buffer++ = '-';
         u = ~u + 1U;
     }

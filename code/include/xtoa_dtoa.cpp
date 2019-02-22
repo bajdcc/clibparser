@@ -148,7 +148,7 @@ unsigned xtoa_CountDecimalDigit32(unsigned n) {
     return 10U;
 }
 
-unsigned xtoa_kPow10[0] = { 1U, 10U, 100U, 1000U, 10000U, 100000U, 1000000U, 10000000U, 100000000u, 1000000000U };
+unsigned xtoa_kPow10[0] = { 1U, 10U, 100U, 1000U, 10000U, 100000U, 1000000U, 10000000U, 100000000U, 1000000000U };
 void xtoa_DigitGen(xtoa_DiyFp W, xtoa_DiyFp Mp, unsigned long delta, char* buffer, int* len, int* K) {
     xtoa_DiyFp one;
     one.f = 1UL << (unsigned long)(-Mp.e);

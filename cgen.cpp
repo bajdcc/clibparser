@@ -449,19 +449,19 @@ namespace clib {
          * [38] 8B-4B double转float
          */
         static int _cast[][12] = { // 转换矩阵
-                /* [SRC] [DST]  C   UC  S   US  I   UI  L   UL  F   D   P   T */
-                /* char    */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
-                /* uchar   */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-                /* short   */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
-                /* ushort  */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-                /* int     */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
-                /* uint    */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-                /* long    */ { 11, 5,  11, 5,  11, 5,  0,  7,  23, 33, 5,  -1},
-                /* ulong   */ { 6,  12, 6,  12, 6,  12, 8,  0,  22, 32, 12, -1},
-                /* float   */ { 25, 24, 25, 24, 25, 24, 27, 26, 0,  28, -1, -1},
-                /* double  */ { 35, 34, 35, 34, 35, 34, 37, 36, 38, 0,  -1, -1},
-                /* ptr     */ { 2,  0,  2,  0,  2,  0,  4,  10, -1, -1, 0,  -1},
-                /* struct  */ { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0},
+            /* [SRC] [DST]  C   UC  S   US  I   UI  L   UL  F   D   P   T */
+            /* char    */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+            /* uchar   */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+            /* short   */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+            /* ushort  */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+            /* int     */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+            /* uint    */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+            /* long    */ { 11, 5,  11, 5,  11, 5,  0,  7,  23, 33, 5,  -1},
+            /* ulong   */ { 6,  12, 6,  12, 6,  12, 8,  0,  22, 32, 12, -1},
+            /* float   */ { 25, 24, 25, 24, 25, 24, 27, 26, 0,  28, -1, -1},
+            /* double  */ { 35, 34, 35, 34, 35, 34, 37, 36, 38, 0,  -1, -1},
+            /* ptr     */ { 2,  0,  2,  0,  2,  0,  4,  10, -1, -1, 0,  -1},
+            /* struct  */ { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0},
         };
         return _cast[src][dst];
     }
@@ -2016,7 +2016,7 @@ namespace clib {
                 }
                 if (AST_IS_KEYWORD_N(asts[0], k_unsigned)) { // unsigned ...
                     if (asts.size() == 1 || (asts.size() > 1 && !AST_IS_KEYWORD(asts[1]))) {
-                        base_type = std::make_shared<type_base_t>(l_int);
+                        base_type = std::make_shared<type_base_t>(l_uint);
                         base_type->line = asts[0]->line;
                         base_type->column = asts[0]->column;
                         asts.erase(asts.begin());
@@ -2047,6 +2047,8 @@ namespace clib {
                         asts.erase(asts.begin());
                     }
                 } else {
+                    if (AST_IS_KEYWORD_N(asts[0], k_signed))
+                        asts.erase(asts.begin());
                     auto type = l_none;
                     switch (asts[0]->data._keyword) {
                         case k_char:
@@ -2782,7 +2784,8 @@ namespace clib {
                             if (exp->get_type() != s_var)
                                 error(exp, "allocate: array item exp not equal");
                             if (exp->get_cast() != c)
-                                error(exp, "allocate: array item type not equal");
+                                error(exp, "allocate: array item type not equal, required: " +
+                                           id->base->to_string() + ", but got: " + exp->base->to_string());
                             auto var = std::dynamic_pointer_cast<sym_var_t>(exp);
                             auto &node = var->node;
                             if (node->flag != ast_string) {
@@ -2837,7 +2840,8 @@ namespace clib {
                         emit(PUSH, cast_size(t_ptr));
                         exp->gen_rvalue(*this);
                         if (exp->get_cast() != c)
-                            error(init, "allocate: array item type not equal");
+                            error(init, "allocate: array item type not equal, required: " +
+                                        id->base->to_string() + ", but got: " + exp->base->to_string());
                         auto s = align4(exp->base->size(x_size));
                         emit(SAVE, s);
                         emit(IMM, s);
@@ -2890,7 +2894,8 @@ namespace clib {
         new_id->clazz = clazz;
         new_id->init = init;
         if (init && init->base && type->get_cast() != init->get_cast()) {
-            error(node, "id: not equal init type, ", true);
+            error(node, "id: not equal init type, required: " + type->to_string() +
+                        ", but got: " + init->base->to_string() + ", ", true);
         }
         allocate(new_id, init, delta);
 #if LOG_TYPE
