@@ -11,7 +11,7 @@ int put_char(char c) {
     interrupt 0;
 }
 int put_string(char *text) {
-    while (put_char(*text++));
+    while (*text) put_char(*text++);
 }
 int put_int(int number) {
     number;
