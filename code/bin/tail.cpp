@@ -37,9 +37,9 @@ void push(node **head, node **last, string s, int not_remove) {
             *last = new_node;
     } else {
         node *tmp = *last;
-        destroy(tmp);
         *last = (*last)->prev;
         (*last)->next = 0;
+        destroy(tmp);
     }
     *head = new_node;
 }
@@ -83,7 +83,6 @@ void tail(int n) {
             append_char(&s, c);
         }
     }
-    push(&list, &last, s, i < n);
     input_unlock();
     print(last);
 }
