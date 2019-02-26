@@ -327,6 +327,7 @@ int main(int argc, char **argv) {
     - [x] pwd, whoami
     - [x] VFS: cd, mkdir, touch, cat, ls(-l), ll, rm, tree, write, append
     - [x] wc
+    - [x] head
     - [x] ps(`cat /sys/pc`)
     - [x] badapple（黑白动画）
 - [ ] 虚拟文件系统
@@ -368,13 +369,15 @@ int main(int argc, char **argv) {
 - [x] LR分析阶段提供语义分析接口
 - [x] 美化表达式树（减少深度）
 - [x] 解决了字符串转义的问题
-- [ ] 指针解引用的问题
+- [x] 指针解引用的问题
 - [x] 用户键盘输入交互功能
 - [x] 解决命令行参数的读取问题
 - [x] 解决显示缓存因异常时出错的问题
 - [x] 进程退出时管道未及时处理的问题
 - [x] 解决词法分析时数字识别问题
 - [x] 输入缓冲区上移时的对齐问题
+- [ ] 回溯式LR分析时遇到错误耗时很长的问题
+- [ ] malloc和free的问题
 
 ## 参考
 

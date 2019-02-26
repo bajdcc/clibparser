@@ -1104,7 +1104,7 @@ namespace clib {
                     else
                         printf("  |  ");
                 }
-                if (k % 4 != 3)
+                if (k % 4 != 0)
                     printf("\n");
                 printf("---------------- STACK END >>>>\n\n");
             }

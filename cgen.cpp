@@ -989,7 +989,7 @@ namespace clib {
                     }
                 }
                 if (!field)
-                    gen.error("[binop] invalid struct field");
+                    gen.error("[binop] invalid struct field: " + to_string());
                 gen.emit(PUSH, cast_size(t_ptr));
                 field->gen_lvalue(gen);
                 base = field->base;
@@ -1018,7 +1018,7 @@ namespace clib {
                     }
                 }
                 if (!field)
-                    gen.error("[binop] invalid struct field");
+                    gen.error("[binop] invalid struct field: " + to_string());
                 gen.emit(PUSH, cast_size(t_ptr));
                 field->gen_lvalue(gen);
                 base = field->base;
@@ -1029,6 +1029,7 @@ namespace clib {
                 gen.error("[binop] not supported lvalue: " + to_string());
                 return g_error;
         }
+        return g_ok;
     }
 
     gen_t sym_binop_t::gen_rvalue(igen &gen) {
