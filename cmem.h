@@ -37,14 +37,16 @@ namespace clib {
         uint32_t new_page_single();
         uint32_t new_page_all(uint32_t size);
 
-        void error(const string_t &);
+        void error(const string_t &) const;
+        void dump() const;
+        void check() const;
 
     private:
         std::vector<std::vector<byte>> memory;
         std::vector<uint32_t> memory_page;
         std::map<uint32_t, uint32_t> memory_free;
         std::map<uint32_t, uint32_t> memory_used;
-        int available_size{0};
+        size_t available_size{0};
         imem *m{nullptr};
     };
 }

@@ -75,7 +75,7 @@ namespace clib {
     }
 
     vfs_node_cached::vfs_node_cached(const vfs_mod_query *mod, const string_t &str) :
-            vfs_node_dec(mod), cache(str) {}
+        vfs_node_dec(mod), cache(str) {}
 
     bool vfs_node_cached::available() const {
         return idx < cache.length();
@@ -174,8 +174,8 @@ namespace clib {
                 "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
         };*/
         static const char mon_name[][4] = {
-                "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
         };
         static char result[32];
         if (year == timeptr->tm_year) {
@@ -185,7 +185,7 @@ namespace clib {
                     timeptr->tm_min);
         } else {
             sprintf(result, "%.3s%3d %5d",
-                    //wday_name[timeptr->tm_wday],
+                //wday_name[timeptr->tm_wday],
                     mon_name[timeptr->tm_mon],
                     timeptr->tm_mday,
                     1900 + timeptr->tm_year);
@@ -391,7 +391,7 @@ namespace clib {
         std::vector<string_t> paths;
         split_path(path, paths, '/');
         auto cur = root;
-        for (auto i = 0; i < paths.size(); ++i) {
+        for (size_t i = 0; i < paths.size(); ++i) {
             if (!can_mod(cur, 0))
                 return nullptr;
             auto &p = paths[i];

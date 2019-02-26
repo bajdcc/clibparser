@@ -400,13 +400,13 @@ namespace clib {
             rules_list[rule.second.id] = &rule.second;
             ids.insert(std::make_pair(rule.second.u, rule.second.id));
         }
-        for (auto i = 0; i < size; ++i) {
+        for (size_t i = 0; i < size; ++i) {
             dep[i].resize(size);
             for (auto &r : rules_list[i]->rulesFirstset) {
                 dep[i][ids[r]] = true;
             }
         }
-        for (auto i = 0; i < size; ++i) {
+        for (size_t i = 0; i < size; ++i) {
             if (dep[i][i]) {
                 rules_list[i]->recursive = 1;
                 dep[i][i] = false;
@@ -415,19 +415,19 @@ namespace clib {
         {
             // INDIRECT LEFT RECURSION DETECTION
             std::vector<std::vector<bool>> a(dep), b(dep), r(size);
-            for (auto i = 0; i < size; ++i) {
+            for (size_t i = 0; i < size; ++i) {
                 r[i].resize(size);
             }
-            for (auto l = 2; l < size; ++l) {
-                for (auto i = 0; i < size; ++i) {
-                    for (auto j = 0; j < size; ++j) {
+            for (size_t l = 2; l < size; ++l) {
+                for (size_t i = 0; i < size; ++i) {
+                    for (size_t j = 0; j < size; ++j) {
                         r[i][j] = false;
-                        for (auto k = 0; k < size; ++k) {
+                        for (size_t k = 0; k < size; ++k) {
                             r[i][j] = r[i][j] || (a[i][k] && b[k][j]);
                         }
                     }
                 }
-                for (auto i = 0; i < size; ++i) {
+                for (size_t i = 0; i < size; ++i) {
                     if (r[i][i]) {
                         if (rules_list[i]->recursive < 2)
                             rules_list[i]->recursive = l;
@@ -435,7 +435,7 @@ namespace clib {
                 }
                 a = r;
             }
-            for (auto i = 0; i < size; ++i) {
+            for (size_t i = 0; i < size; ++i) {
                 if (rules_list[i]->recursive > 1) {
                     error("indirect left recursion: " + print_unit(rules_list[i]->u));
                 }
@@ -444,12 +444,12 @@ namespace clib {
         {
             // CALCULATE FIRST SET
             std::vector<bool> visited(size);
-            for (auto i = 0; i < size; ++i) {
+            for (size_t i = 0; i < size; ++i) {
                 auto indep = -1;
-                for (auto j = 0; j < size; ++j) {
+                for (size_t j = 0; j < size; ++j) {
                     if (!visited[j]) {
                         auto flag = true;
-                        for (auto k = 0; k < size; ++k) {
+                        for (size_t k = 0; k < size; ++k) {
                             if (dep[j][k]) {
                                 flag = false;
                                 break;
@@ -478,11 +478,11 @@ namespace clib {
                     }
                 }
                 visited[indep] = true;
-                for (auto j = 0; j < size; ++j) {
+                for (size_t j = 0; j < size; ++j) {
                     dep[j][indep] = false;
                 }
             }
-            for (auto i = 0; i < size; ++i) {
+            for (size_t i = 0; i < size; ++i) {
                 if (rules_list[i]->tokensFirstset.empty()) {
                     error("empty first set: " + print_unit(rules_list[i]->u));
                 }
@@ -952,7 +952,7 @@ namespace clib {
             }
         }
         // GENERATE PDA STATUS
-        for (auto i = 0; i < status_list.size(); ++i) {
+        for (size_t i = 0; i < status_list.size(); ++i) {
             auto &s = status_list[i];
             auto &nga_status = s.nga;
             auto &pda_status = s.pda;
@@ -1058,7 +1058,7 @@ namespace clib {
             for (auto &c : closure) {
                 pids.insert(std::make_pair((pda_status *) c, pids.size()));
             }
-            for (int i = 0; i < closure.size(); ++i) {
+            for (size_t i = 0; i < closure.size(); ++i) {
                 auto c = (pda_status *) closure[i];
                 pda_rule pda{};
                 pda.id = i;
@@ -1068,7 +1068,7 @@ namespace clib {
                 pda.label = c->label;
                 pdas.push_back(pda);
             }
-            for (int i = 0; i < closure.size(); ++i) {
+            for (size_t i = 0; i < closure.size(); ++i) {
                 auto &p = pdas[i];
                 auto outs = get_filter_out_edges(closure[i], [](auto it) { return true; });
                 for (auto &o : outs) {
@@ -1099,7 +1099,7 @@ namespace clib {
             return;
         auto nga_status_list = get_closure(node, [](auto it){ return true; });
         std::unordered_map<nga_status *, size_t> status_map;
-        for (int i = 0; i < nga_status_list.size(); ++i) {
+        for (size_t i = 0; i < nga_status_list.size(); ++i) {
             status_map.insert(std::make_pair(nga_status_list[i], i));
         }
         for (auto status : nga_status_list) {
@@ -1189,7 +1189,7 @@ namespace clib {
                     os << "    -->     Reduce: " << trans.label << std::endl;
                 }
                 if (!trans.LA.empty()) {
-                    for (auto i = 0; i < trans.LA.size(); ++i) {
+                    for (size_t i = 0; i < trans.LA.size(); ++i) {
                         if (i % 5 == 0) {
                             os << "    -->     LA: ";
                         }

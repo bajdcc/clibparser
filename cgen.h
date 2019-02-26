@@ -64,7 +64,7 @@ namespace clib {
         virtual void emit(ins_t, int, int) = 0;
         virtual void emit(keyword_t) = 0;
         virtual int current() const = 0;
-        virtual int edit(int, int) = 0;
+        virtual void edit(int, int) = 0;
         virtual int load_string(const string_t &) = 0;
         virtual void error(const string_t &) const = 0;
     };
@@ -365,7 +365,7 @@ namespace clib {
         void emit(ins_t, int, int) override;
         void emit(keyword_t) override;
         int current() const override;
-        int edit(int, int) override;
+        void edit(int, int) override;
         int load_string(const string_t &) override;
         void error(const string_t &) const override;
     private:

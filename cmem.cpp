@@ -8,6 +8,8 @@
 #include "cvm.h"
 #include "cexception.h"
 
+#define LOG_MEM 0
+
 namespace clib {
 
     cmem::cmem(imem *m) : m(m) { }
@@ -17,6 +19,9 @@ namespace clib {
     }
 
     uint32_t cmem::alloc(uint32_t size) {
+#if LOG_MEM
+        printf("[SYSTEM] MEM  | # ALLOC: %08X\n", size);
+#endif
         size = size_align(size);
         if (available_size < size) {
             return new_page_all(size);
@@ -29,7 +34,11 @@ namespace clib {
                 memory_free.erase(free_addr);
                 memory_used.insert(std::make_pair(free_addr, size));
                 if (size < free_size)
-                    memory_free.insert(std::make_pair(free_addr + size, size - free_size));
+                    memory_free.insert(std::make_pair(free_addr + size, free_size - size));
+#if LOG_MEM
+                printf("[SYSTEM] MEM  | # ALLOC ==> %08X\n", free_addr);
+                dump();
+#endif
                 return free_addr;
             }
         }
@@ -37,8 +46,12 @@ namespace clib {
     }
 
     uint32_t cmem::free(uint32_t addr) {
+#if LOG_MEM
+        printf("[SYSTEM] MEM  | # FREE: %08X\n", addr);
+#endif
         auto f = memory_used.find(addr);
         if (f == memory_used.end()) {
+            error("double free");
             return 0;
         }
         auto used_addr = f->first;
@@ -69,12 +82,15 @@ namespace clib {
                     prev_flag = false;
                 }
             } else {
-                auto f1 = memory_free.upper_bound(prev_addr);
-                if (f1 == memory_free.end()) {
-                    prev_flag = false;
-                } else {
-                    prev_addr = f1->first;
-                    prev_size = f1->second;
+                prev_flag = false;
+                for (auto &r : memory_free) {
+                    if (prev_addr + prev_size == used_addr) {
+                        prev_flag = true;
+                        prev_addr = r.first;
+                        prev_size = r.second;
+                    } else if (prev_addr + prev_size > used_addr) {
+                        break;
+                    }
                 }
             }
         }
@@ -119,6 +135,9 @@ namespace clib {
                 memory_free.insert(std::make_pair(used_addr, used_size));
             }
         }
+#if LOG_MEM
+        dump();
+#endif
         return used_size;
     }
 
@@ -156,8 +175,14 @@ namespace clib {
         available_size -= size;
         memory_used.insert(std::make_pair(page, size));
         if (OFFSET_INDEX(size)) {
-            memory_free.insert(std::make_pair(page + size, page + PAGE_SIZE - OFFSET_INDEX(size)));
+            memory_free.insert(
+                std::make_pair(page + size,
+                               (memory.size() * PAGE_SIZE - page) - OFFSET_INDEX(size)));
         }
+#if LOG_MEM
+        printf("[SYSTEM] MEM  | # ALLOC ==> %08X\n", page);
+        dump();
+#endif
         return page;
     }
 
@@ -173,7 +198,52 @@ namespace clib {
         memory_used = mem.memory_used;
     }
 
-    void cmem::error(const string_t &str) {
+    void cmem::error(const string_t &str) const {
         throw cexception(ex_mem, str);
+    }
+
+    void cmem::dump() const {
+        printf("[SYSTEM] MEM  | >>> LOG\n");
+        printf("[SYSTEM] MEM  | PAGE: %d, FREE: %d\n", memory_page.size(), available_size);
+        for (auto &f : memory_free) {
+            printf("[SYSTEM] MEM  | FREE: %08X, SIZE: %08X\n", f.first, f.second);
+        }
+        for (auto &f : memory_used) {
+            printf("[SYSTEM] MEM  | USED: %08X, SIZE: %08X\n", f.first, f.second);
+        }
+        printf("[SYSTEM] MEM  | <<< LOG\n");
+        check();
+    }
+
+    void cmem::check() const {
+        auto all = memory_page.size() * PAGE_SIZE;
+        auto used = all - available_size;
+        auto u = 0U, f = 0U;
+        for (auto &a : memory_used) {
+            u += a.second;
+        }
+        for (auto &a : memory_free) {
+            f += a.second;
+        }
+        if (used != u) {
+            error("mem check failed: used");
+        }
+        if (available_size != f) {
+            error("mem check failed: free");
+        }
+        for (auto i = 0U; i < all;) {
+            auto f1 = memory_used.find(i);
+            if (f1 != memory_used.end()) {
+                i += f1->second;
+                continue;
+            }
+            auto f2 = memory_free.find(i);
+            if (f2 != memory_free.end()) {
+                i += f2->second;
+                continue;
+            }
+            printf("[SYSTEM] MEM  | Invalid addr: %08X\n", i);
+            error("mem check failed: addr");
+        }
     }
 }

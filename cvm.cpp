@@ -1168,7 +1168,7 @@ namespace clib {
                 vmm_map(ctx->data + PAGE_SIZE * i, new_page, PTE_U | PTE_P | PTE_R); // 用户数据空间
                 if (vmm_ismap(ctx->data + PAGE_SIZE * i, &pa)) {
                     auto s = start + size > data_size ? ((sint) data_size & (size - 1)) : size;
-                    for (uint32_t j = 0; j < s; ++j) {
+                    for (auto j = 0; j < s; ++j) {
                         *((char *) pa + j) = data_start[start + j];
 #if 0
                         printf("[%p]> [%08X] %d\n", (void*)((char*)pa + j), ctx->data + PAGE_SIZE * i + j, vmm_get<byte>(ctx->data + PAGE_SIZE * i + j));
@@ -1203,7 +1203,7 @@ namespace clib {
             auto argvs = vmm_malloc(_argc * INC_PTR);
             vmm_pushstack(ctx->sp, _argc);
             vmm_pushstack(ctx->sp, argvs);
-            for (auto i = 0; i < _argc; i++) {
+            for (size_t i = 0; i < _argc; i++) {
                 auto str = vmm_malloc(args[i].length() + 1);
                 vmm_setstr(str, args[i]);
                 vmm_set(argvs + INC_PTR * i, str);
@@ -1509,7 +1509,7 @@ namespace clib {
         return fss_none;
     }
 
-    string_t limit_string(const string_t &s, int len) {
+    string_t limit_string(const string_t &s, uint len) {
         if (s.length() <= len) {
             return s;
         } else {
@@ -1588,6 +1588,7 @@ namespace clib {
                 break;
         }
         error("invalid stream type");
+        return -1;
     }
 
     const char *cvm::state_string(cvm::ctx_state_t type) {
@@ -1639,6 +1640,7 @@ namespace clib {
             }
         }
         error("max process num!");
+        return -1;
     }
 
     int cvm::new_handle(cvm::handle_type type) {
@@ -1656,6 +1658,7 @@ namespace clib {
             }
         }
         error("max handle num!");
+        return -1;
     }
 
     void cvm::destroy_handle(int handle) {
@@ -1898,7 +1901,7 @@ namespace clib {
                     }
                 } else if (global_state.input_lock == ctx->id) {
                     if (global_state.input_success) {
-                        if (global_state.input_read_ptr >= global_state.input_content.length()) {
+                        if (global_state.input_read_ptr >= (int) global_state.input_content.length()) {
                             ctx->ax._i = -1;
                             ctx->pc += INC_PTR;
                             // INPUT COMPLETE

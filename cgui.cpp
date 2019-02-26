@@ -81,6 +81,7 @@ namespace clib {
             return string_t(data.begin(), data.end());
         }
         error("file not exists: " + name);
+        return "";
     }
 
     void cgui::draw(bool paused, decimal fps) {
@@ -510,11 +511,10 @@ namespace clib {
                 _deps.insert(include_path);
             }
             std::stringstream sc;
-            auto prev = 0;
+            size_t prev = 0;
             for (auto &r : records) {
                 auto &start = std::get<0>(r);
                 auto &length= std::get<1>(r);
-                auto &include_path = std::get<2>(r);
                 if (prev < start - prev) {
                     auto frag = code.substr((uint) prev, (uint) start - prev);
                     sc << frag;

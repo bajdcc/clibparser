@@ -483,14 +483,14 @@ namespace clib {
                     } else {
                         trans_ids.clear();
                         if (is_end) {
-                            for (auto i = 0; i < trans.size(); ++i) {
+                            for (size_t i = 0; i < trans.size(); ++i) {
                                 auto &cs = trans[i];
                                 if (valid_trans(cs) && (cs.type != e_move && cs.type != e_pass)) {
                                     trans_ids.push_back(i | pda_edge_priority(cs.type) << 16);
                                 }
                             }
                         } else {
-                            for (auto i = 0; i < trans.size(); ++i) {
+                            for (size_t i = 0; i < trans.size(); ++i) {
                                 auto &cs = trans[i];
                                 if (valid_trans(cs)) {
                                     trans_ids.push_back(i | pda_edge_priority(cs.type) << 16);

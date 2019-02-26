@@ -80,7 +80,7 @@ namespace clib {
         virtual ~vfs_node_dec() = default;
     protected:
         explicit vfs_node_dec(const vfs_mod_query *);
-        int idx{0};
+        uint idx{0};
         const vfs_mod_query *mod{nullptr};
     };
 

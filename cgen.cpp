@@ -475,7 +475,7 @@ namespace clib {
                       ", but got: " + args->to_string());
         }
         auto total_size = 0;
-        for (auto i = 0; i < exps.size(); ++i) {
+        for (size_t i = 0; i < exps.size(); ++i) {
             exps[i]->gen_rvalue(gen);
             auto exp_type = exps[i]->base->get_cast();
             auto param_type = params[i]->base->get_cast();
@@ -495,6 +495,7 @@ namespace clib {
         if (!exps.empty()) {
             gen.emit(ADJ, total_size / 4);
         }
+        return g_ok;
     }
 
     cast_t sym_func_t::get_cast() const {
@@ -640,6 +641,7 @@ namespace clib {
         if (!exps.empty()) {
             gen.emit(ADJ, total_size / 4);
         }
+        return g_ok;
     }
 
     cast_t sym_var_id_t::get_cast() const {
@@ -757,6 +759,7 @@ namespace clib {
                 gen.error("[unop] not supported lvalue: " + to_string());
                 return g_error;
         }
+        return g_ok;
     }
 
     gen_t sym_unop_t::gen_rvalue(igen &gen) {
@@ -825,6 +828,7 @@ namespace clib {
                 gen.error("[unop] not supported rvalue: " + to_string());
                 return g_error;
         }
+        return g_ok;
     }
 
     sym_sinop_t::sym_sinop_t(const type_exp_t::ref &exp, ast_node *op)
@@ -1345,6 +1349,7 @@ namespace clib {
 
     gen_t sym_ctrl_t::gen_lvalue(igen &gen) {
         gen.error("[ctrl] not supported lvalue: " + to_string());
+        return g_error;
     }
 
     gen_t sym_ctrl_t::gen_rvalue(igen &gen) {
@@ -1497,8 +1502,8 @@ namespace clib {
         return text.size();
     }
 
-    int cgen::edit(int addr, int value) {
-        if (addr >= 0 && addr < text.size()) {
+    void cgen::edit(int addr, int value) {
+        if (addr >= 0 && addr < (int) text.size()) {
             text[addr] = value;
         }
     }
@@ -1805,7 +1810,7 @@ namespace clib {
                 if (AST_IS_COLL_N(nodes[0], c_primaryExpression)) {
                     auto tmp_i = 0;
                     auto exp = to_exp(tmp.back()[tmp_i++]);
-                    for (int i = 1; i < nodes.size(); ++i) {
+                    for (size_t i = 1; i < nodes.size(); ++i) {
                         auto &a = nodes[i];
                         if (AST_IS_OP(a)) {
                             if (AST_IS_OP_K(a, op_plus_plus) || AST_IS_OP_K(a, op_minus_minus)) {
@@ -1916,10 +1921,10 @@ namespace clib {
             case c_logicalAndExpression:
             case c_logicalOrExpression:
             case c_conditionalExpression: {
-                auto tmp_i = 0;
+                size_t tmp_i = 0;
                 auto exp1 = to_exp(tmp.back()[tmp_i++]);
                 auto exp2 = to_exp(tmp.back()[tmp_i++]);
-                for (auto i = 0; i < asts.size(); ++i) {
+                for (size_t i = 0; i < asts.size(); ++i) {
                     auto &a = asts[i];
                     if (AST_IS_OP(a)) {
                         if (node->data._coll == c_conditionalExpression &&
@@ -1993,7 +1998,7 @@ namespace clib {
                     auto init_type = std::make_shared<type_base_t>(l_int, 0);
                     type_exp_t::ref init = std::make_shared<sym_var_t>(init_type, &zero);
                     auto delta = -1;
-                    for (int i = ast_i; i < asts.size(); ++i) {
+                    for (size_t i = ast_i; i < asts.size(); ++i) {
                         auto &a = asts[i];
                         if (AST_IS_ID(a)) {
                             if (a->parent != a->parent->next) {
@@ -2247,7 +2252,7 @@ namespace clib {
                     symbols[0].insert(std::make_pair(nodes[0]->data._string, func));
                     std::unordered_set<string_t> ids;
                     auto ptr = 0;
-                    for (auto i = 2, j = 0; i < asts.size() && j < tmp.size(); ++i) {
+                    for (size_t i = 2, j = 0; i < asts.size() && j < tmp.size(); ++i) {
                         auto &pa = asts[i];
                         if (AST_IS_ID(pa)) {
                             const auto &pt = std::dynamic_pointer_cast<type_t>(tmp.back()[j]);
@@ -2605,7 +2610,7 @@ namespace clib {
             text[L2 - 1] = text.size(); // jump cases
             auto _default = -1;
             auto &_cases = cases.back();
-            for (auto i = 0; i < _cases.size(); ++i) {
+            for (size_t i = 0; i < _cases.size(); ++i) {
                 auto &_c = _cases[i];
                 if (_c._case) {
                     _c._case->gen_rvalue(*this);
@@ -2739,8 +2744,8 @@ namespace clib {
                     if (id->base->matrix.empty())
                         error(id, "allocate: need array type");
                     if (id->base->matrix[0] == 0)
-                        id->base->matrix[0] = list->exps.size();
-                    if (id->base->matrix[0] != list->exps.size())
+                        id->base->matrix[0] = (int) list->exps.size();
+                    if (id->base->matrix[0] != (int) list->exps.size())
                         error(id, "allocate: array size not equal");
                     auto old_ptr = id->base->ptr;
                     id->base->ptr = 0;
@@ -2820,8 +2825,8 @@ namespace clib {
                     if (id->base->matrix.empty())
                         error(id, "allocate: need array type");
                     if (id->base->matrix[0] == 0)
-                        id->base->matrix[0] = list->exps.size();
-                    if (id->base->matrix[0] != list->exps.size())
+                        id->base->matrix[0] = (int) list->exps.size();
+                    if (id->base->matrix[0] != (int) list->exps.size())
                         error(id, "allocate: array size not equal");
                     auto old_ptr = id->base->ptr;
                     id->base->ptr = 0;

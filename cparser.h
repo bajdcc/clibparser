@@ -26,8 +26,8 @@ namespace clib {
         std::vector<int> state_stack;
         std::vector<ast_node *> ast_stack;
         int current_state;
-        int coll_index;
-        int reduce_index;
+        uint coll_index;
+        uint reduce_index;
         std::vector<int> trans_ids;
         std::unordered_set<int> ast_ids;
         backtrace_direction direction;
@@ -76,7 +76,7 @@ namespace clib {
         std::vector<int> state_stack;
         std::vector<ast_node *> ast_stack;
         std::vector<ast_node *> ast_cache;
-        int ast_cache_index{0};
+        uint ast_cache_index{0};
         std::vector<ast_node *> ast_coll_cache;
         std::vector<ast_node *> ast_reduce_cache;
 

@@ -535,7 +535,7 @@ LEX_T(t) clexer::get_store_##t(int index) const \
     }
 
     lexer_t clexer::next_alpha() {
-        sint i;
+        uint i;
         for (i = index + 1; i < length && (isalnum(str[i]) || str[i] == '_'); i++);
         auto s = str.substr(index, i - index);
         auto kw = mapKeyword.find(s);
@@ -777,7 +777,7 @@ LEX_T(t) clexer::get_store_##t(int index) const \
     }
 
     lexer_t clexer::next_comment() {
-        sint i = index;
+        uint i = index;
         if (str[++i] == '/') { // '//'
             // 寻找第一个换行符
             for (++i; i < length && (str[i] != '\n' && str[i] != '\r'); i++);

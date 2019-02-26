@@ -11,8 +11,8 @@ struct string {
 };
 string new_string() {
     string s;
-    s.text = malloc(4096);
-    s.capacity = 4096;
+    s.text = malloc(16);
+    s.capacity = 16;
     s.length = 0;
     return s;
 }
