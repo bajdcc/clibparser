@@ -328,6 +328,7 @@ int main(int argc, char **argv) {
     - [x] VFS: cd, mkdir, touch, cat, ls(-l), ll, rm, tree, write, append
     - [x] wc
     - [x] head, tail
+    - [x] grep(only KMP)
     - [x] ps(`cat /sys/pc`)
     - [x] badapple（黑白动画）
 - [ ] 虚拟文件系统
