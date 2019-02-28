@@ -327,6 +327,7 @@ int main(int argc, char **argv) {
     - [x] pwd, whoami
     - [x] VFS: cd, mkdir, touch, cat, ls(-l), ll, rm, tree, write, append
     - [x] wc
+    - [x] range
     - [x] head, tail
     - [x] grep(only KMP)
     - [x] ps(`cat /sys/pc`)

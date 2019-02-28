@@ -23,6 +23,9 @@ int main(int argc, char **argv) {
     put_string("    append          - append to file\n");
     put_string("    wc              - word count\n");
     put_string("    od              - show binary content\n");
+    put_string("    head            - show head content\n");
+    put_string("    tail            - show tail content\n");
+    put_string("    ps              - show process information\n");
     put_string("\nDIR ==> /usr\n");
     put_string("    test            - test all cases\n");
     put_string("    test_rec        - test recursion\n");
@@ -30,6 +33,8 @@ int main(int argc, char **argv) {
     put_string("    test_input      - test ui input\n");
     put_string("    test_resize     - test resize screen\n");
     put_string("    test_malloc     - test malloc and free\n");
+    put_string("    test_struct     - test struct and linked list\n");
+    put_string("    test_xtoa       - test itoa/dtoa/atoi\n");
     put_string("    draw            - test draw function\n");
     put_string("    badapple        - test badapple animation\n");
     restore_fg();
