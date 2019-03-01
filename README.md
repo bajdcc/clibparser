@@ -99,25 +99,65 @@ Shell界面：
 
 **由于太长，文法定义和下推自动机在根目录下的grammar.txt文件中！**
 
-以下为下推自动机的识别过程（**太长，略**），如需查看，请修改cparser.cpp中的：
+**宏的使用（将值改为1即可）**
+
+LR分析的调试，修改cparser.cpp中的：
 
 ```cpp
+// 输出LR状态转换过程
 #define TRACE_PARSING 0
+// 输出下推自动机
 #define DUMP_PDA 0
+// 输出语法树
 #define DEBUG_AST 0
+// 检查语法树的指针是否正确
 #define CHECK_AST 0
 ```
-
-将值改为1即可。
 
 虚拟机的调试，修改cvm.cpp中的：
 
 ```cpp
+// 输出当前虚拟机指令
 #define LOG_INS 0
+// 输出当前虚拟机栈和寄存器
 #define LOG_STACK 0
+// 输出当前虚拟机日志
+#define LOG_SYSTEM 1
 ```
 
-将值改为1即可。
+解析文件的调试，修改cgui.cpp中的：
+
+```cpp
+// 输出解析C语言文件后的合法AST
+#define LOG_AST 0
+// 输出C语言的include依赖列表
+#define LOG_DEP 0
+```
+
+指令生成的调试，修改cgen.cpp中的：
+
+```cpp
+// 输出解析C语言文件中的关键信息，包括类型，函数，参数，表达式等
+#define LOG_TYPE 0
+```
+
+LR文法自动机构建的调试，修改cunit.cpp中的：
+
+```cpp
+// 输出规则
+#define SHOW_RULE 0
+// 输出LR项目
+#define SHOW_LABEL 0
+// 输出闭包
+#define SHOW_CLOSURE 0
+```
+
+虚拟机运行中对于malloc/free的调试，修改cmem.cpp中的：
+
+```cpp
+// 输出内存申请与释放过程中的内存池信息
+#define LOG_MEM 0
+```
 
 ## 测试用例
 
@@ -317,6 +357,7 @@ int main(int argc, char **argv) {
     - [x] sys
     - [x] shell
     - [x] math
+    - [x] vector（动态数组）
     - [x] itoa（参考自[itoa-benchmark](https://github.com/miloyip/itoa-benchmark)）
     - [x] dtoa（参考自[dtoa-benchmark](https://github.com/miloyip/dtoa-benchmark)）
 - [ ] 用户例程

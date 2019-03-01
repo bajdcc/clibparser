@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
     put_string("    test_malloc     - test malloc and free\n");
     put_string("    test_struct     - test struct and linked list\n");
     put_string("    test_xtoa       - test itoa/dtoa/atoi\n");
+    put_string("    test_vector     - test vector\n");
     put_string("    draw            - test draw function\n");
     put_string("    badapple        - test badapple animation\n");
     restore_fg();

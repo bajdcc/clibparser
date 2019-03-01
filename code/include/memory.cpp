@@ -12,19 +12,11 @@ int free(int addr) {
     addr;
     interrupt 31;
 }
-char *memmove(char *dst, char *src, int count) {
-    char* tmpdst = dst;
-    char* tmpsrc = src;
-    if (tmpdst <= tmpsrc || tmpdst >= tmpsrc + count) {
-        while(count--) {
-            *tmpdst++ = *tmpsrc++;
-        }
-    } else {
-        tmpdst = tmpdst + count - 1;
-        tmpsrc = tmpsrc + count - 1;
-        while(count--) {
-            *tmpdst-- = *tmpsrc--;
-        }
+void memmove(char *dst, char *src, int n) {
+    if (dst < src) while (n-- > 0) *dst++ = *src++;
+    else {
+        src += n - 1;
+        dst += n - 1;
+        while (n-- > 0) *dst-- = *src--;
     }
-    return dst;
 }

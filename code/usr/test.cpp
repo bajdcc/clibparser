@@ -13,6 +13,7 @@ int main(int argc, char **argv) {
         case 5: shell("/usr/test_malloc");
         case 6: shell("/usr/test_struct");
         case 7: shell("/usr/test_xtoa");
+        case 8: shell("/usr/test_vector");
     }
     return 0;
 }

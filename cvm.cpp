@@ -150,6 +150,8 @@ namespace clib {
 
     template<class T>
     T cvm::vmm_get(uint32_t va) const {
+        if (va == 0)
+            error("vmm::get nullptr deref!!");
         if (!(ctx->flag & CTX_KERNEL))
             va |= ctx->mask;
         uint32_t pa;

@@ -15,7 +15,12 @@ int strcpy(char *dst, char *src) {
     while (*dst++ = *src++);
 }
 int strncpy(char *dst, char *src, int n) {
-    while (n-- > 0 && (*dst++ = *src++));
+    if (dst < src) while (n-- > 0 && (*dst++ = *src++));
+    else {
+        src += n - 1;
+        dst += n - 1;
+        while (n-- > 0 && (*dst-- = *src--));
+    }
 }
 int strcmp(char *a, char *b) {
     int len = 0;
