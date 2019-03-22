@@ -59,6 +59,7 @@ int match(char *str, int slen, char *rep, int len, int *arr) {
 void grep(char *rep) {
     int c, cmd = 0;
     string s = new_string();
+    string s2 = new_string();
     int *arr = build_next(rep), len = strlen(rep);
     input_lock();
     while ((c = input_char()) != -1) {
@@ -67,14 +68,17 @@ void grep(char *rep) {
             cmd = 1 - cmd;
         } else if (cmd == 0) {
             if (((char) c) == '\n') {
-                if (match(s.text, s.length, rep, len, arr) != -1) {
+                if (match(s2.text, s2.length, rep, len, arr) != -1) {
                     put_string(s.text);
                     put_string("\n");
                 } else {
                     free(s.text);
                 }
+                free(s2.text);
                 s = new_string();
+                s2 = new_string();
             } else {
+                append_char(&s2, c);
                 append_char(&s, c);
             }
         } else {
