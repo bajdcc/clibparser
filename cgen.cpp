@@ -233,6 +233,8 @@ namespace clib {
     }
 
     int type_typedef_t::size(sym_size_t t) const {
+        if (t == x_inc)
+            return refer.lock()->size(t);
         if (ptr > 0)
             return sizeof(void *);
         return refer.lock()->size(t);
@@ -1437,6 +1439,10 @@ namespace clib {
     }
 
     void cgen::emit(ins_t i, int d) {
+        if(text.size()==0xBC4&&i==LOAD)
+        {
+            int a=5;
+        }
 #if LOG_TYPE
         std::cout << "[DEBUG] *GEN* ==> [" << setiosflags(std::ios::right)
                   << std::setiosflags(std::ios::uppercase) << std::hex << std::setw(8)

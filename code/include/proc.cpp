@@ -21,3 +21,7 @@ int get_pid() {
 int switch_task() {
     interrupt 58;
 }
+int exit(int n) {
+    n;
+    interrupt 40;
+}

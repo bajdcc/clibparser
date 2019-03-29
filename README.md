@@ -373,6 +373,7 @@ int main(int argc, char **argv) {
     - [x] grep(only KMP)
     - [x] ps(`cat /sys/pc`)
     - [x] badapple（黑白动画）
+    - [x] number（**高精度四则运算**）
 - [ ] 虚拟文件系统
     - [x] 数据结构
     - [x] 账户

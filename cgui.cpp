@@ -416,7 +416,8 @@ namespace clib {
         auto end = ptr_x + ptr_y * cols;
         std::stringstream ss;
         for (int i = begin; i <= end; ++i) {
-            ss << buffer[i];
+            if (buffer[i])
+                ss << buffer[i];
         }
         return ss.str();
     }

@@ -20,3 +20,7 @@ void memmove(char *dst, char *src, int n) {
         while (n-- > 0) *dst-- = *src--;
     }
 }
+void memset(char *src, char c, int n) {
+    for (; 0 < n; ++src, --n)
+        *src = c;
+}

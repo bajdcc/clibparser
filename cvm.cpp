@@ -1260,7 +1260,7 @@ namespace clib {
             return;
         }
 #if LOG_SYSTEM
-        printf("[SYSTEM] PROC | Destroy: PID= #%d\n", ctx->id);
+        printf("[SYSTEM] PROC | Destroy: PID= #%d, Code= %d\n", ctx->id, ctx->ax._i);
 #endif
         ctx->flag = 0;
         {
@@ -1979,6 +1979,9 @@ namespace clib {
             case 31:
                 ctx->ax._i = vmm_free((uint32_t) ctx->ax._i);
                 break;
+            case 40:
+                destroy(ctx->id);
+                return true;
             case 51:
                 ctx->ax._i = exec_file(vmm_getstr((uint32_t) ctx->ax._i));
                 ctx->pc += INC_PTR;

@@ -22,6 +22,7 @@ enum INTR_TABLE {
     INTR_RESIZE = 20,
     INTR_MALLOC = 30,
     INTR_FREE = 31,
+    INTR_EXIT = 40,
     INTR_PID = 50,
     INTR_PUT_EXEC_FILE = 51,
     INTR_PUT_EXEC_WAIT = 52,
