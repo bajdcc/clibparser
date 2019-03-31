@@ -806,8 +806,12 @@ namespace clib {
                 switch (cfg) {
                     case 0: { // 换行
                         if (ptr_x > 0) {
-                            new_line();
                             ptr_x = 0;
+                            if (ptr_y == rows - 1) {
+                                new_line();
+                            } else {
+                                ptr_y++;
+                            }
                         }
                     }
                         break;
