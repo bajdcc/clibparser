@@ -216,6 +216,8 @@ namespace clib {
                 struct {
                     int _1, _2;
                 } _u;
+                short _s;
+                char _c;
                 byte big_data[BIG_DATA_NUM];
             } ax;
             uint bp;

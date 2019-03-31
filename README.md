@@ -373,7 +373,7 @@ int main(int argc, char **argv) {
     - [x] grep(only KMP)
     - [x] ps(`cat /sys/pc`)
     - [x] badapple（黑白动画）
-    - [x] number（**高精度四则运算**）
+    - [x] number（**高精度四则运算**，已实现：加、减）
 - [ ] 虚拟文件系统
     - [x] 数据结构
     - [x] 账户
@@ -422,6 +422,7 @@ int main(int argc, char **argv) {
 - [x] 输入缓冲区上移时的对齐问题
 - [ ] 回溯式LR分析时遇到错误耗时很长的问题
 - [x] malloc和free的问题
+- [x] 进制转换时有符号扩展的问题
 
 ## 参考
 

@@ -1770,6 +1770,12 @@ namespace clib {
             case 12:
                 ctx->ax._ui = (uint) ctx->ax._uq;
                 break;
+            case 13:
+                ctx->ax._q = (int64) ctx->ax._c;
+                break;
+            case 14:
+                ctx->ax._q = (int64) ctx->ax._s;
+                break;
             case 20:
                 ctx->ax._f = (float) ctx->ax._ui;
                 break;

@@ -90,6 +90,22 @@ big_number plus(big_number *a, big_number *b) {
     }
     return c;
 }
+big_number minus(big_number *a, big_number *b) {
+    big_number c = new_number2(a->length);
+    int i, acc = 0;
+    for (i = a->length - 1; i >= 0; --i) {
+        int t;
+        c.text[i] = a->text[i] - b->text[i] - acc;
+        int d;
+        if (c.text[i] < 0) {
+            c.text[i] += 10;
+            acc = 1;
+        } else {
+            acc = 0;
+        }
+    }
+    return c;
+}
 int main(int argc, char **argv) {
     if (argc != 4) {
         error("[ERROR] Invalid arguments. Required: [+-*/] BigNumber1 BigNumber2\n");
@@ -107,6 +123,7 @@ int main(int argc, char **argv) {
             print_number(plus(&a, &b));
             break;
         case '-':
+            print_number(minus(&a, &b));
             break;
         case '*':
             break;

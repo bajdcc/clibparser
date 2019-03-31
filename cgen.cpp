@@ -92,6 +92,27 @@ namespace clib {
         return -1;
     }
 
+    static const char *cast_str(cast_t type) {
+        switch (type) {
+#define CAST_STR(n) case t_##n: return #n;
+            CAST_STR(char)
+            CAST_STR(uchar)
+            CAST_STR(short)
+            CAST_STR(ushort)
+            CAST_STR(int)
+            CAST_STR(uint)
+            CAST_STR(float)
+            CAST_STR(ptr)
+            CAST_STR(long)
+            CAST_STR(ulong)
+            CAST_STR(double)
+            CAST_STR(struct)
+            CAST_STR(error)
+#undef CAST_STR
+        }
+        return "error";
+    }
+
     int sym_t::size(sym_size_t t) const {
         assert(!"invalid size");
         return 0;
@@ -431,6 +452,8 @@ namespace clib {
          * [10] 4B-8B 无符号转无符号
          * [11] 8B-4B 有符号转有符号
          * [12] 8B-4B 无符号转无符号
+         * [13] 1B-8B 有符号扩展
+         * [14] 2B-8B 有符号扩展
          * [20] 4B-4B 无符号转float
          * [21] 4B-4B 有符号转float
          * [22] 8B-4B 无符号转float
@@ -452,9 +475,9 @@ namespace clib {
          */
         static int _cast[][12] = { // 转换矩阵
             /* [SRC] [DST]  C   UC  S   US  I   UI  L   UL  F   D   P   T */
-            /* char    */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+            /* char    */ { 0,  1,  13, 1,  13, 1,  13, 3,  21, 31, 1,  -1},
             /* uchar   */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-            /* short   */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+            /* short   */ { 0,  1,  0,  1,  14, 1,  14, 3,  21, 31, 1,  -1},
             /* ushort  */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
             /* int     */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
             /* uint    */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
@@ -666,7 +689,7 @@ namespace clib {
 
     string_t sym_cast_t::to_string() const {
         std::stringstream ss;
-        ss << "(cast, " << base->to_string() << ", exp: " << exp->to_string() << ')';
+        ss << "(cast, " << base->to_string() << ",  " << exp->to_string() << ')';
         return ss.str();
     }
 
@@ -717,7 +740,7 @@ namespace clib {
 
     string_t sym_unop_t::to_string() const {
         std::stringstream ss;
-        ss << "(unop, " << cast::to_string(op) << ", exp: " << exp->to_string() << ')';
+        ss << "(unop, " << cast::to_string(op) << ",  " << exp->to_string() << ')';
         return ss.str();
     }
 
@@ -853,7 +876,7 @@ namespace clib {
 
     string_t sym_sinop_t::to_string() const {
         std::stringstream ss;
-        ss << "(sinop, " << cast::to_string(op) << ", exp: " << exp->to_string() << ')';
+        ss << "(sinop, " << cast::to_string(op) << ",  " << exp->to_string() << ')';
         return ss.str();
     }
 
@@ -1062,6 +1085,10 @@ namespace clib {
                 gen.emit(NOP);
                 gen.emit(PUSH, cast_size(exp1->base->get_cast()));
                 exp2->gen_rvalue(gen); // exp2
+#if LOG_TYPE
+                std::cout << "[DEBUG] Binop type: op1= " << cast_str(exp1->base->get_cast())
+                  << ", op2=  " << cast_str(exp2->base->get_cast()) << std::endl;
+#endif
                 if ((op->data._op == op_plus || op->data._op == op_minus) &&
                     exp1->base->get_cast() == t_ptr &&
                     exp2->base->get_cast() == t_int) { // 指针+常量
@@ -1195,7 +1222,6 @@ namespace clib {
                 auto t1 = exp1->base->get_cast();
                 auto t2 = exp2->base->get_cast();
                 if (std::max(t1, t2) >= t_long) {
-                    printf("%d %d\n",t1,t2);
                     gen.error("logical binop: unsupported cast, exp1= " + exp1->to_string() +
                               ", exp2= " + exp2->to_string());
                 }
@@ -1439,10 +1465,6 @@ namespace clib {
     }
 
     void cgen::emit(ins_t i, int d) {
-        if(text.size()==0xBC4&&i==LOAD)
-        {
-            int a=5;
-        }
 #if LOG_TYPE
         std::cout << "[DEBUG] *GEN* ==> [" << setiosflags(std::ios::right)
                   << std::setiosflags(std::ios::uppercase) << std::hex << std::setw(8)
@@ -1840,10 +1862,10 @@ namespace clib {
                                     exp = std::make_shared<sym_binop_t>(exp, exp2, a);
                                 }
                             } else {
-                                error("invalid postfix exp: op");
+                                error("invalid postfix  op");
                             }
                         } else {
-                            error("invalid postfix exp: coll");
+                            error("invalid postfix  coll");
                         }
                     }
                     tmp.back().clear();
@@ -1883,7 +1905,7 @@ namespace clib {
                         }
                             break;
                         default:
-                            error(asts[0], "invalid unary exp: op");
+                            error(asts[0], "invalid unary  op");
                             break;
                     }
                 } else if (AST_IS_KEYWORD_N(op, k_sizeof)) {
@@ -1901,7 +1923,7 @@ namespace clib {
                     }
                     asts.clear();
                 } else {
-                    error(asts[0], "invalid unary exp: coll");
+                    error(asts[0], "invalid unary  coll");
                 }
             }
                 break;
@@ -2393,7 +2415,7 @@ namespace clib {
                 break;
             case c_expressionStatement: {
 #if LOG_TYPE
-                std::cout << "[DEBUG] Exp: " << string_join(tmp.back(), ", ") << std::endl;
+                std::cout << "[DEBUG]  " << string_join(tmp.back(), ", ") << std::endl;
 #endif
             }
                 break;
@@ -2414,7 +2436,7 @@ namespace clib {
                         if (!tmp.back().empty()) {
                             auto exp = tmp.back().front();
                             if (exp->get_base_type() != s_expression) {
-                                error(a, "return requires exp: ", true);
+                                error(a, "return requires  ", true);
                             }
                             auto _exp = std::dynamic_pointer_cast<type_exp_t>(exp);
                             auto ctrl = std::make_shared<sym_ctrl_t>(a);
