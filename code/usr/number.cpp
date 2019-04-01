@@ -8,12 +8,14 @@ void error(char *s) {
     restore_fg();
 }
 struct big_number {
+    int negative;
     char *text;
     int capacity;
     int length;
 };
 big_number new_number() {
     big_number s;
+    s.negative = false;
     s.text = malloc(16);
     s.capacity = 16;
     s.length = 0;
@@ -21,6 +23,7 @@ big_number new_number() {
 }
 big_number new_number2(int n) {
     big_number s;
+    s.negative = false;
     s.text = malloc(n);
     memset(s.text, 0, n);
     s.capacity = n;
@@ -55,7 +58,10 @@ big_number get_number(char *s) {
 }
 void print_number(big_number s) {
     int i;
-    for (i = 0; i < s.length; ++i) {
+    if (s.negative)
+        put_char('-');
+    for (i = 0; i < s.length && s.text[i] == 0; ++i);
+    for (; i < s.length; ++i) {
         put_char('0' + s.text[i]);
     }
 }
@@ -76,21 +82,51 @@ void align(big_number *a, big_number *b) {
     else
         align2(b, a);
 }
+int compare(big_number *a, big_number *b) {
+    int i, j;
+    for (i = 0; i < a->length && a->text[i] == 0; ++i);
+    for (j = 0; j < b->length && b->text[j] == 0; ++j);
+    int nA = a->length - i;
+    int nB = b->length - j;
+    if (nA > nB)
+        return 1;
+    if (nA < nB)
+        return -1;
+    for (; i < a->length && j < b->length; ++i, ++j) {
+        if (a->text[i] > b->text[j])
+            return 1;
+        if (a->text[i] < b->text[j])
+            return -1;
+    }
+    return 0;
+}
 big_number plus(big_number *a, big_number *b) {
-    big_number c = new_number2(a->length);
+    big_number c = new_number2(a->length + 1);
     int i, acc = 0;
     for (i = a->length - 1; i >= 0; --i) {
-        c.text[i] = a->text[i] + b->text[i] + acc;
-        if (c.text[i] >= 10) {
-            c.text[i] -= 10;
+        c.text[i + 1] = a->text[i] + b->text[i] + acc;
+        if (c.text[i + 1] >= 10) {
+            c.text[i + 1] -= 10;
             acc = 1;
         } else {
             acc = 0;
         }
     }
+    c.text[0] = acc;
     return c;
 }
 big_number minus(big_number *a, big_number *b) {
+    int cmp = compare(a, b);
+    if (cmp == 0) {
+        big_number c = new_number2(1);
+        c.text[0] = 0;
+        return c;
+    }
+    if (cmp < 0) {
+        big_number c = minus(b, a);
+        c.negative = true;
+        return c;
+    }
     big_number c = new_number2(a->length);
     int i, acc = 0;
     for (i = a->length - 1; i >= 0; --i) {
@@ -103,6 +139,25 @@ big_number minus(big_number *a, big_number *b) {
         } else {
             acc = 0;
         }
+    }
+    return c;
+}
+big_number times(big_number *a, big_number *b) {
+    int i, j;
+    for (i = 0; i < a->length && a->text[i] == 0; ++i);
+    for (j = 0; j < b->length && b->text[j] == 0; ++j);
+    int nA = a->length - i;
+    int nB = b->length - j;
+    big_number c = new_number2(nA + nB);
+    int m, n, acc;
+    for (m = nA - 1; m >= 0; --m) {
+        acc = 0;
+        for (n = nB - 1; n >= 0; --n) {
+            c.text[m + n + 1] += a->text[i + m] * b->text[j + n] + acc;
+            acc = c.text[m + n + 1] / 10;
+            c.text[m + n + 1] %= 10;
+        }
+        c.text[m] = acc;
     }
     return c;
 }
@@ -126,6 +181,7 @@ int main(int argc, char **argv) {
             print_number(minus(&a, &b));
             break;
         case '*':
+            print_number(times(&a, &b));
             break;
         case '/':
             break;
