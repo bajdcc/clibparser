@@ -61,6 +61,10 @@ void print_number(big_number s) {
     if (s.negative)
         put_char('-');
     for (i = 0; i < s.length && s.text[i] == 0; ++i);
+    if (i == s.length) {
+        put_char('0');
+        return;
+    }
     for (; i < s.length; ++i) {
         put_char('0' + s.text[i]);
     }
@@ -130,9 +134,7 @@ big_number minus(big_number *a, big_number *b) {
     big_number c = new_number2(a->length);
     int i, acc = 0;
     for (i = a->length - 1; i >= 0; --i) {
-        int t;
         c.text[i] = a->text[i] - b->text[i] - acc;
-        int d;
         if (c.text[i] < 0) {
             c.text[i] += 10;
             acc = 1;
@@ -161,6 +163,81 @@ big_number times(big_number *a, big_number *b) {
     }
     return c;
 }
+struct divide_struct {
+    big_number shang, yu;
+};
+int is_zero(big_number *a) {
+    int i;
+    for (i = 0; i < a->length && a->text[i] == 0; ++i);
+    return i == a->length;
+}
+int numcmp(char *a, char *b, int n) {
+    for (; n > 0; n--) {
+        if (*a < *b) {
+            return -1;
+        } else if (*a > *b) {
+            return 1;
+        }
+        a++, b++;
+    }
+    return 0;
+}
+divide_struct divide(big_number *a, big_number *b) {
+    if (is_zero(b)) {
+        error("[ERROR] Cannot divide by zero.\n");
+        exit(4);
+    }
+    int cmp = compare(a, b);
+    if (cmp == 0) {
+        divide_struct ds;
+        ds.shang = new_number2(1);
+        ds.shang.text[0] = 1;
+        ds.yu = new_number2(1);
+        ds.yu.text[0] = 0;
+        return ds;
+    }
+    if (cmp < 0) {
+        divide_struct ds;
+        ds.shang = new_number2(1);
+        ds.shang.text[0] = 0;
+        ds.yu = *a;
+        return ds;
+    }
+    int i, j, k;
+    for (i = 0; i < a->length && a->text[i] == 0; ++i);
+    for (j = 0; j < b->length && b->text[j] == 0; ++j);
+    int nA = a->length - i;
+    int nB = b->length - j;
+    big_number c = new_number2(nA - nB + 1);
+    int m, n, acc;
+    for (m = 0, n = 0; m + n <= nA - nB;) {
+        if (numcmp(a->text + i + m, b->text + j - n, nB + n) >= 0) {
+            do {
+                c.text[m + n]++;
+                acc = 0;
+                for (k = nB + n - 1; k >= 0; --k) {
+                    a->text[i + m + k] -= b->text[j + k - n] + acc;
+                    if (a->text[i + m + k] < 0) {
+                        a->text[i + m + k] += 10;
+                        acc = 1;
+                    } else {
+                        acc = 0;
+                    }
+                }
+            } while (numcmp(a->text + i + m, b->text + j - n, nB + n) >= 0);
+            for (; m <= nA - nB && a->text[i + m] == 0; ++m);
+            n = 0;
+        } else {
+            ++n;
+        }
+        if (m < nA - nB) {
+        }
+    }
+    divide_struct ds;
+    ds.shang = c;
+    ds.yu = *a;
+    return ds;
+}
 int main(int argc, char **argv) {
     if (argc != 4) {
         error("[ERROR] Invalid arguments. Required: [+-*/] BigNumber1 BigNumber2\n");
@@ -183,7 +260,12 @@ int main(int argc, char **argv) {
         case '*':
             print_number(times(&a, &b));
             break;
-        case '/':
+        case '/': {
+            divide_struct ds = divide(&a, &b);
+            print_number(ds.shang);
+            put_char(' ');
+            print_number(ds.yu);
+        }
             break;
     }
     return 0;
