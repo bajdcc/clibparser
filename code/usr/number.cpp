@@ -34,7 +34,7 @@ void append_number(big_number *s, char c) {
     if (s->length >= s->capacity - 1) {
         s->capacity <<= 1;
         char *new_text = malloc(s->capacity);
-        strncpy(new_text, s->text, s->length);
+        memmove(new_text, s->text, s->length);
         free(s->text);
         s->text = new_text;
     }
@@ -72,7 +72,7 @@ void print_number(big_number s) {
 void align2(big_number *a, big_number *b) {
     char *new_text = malloc(b->capacity);
     memset(new_text, 0, b->length - a->length);
-    strncpy(new_text + b->length - a->length, a->text, a->length);
+    memmove(new_text + b->length - a->length, a->text, a->length);
     free(a->text);
     a->text = new_text;
     a->length = b->length;
