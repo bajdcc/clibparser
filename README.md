@@ -16,6 +16,13 @@ C++实现的**LR编译器**及**C语言虚拟机**。总代码量（虚拟机代
 - 自建库函数：**已实现itoa和dtoa**，sprintf（待实现）。
 - **高精度运算**：见`number.cpp`，实现四则运算。
 
+依赖：
+- freeglut
+- opengl32
+- glu32
+- asio
+- ws2_32
+
 **仿制了exec和fork调用，自动运行code文件夹下的代码。**
 
 ![img](https://raw.githubusercontent.com/bajdcc/clibparser/master/screenshots/2.gif)
@@ -368,6 +375,7 @@ int main(int argc, char **argv) {
     - [x] vector（动态数组）
     - [x] itoa（参考自[itoa-benchmark](https://github.com/miloyip/itoa-benchmark)）
     - [x] dtoa（参考自[dtoa-benchmark](https://github.com/miloyip/dtoa-benchmark)）
+    - [ ] map（**红黑树**，设计中）
 - [ ] 用户例程
     - [x] Shell(`sh`, 支持“>”“>>”，**历史记录与查询**)
     - [x] 测试用例(`/usr/test`)
@@ -393,6 +401,7 @@ int main(int argc, char **argv) {
     - [ ] 权限
     - [x] 锁定
     - [ ] 链接
+    - [ ] **网络路径**（设计中，最好能异步）
 - [ ] 图形用户界面
     - [x] 用OpenGL创建窗口
     - [x] 实现控制台输出接口

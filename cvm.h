@@ -15,6 +15,7 @@
 #include "memory.h"
 #include "cmem.h"
 #include "cvfs.h"
+#include "cnet.h"
 
 namespace clib {
 
@@ -110,8 +111,9 @@ namespace clib {
 
         vfs_stream_t stream_type(const string_t &path) const override;
         string_t stream_callback(const string_t &path) override;
-        vfs_node_dec *stream_create(const vfs_mod_query *mod, vfs_stream_t type) override;
+        vfs_node_dec *stream_create(const vfs_mod_query *mod, vfs_stream_t type, const string_t &path) override;
         int stream_index(vfs_stream_t type) override;
+        string_t stream_net(vfs_stream_t type, const string_t &path) override;
 
     private:
         // 申请页框
@@ -242,6 +244,7 @@ namespace clib {
         int available_tasks{0};
         std::array<context_t, TASK_NUM> tasks;
         cvfs fs;
+        cnet net;
 
         struct handle_t {
             handle_type type;

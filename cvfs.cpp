@@ -107,6 +107,32 @@ namespace clib {
         return 0;
     }
 
+    vfs_node_stream_net::vfs_node_stream_net(const vfs_mod_query *mod, vfs_stream_t s, vfs_stream_call *call, const string_t &path) :
+        vfs_node_dec(mod), stream(s), call(call) {
+        content = call->stream_net(stream, path);
+    }
+
+    bool vfs_node_stream_net::available() const {
+        return idx < content.length();
+    }
+
+    int vfs_node_stream_net::index() const {
+        return idx < content.length() ? content[idx] : -1;
+    }
+
+    void vfs_node_stream_net::advance() {
+        if (available())
+            idx++;
+    }
+
+    int vfs_node_stream_net::write(byte c) {
+        return 0;
+    }
+
+    int vfs_node_stream_net::truncate() {
+        return 0;
+    }
+
     // -------------------------------------------
 
     cvfs::cvfs() {
@@ -295,8 +321,7 @@ namespace clib {
             if (dec)
                 *dec = new vfs_node_solid(this, node);
             return 0;
-        }
-        if (node->type == fs_func) {
+        } else if (node->type == fs_func) {
             node->time.access = now();
             if (dec) {
                 if (f) {
@@ -304,18 +329,21 @@ namespace clib {
                     if (t == fss_none) {
                         *dec = new vfs_node_cached(this, f->stream_callback(p));
                     } else {
-                        *dec = f->stream_create(this, t);
+                        *dec = f->stream_create(this, t, p);
                     }
                 } else {
                     return -2;
                 }
             }
             return 0;
-        }
-        if (node->type == fs_dir) {
+        } else if (node->type == fs_dir) {
             if (m.size() > 1) {
                 return macro(m, node, dec);
             }
+        } else if (node->type == fs_magic) {
+            node->time.access = now();
+            *dec = f->stream_create(this, fss_net, p);
+            return 0;
         }
         return -2;
     }
@@ -398,6 +426,9 @@ namespace clib {
             if (!p.empty()) {
                 auto f = cur->children.find(p);
                 if (f != cur->children.end()) {
+                    if (f->second->type == fs_magic) {
+                        return f->second;
+                    }
                     if (i < paths.size() - 1 && f->second->type != fs_dir)
                         return nullptr;
                     cur = f->second;
@@ -525,6 +556,22 @@ namespace clib {
             auto s = _mkdir(path, cur);
             if (s == 0) { // new dir
                 cur->type = fs_func;
+                cur->callback = f;
+                return 0;
+            } else { // exists
+                return 1;
+            }
+        }
+        return -2;
+    }
+
+    int cvfs::magic(const string_t &path, vfs_func_t *f) {
+        auto node = get_node(path);
+        if (!node) {
+            vfs_node::ref cur;
+            auto s = _mkdir(path, cur);
+            if (s == 0) { // new dir
+                cur->type = fs_magic;
                 cur->callback = f;
                 return 0;
             } else { // exists

@@ -12,6 +12,7 @@
 #include "cgen.h"
 #include "cexception.h"
 #include "cgui.h"
+#include "cnet.h"
 
 #define LOG_INS 0
 #define LOG_STACK 0
@@ -77,6 +78,7 @@ namespace clib {
         fs.mkdir("/dev");
         fs.func("/dev/random", this);
         fs.func("/dev/null", this);
+        fs.magic("/http", this);
         fs.as_root(false);
         fs.load("/usr/logo.txt");
         fs.load("/usr/badapple.txt");
@@ -1507,6 +1509,8 @@ namespace clib {
                     return fss_null;
                 }
             }
+        } else if (path.substr(0, 5) == "/http") {
+            return fss_net;
         }
         return fss_none;
     }
@@ -1564,11 +1568,16 @@ namespace clib {
                     return ss.str();
                 }
             }
+        } else if (path.substr(0, 5) == "/http") {
+            return "346";
         }
         return "\033FFF0000F0\033[ERROR] File not exists.\033S4\033";
     }
 
-    vfs_node_dec *cvm::stream_create(const vfs_mod_query *mod, vfs_stream_t type) {
+    vfs_node_dec *cvm::stream_create(const vfs_mod_query *mod, vfs_stream_t type, const string_t &path) {
+        if (type == fss_net) {
+            return new vfs_node_stream_net(mod, type, this, path);
+        }
         if (type != fss_none) {
             return new vfs_node_stream(mod, type, this);
         }
@@ -1591,6 +1600,18 @@ namespace clib {
         }
         error("invalid stream type");
         return -1;
+    }
+
+    string_t cvm::stream_net(vfs_stream_t type, const string_t &path) {
+        switch (type) {
+            case fss_net: {
+                return net.http_get(path);
+            }
+            default:
+                break;
+        }
+        error("invalid stream type");
+        return "";
     }
 
     const char *cvm::state_string(cvm::ctx_state_t type) {

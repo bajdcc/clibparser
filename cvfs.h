@@ -22,12 +22,14 @@ namespace clib {
         fs_file,
         fs_dir,
         fs_func,
+        fs_magic,
     };
 
     enum vfs_stream_t {
         fss_none,
         fss_random,
         fss_null,
+        fss_net,
     };
 
     class vfs_node_dec;
@@ -36,7 +38,7 @@ namespace clib {
     public:
         virtual string_t stream_callback(const string_t &path) = 0;
         virtual vfs_stream_t stream_type(const string_t &path) const = 0;
-        virtual vfs_node_dec *stream_create(const vfs_mod_query *mod, vfs_stream_t type) = 0;
+        virtual vfs_node_dec *stream_create(const vfs_mod_query *mod, vfs_stream_t type, const string_t &path) = 0;
     };
 
     // 结点
@@ -110,6 +112,7 @@ namespace clib {
     class vfs_stream_call {
     public:
         virtual int stream_index(vfs_stream_t type) = 0;
+        virtual string_t stream_net(vfs_stream_t type, const string_t &path) = 0;
     };
 
     class vfs_node_stream : public vfs_node_dec {
@@ -124,6 +127,21 @@ namespace clib {
     private:
         vfs_stream_t stream{fss_none};
         vfs_stream_call *call{nullptr};
+    };
+
+    class vfs_node_stream_net : public vfs_node_dec {
+        friend class cvfs;
+    public:
+        bool available() const override;
+        int index() const override;
+        void advance() override;
+        int write(byte c) override;
+        int truncate() override;
+        explicit vfs_node_stream_net(const vfs_mod_query *, vfs_stream_t, vfs_stream_call *, const string_t &path);
+    private:
+        vfs_stream_t stream{fss_none};
+        vfs_stream_call *call{nullptr};
+        string_t content;
     };
 
     class cvfs : public vfs_mod_query {
@@ -143,6 +161,7 @@ namespace clib {
         int mkdir(const string_t &path);
         int touch(const string_t &path);
         int func(const string_t &path, vfs_func_t *f);
+        int magic(const string_t &path, vfs_func_t *f);
         int rm(const string_t &path);
         int rm_safe(const string_t &path);
         void load(const string_t &path);
