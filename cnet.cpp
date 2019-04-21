@@ -15,14 +15,17 @@ namespace clib {
 
         auto URL = url;
 
+        static const char *http_protocol[] = {"http://", "https://"};
+        auto is_http = false;
         if (url.find("/http/") != string_t::npos) {
             URL = url.substr(6);
         } else if (url.find("/https/") != string_t::npos) {
+                is_http = true;
             URL = url.substr(7);
         }
 
 #if LOG_NET
-        printf("[SYSTEM] NET  | GET: %s\n", URL.c_str());
+        printf("[SYSTEM] NET  | GET: %s%s\n", http_protocol[is_http], URL.c_str());
 #endif
 
         index = URL.find('/');
@@ -59,12 +62,12 @@ namespace clib {
         getline(response_stream, status_message);
         if (!response_stream || http_version.substr(0, 5) != "HTTP/") {
 #if LOG_NET
-            printf("[SYSTEM] NET  | GET: %s, #ERROR: Invalid response\n", URL.c_str());
+            printf("[SYSTEM] NET  | GET: %s%s, #ERROR: Invalid response\n", http_protocol[is_http], URL.c_str());
 #endif
         }
         if (status_code != 200) {
 #if LOG_NET
-            printf("[SYSTEM] NET  | GET: %s, #ERROR: Invalid status code= %d\n", URL.c_str(), status_code);
+            printf("[SYSTEM] NET  | GET: %s%s, #ERROR: Invalid status code= %d\n", http_protocol[is_http], URL.c_str(), status_code);
 #endif
         }
 
@@ -98,7 +101,7 @@ namespace clib {
         sz.append(std::istream_iterator<char>(is), std::istream_iterator<char>());
 
 #if LOG_NET
-        printf("[SYSTEM] NET  | GET: %s, #SUCCESS: size1= %d, size2= %d\n", URL.c_str(), size, sz.length());
+        printf("[SYSTEM] NET  | GET: %s%s, #SUCCESS: size1= %d, size2= %d\n", http_protocol[is_http], URL.c_str(), size, sz.length());
 #endif
 
         return sz;

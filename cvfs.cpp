@@ -117,7 +117,7 @@ namespace clib {
     }
 
     int vfs_node_stream_net::index() const {
-        return idx < content.length() ? content[idx] : -1;
+        return idx < content.length() ? (content[idx] < 0 ? ' ' : content[idx]) : -1;
     }
 
     void vfs_node_stream_net::advance() {
@@ -226,6 +226,7 @@ namespace clib {
             "35EA3F", // file
             "44FC7D", // dir
             "76FC44", // func
+            "BCDD29", // magic
         };
         static char fmt[256];
         sprintf(fmt, "\033FFFA0A0A0\033%c%9s \033FFFB3B920\033%4s \033S4\033%9d \033FFF51C2A8\033%s \033FFF%s\033%s\033S4\033",
@@ -336,13 +337,16 @@ namespace clib {
                 }
             }
             return 0;
-        } else if (node->type == fs_dir) {
+        } else if (node->type == fs_dir) {GET:
             if (m.size() > 1) {
                 return macro(m, node, dec);
             }
         } else if (node->type == fs_magic) {
             node->time.access = now();
             *dec = f->stream_create(this, fss_net, p);
+            if (*dec == nullptr) {
+                return -1;
+            }
             return 0;
         }
         return -2;

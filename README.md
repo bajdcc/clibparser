@@ -15,6 +15,7 @@ C++实现的**LR编译器**及**C语言虚拟机**。总代码量（虚拟机代
 - 内存管理：自制内存池。
 - 自建库函数：**已实现itoa和dtoa**，sprintf（待实现）。
 - **高精度运算**：见`number.cpp`，实现四则运算。
+- 网络路径：如查看`google.com`可以输入命令`cat /http/www.google.com`，暂时只支持http路径，底层用ASIO实现。目前的方式是阻塞式的。
 
 依赖：
 - freeglut
@@ -390,6 +391,7 @@ int main(int argc, char **argv) {
     - [x] ps(`cat /sys/pc`)
     - [x] badapple（黑白动画）
     - [x] number（**高精度四则运算**，已实现：加、减、乘、除）
+    - [x] http_get（`cat /http/path/to/the/host`）
 - [ ] 虚拟文件系统
     - [x] 数据结构
     - [x] 账户

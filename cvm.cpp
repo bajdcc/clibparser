@@ -8,6 +8,7 @@
 #include <cstring>
 #include <regex>
 #include <random>
+#include <asio/system_error.hpp>
 #include "cvm.h"
 #include "cgen.h"
 #include "cexception.h"
@@ -1576,7 +1577,14 @@ namespace clib {
 
     vfs_node_dec *cvm::stream_create(const vfs_mod_query *mod, vfs_stream_t type, const string_t &path) {
         if (type == fss_net) {
-            return new vfs_node_stream_net(mod, type, this, path);
+            try {
+                return new vfs_node_stream_net(mod, type, this, path);
+            } catch (const asio::system_error &error) {
+#if LOG_SYSTEM
+                printf("[SYSTEM] NET  | PATH: %s, ERROR: %s\n", path.c_str(), error.what());
+#endif
+                return nullptr;
+            }
         }
         if (type != fss_none) {
             return new vfs_node_stream(mod, type, this);
