@@ -93,6 +93,8 @@ namespace clib {
 #define HANDLE_NUM 1024
 #define BIG_DATA_NUM 512
 
+#define READ_EOF 0x1000
+
     class cvm : public imem, public vfs_func_t, public vfs_stream_call {
     public:
         cvm();

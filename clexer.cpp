@@ -414,8 +414,8 @@ LEX_T(t) clexer::get_store_##t(int index) const \
         auto i = index;
         auto n = 0ULL, _n = 0ULL;
         auto d = 0.0;
-        if (local() == '0' && (local(1) == 'x' || local(1) == 'x')) {
-            _type = l_uint;
+        if (local() == '0' && (local(1) == 'x' || local(1) == 'X')) {
+            _type = local(1) == 'x' ? l_int : l_uint;
             auto cc = 0;
             // 预先判断十六进制
             for (i += 2; i < length && ((cc = hex2dec(str[i])) != -1); i++) { // 解析整数部分

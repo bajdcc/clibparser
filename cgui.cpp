@@ -150,7 +150,7 @@ namespace clib {
                     glColor4ubv((GLubyte *) &colors_fg[i * cols + j]);
                     glRasterPos2i(x, y);
                     glutBitmapCharacter(GUI_FONT, buffer[i * cols + j]);
-                } else if (buffer[i * cols + j] == '\7') {
+                } else if (buffer[i * cols + j] == '\7' || buffer[i * cols + j] < 0) {
                     glColor4ubv((GLubyte *) &colors_fg[i * cols + j]);
                     glRecti(x, y + GUI_FONT_H_1, x + GUI_FONT_W, y + GUI_FONT_H_2);
                 }
@@ -298,8 +298,10 @@ namespace clib {
             std::fill(colors_bg, colors_bg + size, color_bg);
             std::fill(colors_fg, colors_fg + size, color_fg);
         } else {
-            auto end = ptr_rx == cols - 1 && ptr_ry == rows - 1;
-            auto nl = ptr_rx == ptr_x && ptr_rx == cols - 1;
+            auto rx = ptr_rx == -1 ? ptr_x : ptr_rx;
+            auto ry = ptr_ry == -1 ? ptr_y : ptr_ry;
+            auto end = rx == cols - 1 && ry == rows - 1;
+            auto nl = rx == ptr_x && rx == cols - 1;
             if (end) {
                 if (nl) {
                     draw_char(c);
