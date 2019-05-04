@@ -1444,7 +1444,7 @@ namespace clib {
         auto magic = string_t(PE_MAGIC);
         std::copy((byte*) magic.data(), (byte*) magic.data() + magic.size(), std::back_inserter(file));
         auto addr = std::dynamic_pointer_cast<sym_func_t>(entry->second)->addr;
-        std::copy((byte*) &addr, (byte*) &addr + sizeof(entry), std::back_inserter(file));
+        std::copy((byte*) &addr, (byte*) &addr + sizeof(addr), std::back_inserter(file));
         auto data_size = data.size() * sizeof(data[0]);
         std::copy((byte*) &data_size, (byte*) &data_size + sizeof(data_size), std::back_inserter(file));
         auto text_size = text.size() * sizeof(text[0]);

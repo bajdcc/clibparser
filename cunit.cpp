@@ -154,10 +154,10 @@ namespace clib {
 
     unit *cunit::copy(unit *u) {
         if (u->t == u_token) { // copy token unit
-            return &(*nodes.alloc<unit_collection>()).set_child(u).set_t(u_token_ref).init(this);
+            return &(*nodes.alloc<unit_collection>()).set_skip(false).set_child(u).set_t(u_token_ref).init(this);
         }
         if (u->t == u_rule) { // copy rule unit
-            return &(*nodes.alloc<unit_collection>()).set_child(u).set_t(u_rule_ref).init(this);
+            return &(*nodes.alloc<unit_collection>()).set_skip(false).set_child(u).set_t(u_rule_ref).init(this);
         }
         return u;
     }
