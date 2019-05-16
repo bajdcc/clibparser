@@ -828,8 +828,6 @@ namespace clib {
                 exp->gen_rvalue(gen);
                 base = exp->base->clone();
                 auto size = base->get_cast();
-                auto c = cast_size(size);
-                gen.emit(PUSH, c);
                 gen.emit(LNT, size);
             }
                 break;
