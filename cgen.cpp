@@ -176,7 +176,7 @@ namespace clib {
                 return 1;
             if (ptr == 1)
                 return LEX_SIZE(type);
-            return sizeof(void*);
+            return sizeof(void *);
         }
         if (t == x_matrix) {
             // TODO: Fix bug, ID Assignment L-Value
@@ -285,7 +285,7 @@ namespace clib {
     }
 
     sym_id_t::sym_id_t(const type_t::ref &base, const string_t &id)
-        : base(base), id(id) {}
+            : base(base), id(id) {}
 
     symbol_t sym_id_t::get_type() const {
         return s_id;
@@ -364,9 +364,12 @@ namespace clib {
     int sym_struct_t::size(sym_size_t t) const {
         if (_size == 0) {
             if (_struct) {
-                for (auto &decl : decls) {
+                for (auto& decl : decls) {
                     decl->addr = _size;
-                    *const_cast<int *>(&_size) += decl->size(t);
+                    auto size = decl->size(t);
+                    if ((size & 3) != 0)
+                        size += 4 - (size & 3);
+                    *const_cast<int*>(&_size) += size;
                     decl->addr_end = _size;
                 }
             } else {
@@ -477,19 +480,30 @@ namespace clib {
          * [38] 8B-4B double转float
          */
         static int _cast[][12] = { // 转换矩阵
-            /* [SRC] [DST]  C   UC  S   US  I   UI  L   UL  F   D   P   T */
-            /* char    */ { 0,  1,  13, 1,  13, 1,  13, 3,  21, 31, 1,  -1},
-            /* uchar   */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-            /* short   */ { 0,  1,  0,  1,  14, 1,  14, 3,  21, 31, 1,  -1},
-            /* ushort  */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-            /* int     */ { 0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
-            /* uint    */ { 2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
-            /* long    */ { 11, 5,  11, 5,  11, 5,  0,  7,  23, 33, 5,  -1},
-            /* ulong   */ { 6,  12, 6,  12, 6,  12, 8,  0,  22, 32, 12, -1},
-            /* float   */ { 25, 24, 25, 24, 25, 24, 27, 26, 0,  28, -1, -1},
-            /* double  */ { 35, 34, 35, 34, 35, 34, 37, 36, 38, 0,  -1, -1},
-            /* ptr     */ { 2,  0,  2,  0,  2,  0,  4,  10, -1, -1, 0,  -1},
-            /* struct  */ { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0},
+                /* [SRC] [DST]  C   UC  S   US  I   UI  L   UL  F   D   P   T */
+                /* char    */ {0,  1,  13, 1,  13, 1,  13, 3,  21, 31, 1,  -1},
+                /* uchar   */
+                              {2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+                /* short   */
+                              {0,  1,  0,  1,  14, 1,  14, 3,  21, 31, 1,  -1},
+                /* ushort  */
+                              {2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+                /* int     */
+                              {0,  1,  0,  1,  0,  1,  9,  3,  21, 31, 1,  -1},
+                /* uint    */
+                              {2,  0,  2,  0,  2,  0,  4,  10, 20, 30, 0,  -1},
+                /* long    */
+                              {11, 5,  11, 5,  11, 5,  0,  7,  23, 33, 5,  -1},
+                /* ulong   */
+                              {6,  12, 6,  12, 6,  12, 8,  0,  22, 32, 12, -1},
+                /* float   */
+                              {25, 24, 25, 24, 25, 24, 27, 26, 0,  28, -1, -1},
+                /* double  */
+                              {35, 34, 35, 34, 35, 34, 37, 36, 38, 0,  -1, -1},
+                /* ptr     */
+                              {2,  0,  2,  0,  2,  0,  4,  10, -1, -1, 0,  -1},
+                /* struct  */
+                              {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0},
         };
         return _cast[src][dst];
     }
@@ -547,6 +561,27 @@ namespace clib {
 
     int type_exp_t::size(sym_size_t t) const {
         return base->size(t);
+    }
+
+    gen_t type_exp_t::gen_invoke(igen &gen, sym_t::ref &list) {
+        assert(list->get_type() == s_list);
+        auto args = std::dynamic_pointer_cast<sym_list_t>(list);
+        auto &exps = args->exps;
+        auto total_size = 0;
+        for (size_t i = 0; i < exps.size(); ++i) {
+            exps[i]->gen_rvalue(gen);
+            auto exp_type = exps[i]->base->get_cast();
+            auto c = exp_type == t_struct ? exps[i]->size(x_size) : cast_size(exp_type);
+            gen.emit(PUSH, c);
+            total_size += c;
+        }
+        gen_rvalue(gen);
+        gen.emit(CALL);
+        if (!exps.empty()) {
+            gen.emit(ADJ, total_size / 4);
+        }
+        base = std::make_shared<type_base_t>(l_int);
+        return g_ok;
     }
 
     sym_var_t::sym_var_t(const type_t::ref &base, ast_node *node) : type_exp_t(base), node(node) {
@@ -624,7 +659,7 @@ namespace clib {
     }
 
     sym_var_id_t::sym_var_id_t(const type_t::ref &base, ast_node *node, const sym_t::ref &symbol)
-        : sym_var_t(base, node), id(symbol) {}
+            : sym_var_t(base, node), id(symbol) {}
 
     symbol_t sym_var_id_t::get_type() const {
         return s_var_id;
@@ -718,7 +753,7 @@ namespace clib {
     }
 
     sym_unop_t::sym_unop_t(const type_exp_t::ref &exp, ast_node *op)
-        : type_exp_t(nullptr), exp(exp), op(op) {
+            : type_exp_t(nullptr), exp(exp), op(op) {
         line = exp->line;
         column = exp->column;
     }
@@ -858,7 +893,7 @@ namespace clib {
     }
 
     sym_sinop_t::sym_sinop_t(const type_exp_t::ref &exp, ast_node *op)
-        : type_exp_t(nullptr), exp(exp), op(op) {
+            : type_exp_t(nullptr), exp(exp), op(op) {
         line = exp->line;
         column = exp->column;
     }
@@ -941,7 +976,7 @@ namespace clib {
     }
 
     sym_binop_t::sym_binop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2, ast_node *op)
-        : type_exp_t(nullptr), exp1(exp1), exp2(exp2), op(op) {
+            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), op(op) {
         line = exp1->line;
         column = exp1->column;
     }
@@ -1260,7 +1295,7 @@ namespace clib {
 
     sym_triop_t::sym_triop_t(const type_exp_t::ref &exp1, const type_exp_t::ref &exp2,
                              const type_exp_t::ref &exp3, ast_node *op1, ast_node *op2)
-        : type_exp_t(nullptr), exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {
+            : type_exp_t(nullptr), exp1(exp1), exp2(exp2), exp3(exp3), op1(op1), op2(op2) {
         line = exp1->line;
         column = exp1->column;
     }
@@ -1443,15 +1478,15 @@ namespace clib {
             error("main() not defined");
         }
         auto magic = string_t(PE_MAGIC);
-        std::copy((byte*) magic.data(), (byte*) magic.data() + magic.size(), std::back_inserter(file));
+        std::copy((byte *) magic.data(), (byte *) magic.data() + magic.size(), std::back_inserter(file));
         auto addr = std::dynamic_pointer_cast<sym_func_t>(entry->second)->addr;
-        std::copy((byte*) &addr, (byte*) &addr + sizeof(addr), std::back_inserter(file));
+        std::copy((byte *) &addr, (byte *) &addr + sizeof(addr), std::back_inserter(file));
         auto data_size = data.size() * sizeof(data[0]);
-        std::copy((byte*) &data_size, (byte*) &data_size + sizeof(data_size), std::back_inserter(file));
+        std::copy((byte *) &data_size, (byte *) &data_size + sizeof(data_size), std::back_inserter(file));
         auto text_size = text.size() * sizeof(text[0]);
-        std::copy((byte*) &text_size, (byte*) &text_size + sizeof(text_size), std::back_inserter(file));
+        std::copy((byte *) &text_size, (byte *) &text_size + sizeof(text_size), std::back_inserter(file));
         std::copy(data.begin(), data.end(), std::back_inserter(file));
-        std::copy((byte*) text.data(), (byte*) text.data() + text_size, std::back_inserter(file));
+        std::copy((byte *) text.data(), (byte *) text.data() + text_size, std::back_inserter(file));
         return file;
     }
 
@@ -2705,7 +2740,7 @@ namespace clib {
                                   ((char *) &node->data._ins) + size,
                                   std::back_inserter(data));
                         if (delta > 0) {
-                            *(((int*) (data.data() + data.size())) - 1) += delta;
+                            *(((int *) (data.data() + data.size())) - 1) += delta;
                         }
                     } else {
                         load_string(node->data._string);
@@ -2720,7 +2755,7 @@ namespace clib {
                               data.data() + var2->addr_end,
                               std::back_inserter(data));
                     if (delta > 0) {
-                        *(((int*) (data.data() + data.size())) - 1) += delta;
+                        *(((int *) (data.data() + data.size())) - 1) += delta;
                     }
                 } else if (init->get_type() == s_unop) {
                     auto v1 = std::dynamic_pointer_cast<sym_unop_t>(init);
@@ -2735,27 +2770,27 @@ namespace clib {
                                 case ast_char:
                                 case ast_short:
                                 case ast_int:
-                                    *(((int*) (data.data() + data.size())) - 1) = -*(((int*) (data.data() + data.size())) - 1);
+                                    *(((int *) (data.data() + data.size())) - 1) = -*(((int *) (data.data() + data.size())) - 1);
                                     if (delta > 0) {
-                                        *(((int*) (data.data() + data.size())) - 1) += delta;
+                                        *(((int *) (data.data() + data.size())) - 1) += delta;
                                     }
                                     break;
                                 case ast_long:
-                                    *(((int64*) (data.data() + data.size())) - 1) = -*(((int64*) (data.data() + data.size())) - 1);
+                                    *(((int64 *) (data.data() + data.size())) - 1) = -*(((int64 *) (data.data() + data.size())) - 1);
                                     if (delta > 0) {
-                                        *(((int64*) (data.data() + data.size())) - 1) += (int64) delta;
+                                        *(((int64 *) (data.data() + data.size())) - 1) += (int64) delta;
                                     }
                                     break;
                                 case ast_float:
-                                    *(((float*) (data.data() + data.size())) - 1) = -*(((float*) (data.data() + data.size())) - 1);
+                                    *(((float *) (data.data() + data.size())) - 1) = -*(((float *) (data.data() + data.size())) - 1);
                                     if (delta > 0) {
-                                        *(((float*) (data.data() + data.size())) - 1) += (float) delta;
+                                        *(((float *) (data.data() + data.size())) - 1) += (float) delta;
                                     }
                                     break;
                                 case ast_double:
-                                    *(((double*) (data.data() + data.size())) - 1) = -*(((double*) (data.data() + data.size())) - 1);
+                                    *(((double *) (data.data() + data.size())) - 1) = -*(((double *) (data.data() + data.size())) - 1);
                                     if (delta > 0) {
-                                        *(((double*) (data.data() + data.size())) - 1) += (double) delta;
+                                        *(((double *) (data.data() + data.size())) - 1) += (double) delta;
                                     }
                                     break;
                                 default:
@@ -2794,16 +2829,16 @@ namespace clib {
                                         case ast_char:
                                         case ast_short:
                                         case ast_int:
-                                            *(((int*) (data.data() + data.size())) - 1) = -*(((int*) (data.data() + data.size())) - 1);
+                                            *(((int *) (data.data() + data.size())) - 1) = -*(((int *) (data.data() + data.size())) - 1);
                                             break;
                                         case ast_long:
-                                            *(((int64*) (data.data() + data.size())) - 1) = -*(((int64*) (data.data() + data.size())) - 1);
+                                            *(((int64 *) (data.data() + data.size())) - 1) = -*(((int64 *) (data.data() + data.size())) - 1);
                                             break;
                                         case ast_float:
-                                            *(((float*) (data.data() + data.size())) - 1) = -*(((float*) (data.data() + data.size())) - 1);
+                                            *(((float *) (data.data() + data.size())) - 1) = -*(((float *) (data.data() + data.size())) - 1);
                                             break;
                                         case ast_double:
-                                            *(((double*) (data.data() + data.size())) - 1) = -*(((double*) (data.data() + data.size())) - 1);
+                                            *(((double *) (data.data() + data.size())) - 1) = -*(((double *) (data.data() + data.size())) - 1);
                                             break;
                                         default:
                                             error(id, "allocate: unop not supported");
@@ -3026,12 +3061,12 @@ namespace clib {
     }
 
     std::tuple<sym_class_t, string_t> sym_class_string_list[] = {
-        std::make_tuple(z_undefined, "undefined"),
-        std::make_tuple(z_global_var, "global id"),
-        std::make_tuple(z_local_var, "local id"),
-        std::make_tuple(z_param_var, "param id"),
-        std::make_tuple(z_struct_var, "struct id"),
-        std::make_tuple(z_function, "func id"),
+            std::make_tuple(z_undefined, "undefined"),
+            std::make_tuple(z_global_var, "global id"),
+            std::make_tuple(z_local_var, "local id"),
+            std::make_tuple(z_param_var, "param id"),
+            std::make_tuple(z_struct_var, "struct id"),
+            std::make_tuple(z_function, "func id"),
     };
 
     const string_t &sym_class_string(sym_class_t t) {
