@@ -82,8 +82,12 @@ namespace clib {
     }
 
     unit &unit::operator~() {
-        assert(t == u_token);
-        return to_ref(builder->copy(this))->set_skip(true);
+        if (t == u_token)
+            return to_ref(builder->copy(this))->set_skip(true);
+        if (t == u_token_ref)
+            return to_ref(this)->set_marked(true);
+        assert(!"invalid type");
+        return *this;
     }
 
     unit &unit::init(unit_builder *builder) {
@@ -114,6 +118,11 @@ namespace clib {
 
     unit_collection &unit_collection::set_skip(bool skip) {
         this->skip = skip;
+        return *this;
+    }
+
+    unit_collection &unit_collection::set_marked(bool marked) {
+        this->marked = marked;
         return *this;
     }
 
@@ -154,10 +163,14 @@ namespace clib {
 
     unit *cunit::copy(unit *u) {
         if (u->t == u_token) { // copy token unit
-            return &(*nodes.alloc<unit_collection>()).set_skip(false).set_child(u).set_t(u_token_ref).init(this);
+            return &(*nodes.alloc<unit_collection>())
+            .set_skip(false).set_marked(false).set_child(u)
+            .set_t(u_token_ref).init(this);
         }
         if (u->t == u_rule) { // copy rule unit
-            return &(*nodes.alloc<unit_collection>()).set_skip(false).set_child(u).set_t(u_rule_ref).init(this);
+            return &(*nodes.alloc<unit_collection>())
+            .set_skip(false).set_marked(false).set_child(u)
+            .set_t(u_rule_ref).init(this);
         }
         return u;
     }
@@ -997,6 +1010,7 @@ namespace clib {
                             true);
                         edge.data = node;
                         edge.type = to_ref(node)->skip ? e_pass : e_move;
+                        edge.marked = to_ref(node)->marked;
                         token_set.insert(to_ref(node)->child);
                         decltype(token_set) res{to_ref(node)->child};
                         LA.insert(std::make_pair(&edge, res));
@@ -1076,6 +1090,7 @@ namespace clib {
                     pda_trans trans{};
                     trans.jump = pids[(pda_status *) edge->end];
                     trans.type = edge->type;
+                    trans.marked = edge->marked;
                     auto v = prev.find(edge);
                     if (v != prev.end()) {
                         trans.status = pids[v->second];
